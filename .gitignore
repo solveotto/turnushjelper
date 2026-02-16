@@ -4,6 +4,8 @@ venv/
 instance/
 app/static/turnusfiler
 nul
+General/
+.metadata
 
 
 *.pyc
@@ -29,6 +31,6 @@ config.ini
 dummy.db
 *.sql
 backups/
-tmpclaude-* 
+tmpclaude-*
 .claude/
 CLAUDE.md

@@ -105,6 +105,8 @@
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
+                                        <div id="double-shift-status-{{ turnus_set.id }}" class="text-muted small mt-1" style="display: none;">
+                                        </div>
                                     </td>
                                     <td>{{ turnus_set.created_at.strftime('%Y-%m-%d') if turnus_set.created_at else 'Ukjent' }}</td>
                                     <td>
@@ -168,6 +170,11 @@
                 <div class="progress">
                     <div class="progress-bar" role="progressbar" style="width: 0%" id="progress-bar"></div>
                 </div>
+                <div id="double-shift-result" class="mt-3" style="display: none;">
+                    <hr>
+                    <p class="mb-1 fw-bold">Dobbelttur-skanning:</p>
+                    <p class="mb-0" id="double-shift-text"></p>
+                </div>
             </div>
         </div>
     </div>
@@ -210,6 +217,15 @@ function loadStreklisteStatus(turnusSetId) {
                     generateBtn.title = 'Regenerer bilder (force)';
                     deleteBtn.disabled = false;
                 }
+                // Show double shift scan info if available
+                const dsStatus = document.getElementById(`double-shift-status-${turnusSetId}`);
+                if (info.double_shift_count !== undefined) {
+                    dsStatus.style.display = 'block';
+                    dsStatus.innerHTML = `<i class="bi bi-arrow-repeat"></i> Dobbelttur: ${info.double_shift_count} par | Delt dagsverk: ${info.delt_dagsverk_count}`;
+                } else {
+                    dsStatus.style.display = 'none';
+                }
+
                 // Reset button icons (in case they were showing spinners)
                 deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
             } else {
@@ -255,14 +271,26 @@ function generateStrekliste(turnusSetId) {
             progressBar.classList.add('bg-success');
             progressText.textContent = `Ferdig! ${data.generated} bilder generert, ${data.skipped} hoppet over.`;
 
+            // Show double shift scan results
+            const dsResult = document.getElementById('double-shift-result');
+            const dsText = document.getElementById('double-shift-text');
+            dsResult.style.display = 'block';
+
+            if (data.double_shift_error) {
+                dsText.innerHTML = `<span class="text-warning">Skanning feilet: ${data.double_shift_error}</span>`;
+            } else {
+                dsText.innerHTML = `Fant ${data.double_shift_count} dobbelttur-par og ${data.delt_shift_count} delt dagsverk.`;
+            }
+
             // Reload status after a short delay
             setTimeout(() => {
                 modal.hide();
                 loadStreklisteStatus(turnusSetId);
-                // Reset progress bar
+                // Reset progress bar and double shift info
                 progressBar.style.width = '0%';
                 progressBar.classList.remove('bg-success');
-            }, 2000);
+                dsResult.style.display = 'none';
+            }, 3000);
         } else {
             progressBar.classList.add('bg-danger');
             progressText.textContent = `Feil: ${data.message}`;

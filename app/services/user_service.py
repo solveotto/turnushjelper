@@ -1,4 +1,6 @@
 import logging
+from errno import EILSEQ
+
 import bcrypt
 from sqlalchemy import func
 
@@ -10,14 +12,16 @@ logger = logging.getLogger(__name__)
 
 def hash_password(password):
     salt = bcrypt.gensalt()
-    hashed_pw = bcrypt.hashpw(password.encode('utf-8'), salt)
-    return hashed_pw.decode('utf-8')
+    hashed_pw = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed_pw.decode("utf-8")
 
 
 def create_new_user(username, password, is_auth):
     db_session = get_db_session()
     try:
-        new_user = DBUser(username=username, password=hash_password(password), is_auth=is_auth)
+        new_user = DBUser(
+            username=username, password=hash_password(password), is_auth=is_auth
+        )
         db_session.add(new_user)
         db_session.commit()
         logger.info("User created")
@@ -37,16 +41,20 @@ def get_user_data(username_or_email):
         result = db_session.query(DBUser).filter_by(username=username_or_email).first()
 
         if not result:
-            result = db_session.query(DBUser).filter_by(email=username_or_email.lower()).first()
+            result = (
+                db_session.query(DBUser)
+                .filter_by(email=username_or_email.lower())
+                .first()
+            )
 
         if result:
             data = {
-                'id': result.id,
-                'username': result.username,
-                'password': result.password,
-                'is_auth': result.is_auth,
-                'email': result.email,
-                'email_verified': result.email_verified
+                "id": result.id,
+                "username": result.username,
+                "password": result.password,
+                "is_auth": result.is_auth,
+                "email": result.email,
+                "email_verified": result.email_verified,
             }
             return data
         else:
@@ -72,13 +80,13 @@ def get_user_by_email(email):
         user = db_session.query(DBUser).filter_by(email=email.lower()).first()
         if user:
             return {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'email_verified': user.email_verified,
-                'is_auth': user.is_auth,
-                'created_at': user.created_at,
-                'password': user.password
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "email_verified": user.email_verified,
+                "is_auth": user.is_auth,
+                "created_at": user.created_at,
+                "password": user.password,
             }
         return None
     finally:
@@ -92,11 +100,11 @@ def get_user_by_username(username):
         user = db_session.query(DBUser).filter_by(username=username).first()
         if user:
             return {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'email_verified': user.email_verified,
-                'is_auth': user.is_auth
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "email_verified": user.email_verified,
+                "is_auth": user.is_auth,
             }
         return None
     finally:
@@ -111,7 +119,9 @@ def create_user_with_email(email, username, password, verified=False, rullenumme
         if existing_email:
             return False, "E-postadressen er allerede registrert", None
 
-        existing_username = db_session.query(DBUser).filter_by(username=username).first()
+        existing_username = (
+            db_session.query(DBUser).filter_by(username=username).first()
+        )
         if existing_username:
             return False, "Brukernavnet er allerede tatt", None
 
@@ -122,7 +132,7 @@ def create_user_with_email(email, username, password, verified=False, rullenumme
             rullenummer=rullenummer,
             is_auth=0,
             email_verified=1 if verified else 0,
-            created_at=func.now()
+            created_at=func.now(),
         )
         db_session.add(new_user)
         db_session.commit()
@@ -142,13 +152,13 @@ def get_all_users():
         users = db_session.query(DBUser).all()
         return [
             {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'rullenummer': user.rullenummer,
-                'is_auth': user.is_auth,
-                'email_verified': user.email_verified,
-                'created_at': user.created_at
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "rullenummer": user.rullenummer,
+                "is_auth": user.is_auth,
+                "email_verified": user.email_verified,
+                "created_at": user.created_at,
             }
             for user in users
         ]
@@ -163,11 +173,11 @@ def get_user_by_id(user_id):
         user = db_session.query(DBUser).filter_by(id=user_id).first()
         if user:
             return {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'rullenummer': user.rullenummer,
-                'is_auth': user.is_auth
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "rullenummer": user.rullenummer,
+                "is_auth": user.is_auth,
             }
         return None
     finally:
@@ -188,7 +198,7 @@ def create_user(username, password, is_auth=0):
             password=hash_password(password),
             is_auth=is_auth,
             email_verified=1,
-            created_at=func.now()
+            created_at=func.now(),
         )
         db_session.add(new_user)
         db_session.commit()
@@ -200,7 +210,9 @@ def create_user(username, password, is_auth=0):
         db_session.close()
 
 
-def update_user(user_id, username, email=None, rullenummer=None, password=None, is_auth=None):
+def update_user(
+    user_id, username, email=None, rullenummer=None, password=None, is_auth=None
+):
     """Update an existing user"""
     db_session = get_db_session()
     try:
@@ -209,12 +221,16 @@ def update_user(user_id, username, email=None, rullenummer=None, password=None, 
             return False, "Bruker ikke funnet"
 
         if username != user.username:
-            existing_user = db_session.query(DBUser).filter_by(username=username).first()
+            existing_user = (
+                db_session.query(DBUser).filter_by(username=username).first()
+            )
             if existing_user:
                 return False, "Brukernavnet finnes allerede"
 
         if email and email != user.email:
-            existing_email = db_session.query(DBUser).filter_by(email=email.lower()).first()
+            existing_email = (
+                db_session.query(DBUser).filter_by(email=email.lower()).first()
+            )
             if existing_email:
                 return False, "E-postadressen finnes allerede"
 
@@ -266,7 +282,10 @@ def toggle_user_auth(user_id):
 
         user.is_auth = 1 if user.is_auth == 0 else 0
         db_session.commit()
-        return True, f"Administratorrettigheter {'aktivert' if user.is_auth == 1 else 'deaktivert'}"
+        return (
+            True,
+            f"Administratorrettigheter {'aktivert' if user.is_auth == 1 else 'deaktivert'}",
+        )
     except Exception as e:
         db_session.rollback()
         return False, f"Error toggling user auth: {e}"
@@ -282,7 +301,9 @@ def update_user_password(user_id, current_password, new_password):
         if not user:
             return False, "Bruker ikke funnet"
 
-        if not bcrypt.checkpw(current_password.encode('utf-8'), user.password.encode('utf-8')):
+        if not bcrypt.checkpw(
+            current_password.encode("utf-8"), user.password.encode("utf-8")
+        ):
             return False, "Nåværende passord er feil"
 
         user.password = hash_password(new_password)
@@ -291,5 +312,35 @@ def update_user_password(user_id, current_password, new_password):
     except Exception as e:
         db_session.rollback()
         return False, f"Error updating password: {e}"
+    finally:
+        db_session.close()
+
+
+def init_default_admin():
+    """Creates a default admin user if database is empty"""
+    from config import AppConfig
+
+    db_session = get_db_session()
+    try:
+        if db_session.query(DBUser).count() > 0:
+            return
+
+        if not AppConfig.DEFAULT_ADMIN_PASSWORD:
+            logger.warning("No DEFAULT_ADMIN_PASSWORD set, skipping admin creation")
+            return
+
+        admin = DBUser(
+            username=AppConfig.DEFAULT_ADMIN_USERNAME,
+            email=AppConfig.DEFAULT_ADMIN_USERNAME,
+            password=hash_password(AppConfig.DEFAULT_ADMIN_PASSWORD),
+            is_auth=1,
+            email_verified=1,
+        )
+        db_session.add(admin)
+        db_session.commit()
+        logger.info("Default admin created: %s", AppConfig.DEFAULT_ADMIN_USERNAME)
+    except Exception as e:
+        db_session.rollback()
+        logger.error("Error creating default admin: %s", e)
     finally:
         db_session.close()
