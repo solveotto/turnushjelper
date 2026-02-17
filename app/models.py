@@ -22,6 +22,7 @@ class DBUser(Base):
     email_verified: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    has_seen_turnusliste_tour: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class AuthorizedEmails(Base):

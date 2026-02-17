@@ -6,7 +6,9 @@ import re
 from flask import Blueprint, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
 
+from app.database import get_db_session
 from app.extensions import favorite_lock
+from app.models import DBUser
 from app.utils import db_utils, shift_matcher
 from config import AppConfig
 
@@ -650,3 +652,34 @@ def get_shift_image(turnus_set_id, shift_nr):
         return send_from_directory(png_dir, filename, mimetype="image/png")
 
     return jsonify({"status": "error", "message": "Ingen tidslinje tilgjengelig"}), 404
+
+
+@api.route("/mark-tour-seen", methods=["POST"])
+@login_required
+def mark_tour_seen():
+    """Mark a guided tour as seen for the current user."""
+    data = request.get_json() or {}
+    tour_name = data.get("tour_name")
+
+    # Map tour names to column names
+    tour_columns = {
+        "turnusliste": "has_seen_turnusliste_tour",
+    }
+
+    if tour_name not in tour_columns:
+        return jsonify({"status": "error", "message": "Unknown tour name"}), 400
+
+    db_session = get_db_session()
+    try:
+        user = db_session.query(DBUser).filter_by(id=current_user.id).first()
+        if user:
+            setattr(user, tour_columns[tour_name], 1)
+            db_session.commit()
+            return jsonify({"status": "success", "message": "Tour marked as seen"})
+        return jsonify({"status": "error", "message": "User not found"}), 404
+    except Exception as e:
+        db_session.rollback()
+        logger.error("Error marking tour seen: %s", e)
+        return jsonify({"status": "error", "message": "Server error"}), 500
+    finally:
+        db_session.close()

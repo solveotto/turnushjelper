@@ -7,6 +7,7 @@ import { SortingSystem } from './modules/sorting-system.js';
 import { Favorites } from './modules/favorites.js';
 import { PrintUtils } from './modules/print-utils.js';
 import { ShiftTimelineModal } from './modules/shift-timeline.js';
+import { GuidedTour } from './modules/guided-tour.js';
 
 // NOT USED
 // import { Utils, ScrollPosition } from './modules/utils.js';
@@ -52,6 +53,11 @@ class App {
         // Initialize shift timeline modal if present
         if (document.querySelector('#shiftTimelineModal')) {
             this.modules.shiftTimeline = new ShiftTimelineModal();
+        }
+
+        // Initialize guided tour if on a tour-enabled page
+        if (document.querySelector('[data-tour-page]')) {
+            this.modules.guidedTour = new GuidedTour();
         }
     }
 

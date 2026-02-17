@@ -1,3 +1,5 @@
+import logging
+
 from flask import Flask
 from flask_session import Session
 
@@ -6,6 +8,20 @@ from app.extensions import cache, login_manager, mail
 from app.models import User
 from app.services.user_service import init_default_admin
 from config import AppConfig
+
+logger = logging.getLogger(__name__)
+
+
+def _run_migrations():
+    """Run Alembic migrations to bring the database schema up to date."""
+    try:
+        from alembic import command
+        from alembic.config import Config
+
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+    except Exception as e:
+        logger.warning("Alembic migration skipped: %s", e)
 
 
 def create_app():
@@ -27,8 +43,9 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
-    # Create database tables if they don't exist
+    # Create database tables if they don't exist, then apply migrations
     create_tables()
+    _run_migrations()
 
     # Creates default admin if no users in database
     init_default_admin()

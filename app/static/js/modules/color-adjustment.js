@@ -1,5 +1,8 @@
 // Color Adjustment Module
 // Handles the color customization system for shift tables
+// Uses shared classifier from shift-classifier.js for consistent categorization
+
+import { classifyCell, SHIFT_TYPES } from './shift-classifier.js';
 
 export class ColorAdjustment {
     constructor() {
@@ -7,20 +10,22 @@ export class ColorAdjustment {
             nightEarly: { color: '#1B3A6B', label: 'Før 06:00' },
             morning:    { color: '#4A90D9', label: '06:00–07:59' },
             midday:     { color: '#87CEEB', label: '08:00–11:59' },
-            afternoon:  { color: '#FF9999', label: '12:00–16:59' },
-            evening:    { color: '#9B59B6', label: '17:00+' },
+            afternoon:  { color: '#FF9999', label: 'Kveldsvakt' },
+            evening:    { color: '#9B59B6', label: 'Nattevakt' },
             dayoff:     { color: '#4ADE80', label: 'Fridag' },
             hdag:       { color: '#FCD34D', label: 'Helligdag' }
         };
 
-        // Same boundaries as ShiftColors for consistent classification
-        this.boundaries = [
-            { maxMinutes: 6 * 60,    settingKey: 'nightEarly', needsWhiteText: true },
-            { maxMinutes: 8 * 60,    settingKey: 'morning',    needsWhiteText: false },
-            { maxMinutes: 12 * 60,   settingKey: 'midday',     needsWhiteText: false },
-            { maxMinutes: 17 * 60,   settingKey: 'afternoon',  needsWhiteText: false },
-            { maxMinutes: Infinity,  settingKey: 'evening',    needsWhiteText: true }
-        ];
+        // Map from classifier SHIFT_TYPES to settings keys
+        this.typeToSettingKey = {
+            [SHIFT_TYPES.NIGHT_EARLY]: { key: 'nightEarly', needsWhiteText: true },
+            [SHIFT_TYPES.MORNING]:     { key: 'morning',    needsWhiteText: false },
+            [SHIFT_TYPES.MIDDAY]:      { key: 'midday',     needsWhiteText: false },
+            [SHIFT_TYPES.AFTERNOON]:   { key: 'afternoon',  needsWhiteText: false },
+            [SHIFT_TYPES.EVENING]:     { key: 'evening',    needsWhiteText: true },
+            [SHIFT_TYPES.DAY_OFF]:     { key: 'dayoff',     needsWhiteText: false },
+            [SHIFT_TYPES.HOLIDAY]:     { key: 'hdag',       needsWhiteText: false }
+        };
 
         this.init();
     }
@@ -99,43 +104,19 @@ export class ColorAdjustment {
         const timeTextElement = td.querySelector('.time-text');
         if (!timeTextElement) return;
 
-        let timeText = timeTextElement.textContent.trim();
-        timeText = timeText.replace(/\s+/g, ' ');
-        const times = timeText.split(' - ').map(time => time.trim());
+        const timeText = timeTextElement.textContent;
         const customTextElement = td.querySelector('.custom-text');
+        const customText = customTextElement ? customTextElement.textContent : '';
 
-        // Check for H-dag
-        if (customTextElement && customTextElement.textContent.trim().endsWith('H')) {
-            td.style.backgroundColor = settings.hdag.color;
-            return;
-        }
+        const shiftType = classifyCell(timeText, customText);
+        if (!shiftType) return;
 
-        if (times.length > 1) {
-            this.applyShiftColors(td, times, settings);
-        } else {
-            this.applyDayOffColors(td, times, settings);
-        }
-    }
+        const mapping = this.typeToSettingKey[shiftType];
+        if (!mapping) return;
 
-    applyShiftColors(td, times, settings) {
-        const [startHours, startMinutes] = times[0].split(':').map(Number);
-        const startTotal = startHours * 60 + startMinutes;
-
-        for (const { maxMinutes, settingKey, needsWhiteText } of this.boundaries) {
-            if (startTotal < maxMinutes) {
-                td.style.backgroundColor = settings[settingKey].color;
-                if (needsWhiteText) {
-                    td.style.color = '#fff';
-                }
-                return;
-            }
-        }
-    }
-
-    applyDayOffColors(td, times, settings) {
-        const listOfDaysoff = ['XX', 'OO', 'TT', ''];
-        if (listOfDaysoff.includes(times[0])) {
-            td.style.backgroundColor = settings.dayoff.color;
+        td.style.backgroundColor = settings[mapping.key].color;
+        if (mapping.needsWhiteText) {
+            td.style.color = '#fff';
         }
     }
 

@@ -8,7 +8,6 @@
 
 .night-early {
     background-color: var(--color-shift-night-early);
-    color: #fff;
 }
 
 .morning {
@@ -25,7 +24,6 @@
 
 .evening {
     background-color: var(--color-shift-evening);
-    color: #fff;
 }
 
 .day_off {

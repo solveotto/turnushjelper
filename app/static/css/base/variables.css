@@ -15,12 +15,12 @@
     --color-bg-secondary: #f8f9fa;
     --color-bg-tertiary: #e9ecef;
 
-    /* Shift Colors - Start-time-based classification */
-    --color-shift-night-early: #6671d4; /* Before 06:00 - Dark blue */
+    /* Shift Colors - Classified by start + end time (see shift-classifier.js) */
+    --color-shift-night-early: #87ceeb; /* Before 06:00 - Dark blue */
     --color-shift-morning: #4a90d9; /* 06:00–07:59 - Medium blue */
-    --color-shift-midday: #87ceeb; /* 08:00–11:59 - Light sky blue */
-    --color-shift-afternoon: #ff9999; /* 12:00–16:59 - Pink */
-    --color-shift-evening: #af57eb; /* 17:00+ - Purple */
+    --color-shift-midday: #637abf; /* 08:00–11:59 - Light sky blue */
+    --color-shift-afternoon: #ff9999; /* Kveldsvakt - Pink */
+    --color-shift-evening: #af57eb; /* Nattevakt - Purple */
     --color-shift-day-off: #4ade80; /* Day off - Green */
     --color-shift-holiday: #fcd34d; /* Holiday - Gold */
 

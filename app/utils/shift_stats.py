@@ -112,12 +112,14 @@ class Turnus():
                         if end < start:
                             end += pd.Timedelta(days=1)
                         
-                        # Counts night shifts - align with coloring logic (start time ≥ 19:00)
-                        if start.time() >= time(19, 0):
+                        # Classify night shifts — aligned with shift-classifier.js
+                        # Nattevakt: crosses midnight AND ends 02:00+ next day
+                        crosses_midnight = end.date() > start.date()
+                        is_night = crosses_midnight and end.time() >= time(2, 0)
+
+                        if is_night:
                             night_count += 1
-                            # Natt i helg
                             if ukedag in weekend_days:
-                                #natt_helg += (end - start).total_seconds() / 3600
                                 natt_helg += 1
 
 
@@ -170,22 +172,26 @@ class Turnus():
                             helgedager += 1
 
 
-                        ### TIDLIGVAKTER ###
-                        if end.time() <= time(18,00) and start.time() < time(12,00):
+                        ### TIDLIGVAKTER — aligned with shift-classifier.js
+                        # Starts before 12:00 and is not a night shift
+                        if start.time() < time(12, 0) and not is_night:
                             tidlig += 1
                             ### STARTS BEFORE 6 ####
-                            if start.time() < time(6,0):
+                            if start.time() < time(6, 0):
                                 before_6 += 1
                             
 
-                        ### AFTERNOONS ENDS AFTER 16 ###(
-                        if end.time() > time(18,00) or end.date() > start.date():
-                            if str(end.date()) == '1900-01-02' and end.time() < time(3,0):
-                                afternoon_count += 1
-                            elif str(end.date()) == '1900-01-01':
-                                afternoon_count += 1
-                                if end.time() <= time(20):
-                                    afternoon_ends_before_20 += 1
+                        ### KVELDSVAKT — aligned with shift-classifier.js
+                        # Starts 12:00+ and either ends same day, or crosses
+                        # midnight but ends before 02:00 (not a true nattevakt)
+                        is_kveldsvakt = (
+                            start.time() >= time(12, 0)
+                            and not is_night
+                        )
+                        if is_kveldsvakt:
+                            afternoon_count += 1
+                            if not crosses_midnight and end.time() <= time(20):
+                                afternoon_ends_before_20 += 1
                                     
 
                 #### TEST ####
