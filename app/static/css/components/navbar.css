@@ -1,0 +1,774 @@
+/* ====================================
+   NAVBAR STYLES
+   ==================================== */
+
+/* Modern Navigation Styles */
+.modern-navbar {
+    background: linear-gradient(
+        135deg,
+        rgba(59, 130, 246, 0.95) 0%,
+        rgba(30, 58, 138, 0.95) 100%
+    );
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.7rem 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    min-height: 70px;
+    align-items: center;
+    width: 100%;
+    transition: box-shadow var(--transition-normal);
+}
+
+/* Add shadow on scroll effect (can be enhanced with JS) */
+.modern-navbar:hover {
+    box-shadow: var(--shadow-xl);
+}
+
+.modern-navbar .container-fluid {
+    min-height: 70px;
+    align-items: center;
+}
+
+/* Ensure consistent height on all screen sizes */
+@media (max-width: 991.98px) {
+    .modern-navbar {
+        min-height: 70px;
+        padding: 0.75rem 0; /* Same as desktop */
+    }
+}
+
+.modern-navbar .navbar-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: 600;
+    color: white !important;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+    margin-right: 5rem;
+}
+
+.modern-navbar .navbar-brand:hover {
+    transform: scale(1.05);
+}
+
+.brand-logo {
+    border-radius: var(--radius-full);
+    /* margin-right: 0.75rem; */
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all var(--transition-normal);
+}
+
+.brand-logo:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.brand-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+}
+
+/* Navigation Links */
+.modern-navbar .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    padding: 0.75rem 1.25rem !important;
+    margin: 0 0.25rem;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-normal);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.modern-navbar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.modern-navbar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: white !important;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+.modern-navbar .nav-link i {
+    font-size: 1.1rem;
+}
+
+/* Page Title */
+.page-title {
+    color: white;
+    font-weight: 500;
+    font-size: 1.25rem;
+}
+
+/* User Menu */
+.user-menu-btn {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-radius: var(--radius-lg) !important;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    transition: all var(--transition-normal);
+}
+
+/* Mobile user menu button (icon only) */
+@media (max-width: 991.98px) {
+    .user-menu-btn {
+        padding: var(--spacing-sm) !important;
+        border-radius: var(--radius-md) !important;
+        min-width: 44px; /* WCAG minimum touch target */
+        min-height: 44px;
+        justify-content: center;
+    }
+
+    .user-menu-btn .dropdown-toggle::after {
+        display: none;
+    }
+}
+
+/* Dropdown container positioning */
+.modern-navbar .dropdown {
+    position: relative;
+    z-index: 1000;
+}
+
+.user-menu-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.user-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.user-name {
+    font-weight: 500;
+}
+
+/* Dropdown Menu */
+.modern-navbar .dropdown-menu {
+    border: none;
+    box-shadow: var(--shadow-xl);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-sm) 0;
+    margin-top: var(--spacing-sm);
+    z-index: 9999 !important; /* Ensure dropdown appears above all content */
+    position: absolute;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Ensure dropdown shows above all other elements */
+.modern-navbar .dropdown-menu.show {
+    z-index: 9999 !important;
+    display: block !important;
+}
+
+/* Mobile Sorting Modal Styling */
+.mobile-sorting-controls {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.mobile-filter-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.mobile-filter-slider {
+    height: 20px;
+    border-radius: 10px;
+    background: rgba(102, 126, 234, 0.1);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    margin-bottom: 0.5rem;
+    position: relative;
+    cursor: pointer;
+}
+
+/* Value display on mobile sliders */
+.mobile-filter-slider::before {
+    content: attr(data-value);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #495057;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.mobile-filter-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+}
+
+.mobile-filter-slider::-webkit-slider-thumb:hover {
+    background: #5a67d8;
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-filter-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+}
+
+.mobile-filter-slider::-moz-range-thumb:hover {
+    background: #5a67d8;
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-filter-slider::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(102, 126, 234, 0.2);
+    border: none;
+}
+
+.modern-navbar .dropdown-item {
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all var(--transition-fast);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-sm);
+    margin: 0 var(--spacing-xs);
+}
+
+.modern-navbar .dropdown-item:hover {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    transform: translateX(5px);
+    box-shadow: var(--shadow-sm);
+}
+
+.modern-navbar .dropdown-item i {
+    width: 16px;
+    text-align: center;
+}
+
+.dropdown-header {
+    padding: 0.75rem 1.25rem 0.5rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+/* Mobile Icon Navigation */
+.mobile-icon-nav {
+    display: flex;
+    align-items: center;
+    margin-left: 1rem;
+    margin-right: auto;
+}
+
+.mobile-icon-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: var(--spacing-sm) !important;
+    margin: 0 var(--spacing-xs);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px; /* WCAG touch target minimum */
+    min-height: 44px;
+}
+
+.mobile-icon-link:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white !important;
+    transform: scale(1.05);
+    box-shadow: var(--shadow-sm);
+}
+
+.mobile-icon-link.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: white !important;
+    box-shadow: var(--shadow-sm);
+}
+
+.mobile-icon-link i {
+    font-size: 1.2rem;
+}
+
+/* Mobile Styles */
+@media (max-width: 991.98px) {
+    .modern-navbar {
+        padding: 0.5rem 0;
+    }
+
+    .brand-text {
+        font-size: 1.1rem;
+    }
+
+    /* Make brand logo smaller on medium screens */
+    .brand-logo {
+        width: 35px;
+        height: 35px;
+    }
+
+    /* Hide text in desktop navigation links, keep only icons */
+    .modern-navbar .nav-link span {
+        display: none;
+    }
+
+    /* Hide text in dropdown buttons and other elements */
+    .modern-navbar .btn span,
+    .modern-navbar .user-name {
+        display: none;
+    }
+
+    /* Keep dropdown menu content visible */
+    .modern-navbar .dropdown-menu .dropdown-item span {
+        display: inline;
+    }
+
+    /* Hide text in action buttons */
+    .action-buttons .btn span {
+        display: none;
+    }
+
+    /* Keep dropdown content visible in action buttons */
+    .action-buttons .dropdown-menu .dropdown-item span {
+        display: inline;
+    }
+
+    /* Keep filter menu content visible */
+    .filter-menu .filter-label,
+    .filter-menu .direction-left,
+    .filter-menu .direction-right,
+    .filter-menu span {
+        display: inline !important;
+    }
+
+    /* Hide text in specific buttons */
+    .sorter-btn span,
+    .btn-outline-light span {
+        display: none;
+    }
+
+    /* Icons remain visible with normal styling */
+    .sorter-btn i,
+    .btn-outline-light i {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    /* Make buttons icon-only with proper touch targets */
+    .sorter-btn,
+    .mobile-sorter-btn {
+        padding: var(--spacing-sm) !important;
+        min-width: 44px; /* WCAG minimum touch target */
+        min-height: 44px;
+        justify-content: center;
+        display: flex !important;
+        align-items: center;
+    }
+
+    /* Force mobile sorter to be hidden on large screens */
+    @media (min-width: 992px) {
+        .mobile-sorter {
+            display: none !important;
+        }
+    }
+
+    /* Force mobile sorter to be visible on small screens */
+    @media (max-width: 991.98px) {
+        .mobile-sorter {
+            display: block !important;
+        }
+    }
+
+    /* Turnus submenu styles for mobile */
+    .turnus-submenu {
+        position: static !important;
+        box-shadow: none !important;
+        border: none !important;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+        margin-top: 0 !important;
+        margin-left: 1rem !important;
+        min-width: auto !important;
+        padding: 0.25rem 0 !important;
+    }
+
+    .turnus-submenu .dropdown-item {
+        padding-left: 2rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    .turnus-submenu .dropdown-item.active {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+        color: #0d6efd !important;
+    }
+
+    /* Print button styling (when visible) */
+    .print-btn {
+        padding: var(--spacing-sm) !important;
+        min-width: 44px; /* WCAG minimum touch target */
+        min-height: 44px;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+    }
+
+    .modern-navbar .nav-link {
+        color: #495057 !important;
+        margin: 0.25rem 0;
+        padding: 0.75rem 1rem !important;
+    }
+
+    .modern-navbar .nav-link:hover,
+    .modern-navbar .nav-link.active {
+        background-color: #f8f9fa;
+        color: #212529 !important;
+    }
+
+    .page-title {
+        color: #495057;
+        font-size: 1.1rem;
+        text-align: center;
+        margin: 1rem 0;
+    }
+
+    .navbar-actions {
+        flex-direction: row;
+        gap: 0.5rem;
+        margin-top: 0;
+        flex-wrap: nowrap;
+        min-width: 0;
+    }
+
+    .action-buttons {
+        display: flex !important;
+        flex-direction: row;
+        gap: 0.25rem;
+        flex-wrap: nowrap;
+        min-width: 0;
+    }
+
+    /* Ensure navbar doesn't wrap but allow dropdowns */
+    .modern-navbar .container-fluid {
+        flex-wrap: nowrap;
+        overflow: visible;
+    }
+
+    /* Make navbar brand more compact */
+    .modern-navbar .navbar-brand {
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    /* Mobile icon navigation adjustments */
+    .mobile-icon-nav {
+        margin-left: 0.5rem;
+        margin-right: auto;
+    }
+
+    .mobile-icon-link {
+        min-width: 44px; /* WCAG minimum */
+        min-height: 44px;
+        margin: 0 var(--spacing-xs);
+        padding: var(--spacing-sm) !important;
+    }
+
+    .mobile-icon-link i {
+        font-size: 1.1rem;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 576px) {
+    .mobile-icon-link {
+        min-width: 44px; /* Maintain WCAG minimum even on small screens */
+        min-height: 44px;
+        margin: 0 2px;
+        padding: var(--spacing-xs) !important;
+    }
+
+    .mobile-icon-link i {
+        font-size: 1rem;
+    }
+
+    .mobile-icon-nav {
+        margin-left: 0.25rem;
+        margin-right: auto;
+    }
+
+    /* Make brand logo and text smaller on very small screens */
+    .brand-logo {
+        width: 30px;
+        height: 30px;
+    }
+
+    .brand-text {
+        font-size: 0.9rem;
+    }
+
+    .modern-navbar .navbar-brand {
+        margin-right: 0.5rem;
+    }
+
+    /* Make navbar even more compact on very small screens */
+    .navbar-actions {
+        gap: 0.5rem;
+        flex-wrap: nowrap;
+        overflow: visible;
+    }
+
+    .action-buttons {
+        gap: 0.15rem;
+        flex-wrap: nowrap;
+    }
+
+    /* Maintain proper touch targets even on very small screens */
+    .sorter-btn,
+    .mobile-sorter-btn {
+        padding: var(--spacing-xs) !important;
+        min-width: 44px; /* WCAG minimum - don't compromise on small screens */
+        min-height: 44px;
+        font-size: 0.875rem;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Print button sizing (when visible) */
+    .print-btn {
+        padding: var(--spacing-xs) !important;
+        min-width: 44px; /* WCAG minimum */
+        min-height: 44px;
+        font-size: 0.875rem;
+    }
+
+    /* Hide print button on very small screens */
+    .print-btn {
+        display: none !important;
+    }
+
+    /* Hide action buttons completely on small screens */
+    .action-buttons {
+        display: none !important;
+    }
+
+    /* Remove problematic constraints that break dropdowns */
+    .modern-navbar .container-fluid {
+        overflow: visible;
+    }
+
+    /* Adjust dropdown items on very small screens but keep text visible */
+    .modern-navbar .dropdown-item {
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* Keep dropdown text visible on small screens */
+    .modern-navbar .dropdown-menu .dropdown-item span {
+        display: inline !important;
+    }
+
+    /* Ensure mobile print item in dropdown is visible */
+    .mobile-print-item {
+        display: flex !important;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* Adjust dropdown item icons */
+    .modern-navbar .dropdown-item i {
+        margin-right: 0.5rem;
+        font-size: 1.1rem;
+    }
+}
+
+/* Legacy navbar class for backward compatibility */
+.navbar-custom-color {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.custom-width {
+    width: 150px; /* Adjust the width as needed */
+}
+
+.custom-label {
+    font-size: 1.25rem; /* Adjust the size as needed */
+}
+
+/* Mobile menu items */
+.mobile-menu-item {
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.75) !important;
+    transition: color 0.15s ease-in-out;
+}
+
+.mobile-menu-item:hover {
+    color: rgba(255, 255, 255, 1) !important;
+}
+
+.mobile-menu-item i {
+    margin-right: 0.5rem;
+}
+
+/* Mobile dropdown menu */
+.mobile-dropdown-menu {
+    min-width: 280px;
+    max-width: 320px;
+    padding: 1rem;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border-radius: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.mobile-sorting-menu .filter-controls {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.mobile-sorting-menu .filter-item {
+    margin-bottom: 0.75rem;
+}
+
+.mobile-sorting-menu .filter-label {
+    font-size: 0.7rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Mobile direction indicators */
+.mobile-sorting-menu .slider-direction-info {
+    margin-bottom: 0.1rem;
+}
+
+.mobile-sorting-menu .direction-left,
+.mobile-sorting-menu .direction-right {
+    font-size: 0.5rem;
+}
+
+/*Navbar on small screens*/
+@media (max-width: 576px) {
+    .navbar .btn {
+        font-size: 0.8em; /* Reduced font size */
+        padding: 0.25rem 0.5rem; /* Adjust padding for better fit */
+    }
+}
+
+@media (max-width: 576px) {
+    .hide-on-small-screens {
+        display: none !important; /* Hide the element on small screens */
+    }
+}
+
+/* Centered navbar with responsive side margins */
+.modern-navbar .container-fluid {
+    max-width: 1400px; /* Maximum content width */
+    margin: 0 auto; /* Center the content */
+    padding-left: 2rem; /* Base side padding */
+    padding-right: 2rem;
+}
+
+/* Responsive side margins */
+@media (min-width: 1200px) {
+    .modern-navbar .container-fluid {
+        padding-left: 3rem;
+        padding-right: 3rem;
+    }
+}
+
+@media (min-width: 1400px) {
+    .modern-navbar .container-fluid {
+        padding-left: 4rem;
+        padding-right: 4rem;
+    }
+}
+
+@media (min-width: 1600px) {
+    .modern-navbar .container-fluid {
+        padding-left: 6rem;
+        padding-right: 6rem;
+    }
+}
+
+/* Smaller screens - reduce side margins */
+@media (max-width: 768px) {
+    .modern-navbar .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .modern-navbar .container-fluid {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+/* Mobile centered sorter */
+.mobile-centered-sorter {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Ensure proper navbar layout on mobile */
+@media (max-width: 991.98px) {
+    .modern-navbar .container-fluid {
+        position: relative;
+    }
+
+    .mobile-centered-sorter {
+        z-index: 1000;
+    }
+}

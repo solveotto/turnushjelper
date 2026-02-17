@@ -1,0 +1,71 @@
+/* ====================================
+   CSS CUSTOM PROPERTIES (VARIABLES)
+   ==================================== */
+:root {
+    /* Color Palette - Modern, Softer Blues */
+    --color-primary: #3b82f6;
+    --color-primary-dark: #1e3a8a;
+    --color-primary-light: #60a5fa;
+
+    /* Neutral Colors */
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #495057;
+    --color-text-muted: #6c757d;
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
+    --color-bg-tertiary: #e9ecef;
+
+    /* Shift Colors - Start-time-based classification */
+    --color-shift-night-early: #6671d4; /* Before 06:00 - Dark blue */
+    --color-shift-morning: #4a90d9; /* 06:00–07:59 - Medium blue */
+    --color-shift-midday: #87ceeb; /* 08:00–11:59 - Light sky blue */
+    --color-shift-afternoon: #ff9999; /* 12:00–16:59 - Pink */
+    --color-shift-evening: #af57eb; /* 17:00+ - Purple */
+    --color-shift-day-off: #4ade80; /* Day off - Green */
+    --color-shift-holiday: #fcd34d; /* Holiday - Gold */
+
+    /* Spacing System (8px grid) */
+    --spacing-xs: 0.25rem; /* 4px */
+    --spacing-sm: 0.5rem; /* 8px */
+    --spacing-md: 1rem; /* 16px */
+    --spacing-lg: 1.5rem; /* 24px */
+    --spacing-xl: 2rem; /* 32px */
+    --spacing-xxl: 3rem; /* 48px */
+
+    /* Shadow System */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl:
+        0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 300ms ease;
+    --transition-slow: 500ms ease;
+    --transition-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Typography */
+    --font-system:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+        "Helvetica Neue", Arial, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
+}

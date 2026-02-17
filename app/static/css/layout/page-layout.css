@@ -1,0 +1,170 @@
+/* ====================================
+   PAGE LAYOUT STYLES
+   ==================================== */
+
+/* Main Content Area */
+.main-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Page Layout */
+.page-layout {
+    display: flex;
+    gap: 20px;
+    min-height: calc(100vh - 140px);
+    margin-top: -25px; /* Reduce extra spacing on turnusliste page */
+}
+
+/* Navbar Filtering Interface */
+.navbar-filtering {
+    position: relative;
+}
+
+.filter-menu {
+    min-width: 300px;
+    max-width: 400px;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: none;
+    box-shadow: var(--shadow-xl);
+    border-radius: var(--radius-lg);
+    margin-top: var(--spacing-sm);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.filter-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 0 0.5rem;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.filter-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+}
+
+/* Slider direction indicators */
+.slider-direction-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.1rem;
+}
+
+.direction-left,
+.direction-right {
+    font-size: 0.55rem;
+    color: #6c757d;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.direction-left {
+    text-align: left;
+}
+
+.direction-right {
+    text-align: right;
+}
+
+.filter-slider {
+    height: 4px;
+    border-radius: 2px;
+    background: #e9ecef;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    margin: 0;
+    position: relative;
+}
+
+.filter-slider::before {
+    content: attr(data-value);
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #495057;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.filter-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0d6efd;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+}
+
+.filter-slider::-webkit-slider-thumb:hover {
+    background: #0b5ed7;
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.filter-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0d6efd;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+}
+
+.filter-slider::-moz-range-thumb:hover {
+    background: #0b5ed7;
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.filter-slider::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: #e9ecef;
+    border: none;
+}
+
+.filter-actions {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .page-layout {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 576px) {
+}

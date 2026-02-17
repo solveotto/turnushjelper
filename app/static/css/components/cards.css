@@ -1,0 +1,35 @@
+/* ====================================
+   CARD & LOGIN PAGE STYLES
+   ==================================== */
+
+/* LOGIN PAGE */
+.profile-image-pic {
+    height: 120px;
+    width: 120px;
+    object-fit: cover;
+}
+
+.cardbody-color {
+    background-color: #ebf2fa;
+}
+
+.custom-card {
+    max-width: 400px; /* Adjust the width as needed */
+    max-height: 600px; /* Adjust the height as needed */
+    margin: auto; /* Center the card */
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-lg);
+    border: none;
+    transition: box-shadow var(--transition-normal);
+}
+
+.custom-card:hover {
+    box-shadow: var(--shadow-xl);
+}
+
+.form-label-sm {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-sm);
+}

@@ -1,0 +1,159 @@
+/* ====================================
+   BUTTON STYLES
+   ==================================== */
+
+.square-button {
+    min-width: 44px; /* WCAG minimum touch target */
+    min-height: 44px;
+    padding: 0;
+    font-size: 12px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.square-button:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-sm);
+}
+
+.custom-link-color {
+    color: black;
+}
+
+.table-purple {
+    background-color: purple;
+}
+
+.btn-color {
+    background-color: #0e1c36;
+    color: #fff;
+}
+
+/* Favorites Star */
+label {
+    font-size: 48px;
+}
+
+.yellow-star {
+    color: gold;
+}
+
+label input[type="checkbox"] {
+    display: none;
+}
+
+.custom-checkbox {
+    position: relative;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    border: 1px solid var(--bs-primary);
+    border-radius: 0.25rem;
+    background: transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.custom-checkbox:hover {
+    background: var(--bs-primary);
+}
+
+.custom-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.custom-checkbox .bi-star {
+    color: gray;
+    font-size: 1rem;
+}
+
+.custom-checkbox .bi-star-fill {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    color: #ffc107;
+    font-size: 1rem;
+}
+
+.custom-checkbox:hover .bi-star-fill {
+    opacity: 0.6;
+}
+
+.custom-checkbox input[type="checkbox"]:checked ~ .bi-star-fill {
+    opacity: 1;
+    color: #ffc107;
+    filter: drop-shadow(0 2px 4px rgba(255, 193, 7, 0.3));
+}
+
+/* Favorites star end */
+
+/* Key button hover effect */
+.custom-key-btn {
+    position: relative;
+    cursor: pointer;
+}
+
+.custom-key-btn .bi-key-fill {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.custom-key-btn:hover .bi-key-fill {
+    opacity: 1;
+}
+
+.bi-info-circle {
+    color: lightblue;
+}
+
+.h4-hover:hover .bi-info-circle {
+    color: blue; /* Change the color as needed */
+    transform: scale(1.2); /* Example transformation */
+    transition:
+        transform 0.2s,
+        color 0.2s; /* Smooth transition */
+}
+
+.custom-remove-btn {
+    margin-top: -10px; /* Adjust the value as needed */
+}
+
+/* Arrow icon styling for move up/down buttons */
+.arrow-icon {
+    transition: color 0.2s ease;
+}
+
+/* Up arrow - green */
+.btn:not(:disabled) .bi-arrow-up {
+    color: #28a745; /* Bootstrap success green */
+}
+
+.btn:not(:disabled) .bi-arrow-up:hover {
+    color: #1e7e34; /* Darker green on hover */
+}
+
+/* Down arrow - red */
+.btn:not(:disabled) .bi-arrow-down {
+    color: #dc3545; /* Bootstrap danger red */
+}
+
+.btn:not(:disabled) .bi-arrow-down:hover {
+    color: #c82333; /* Darker red on hover */
+}
+
+/* Disabled arrows - gray */
+.btn:disabled .arrow-icon {
+    color: #6c757d; /* Bootstrap secondary gray */
+}

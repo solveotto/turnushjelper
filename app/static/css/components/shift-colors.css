@@ -1,0 +1,37 @@
+/* ====================================
+   SHIFT COLOR CLASSES
+   ==================================== */
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.night-early {
+    background-color: var(--color-shift-night-early);
+    color: #fff;
+}
+
+.morning {
+    background-color: var(--color-shift-morning);
+}
+
+.midday {
+    background-color: var(--color-shift-midday);
+}
+
+.afternoon {
+    background-color: var(--color-shift-afternoon);
+}
+
+.evening {
+    background-color: var(--color-shift-evening);
+    color: #fff;
+}
+
+.day_off {
+    background-color: var(--color-shift-day-off);
+}
+
+.h-dag {
+    background-color: var(--color-shift-holiday);
+}

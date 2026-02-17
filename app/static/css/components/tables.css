@@ -1,0 +1,123 @@
+/* ====================================
+   TABLE STYLES
+   ==================================== */
+
+.min-width-td {
+    min-width: 90px; /* Set your desired minimum width */
+}
+
+/* Shift table cell styling */
+#cell {
+    position: relative;
+    transition: all var(--transition-fast);
+}
+
+#cell:hover {
+    transform: scale(1.02) translateY(-1px);
+    box-shadow: var(--shadow-md);
+    z-index: 1;
+}
+
+/* Ensure text is readable on colored backgrounds */
+#cell[style*="background-color"] {
+    color: #000;
+    font-weight: 500;
+}
+
+#cell[style*="background-color"] .time-text {
+    color: inherit;
+}
+
+#cell[style*="background-color"] .custom-text {
+    color: inherit;
+}
+
+/* Specific color overrides for better readability */
+#cell[style*="background-color: #268eb8"] {
+    color: white !important;
+}
+
+#cell[style*="background-color: #268eb8"] .time-text,
+#cell[style*="background-color: #268eb8"] .custom-text {
+    color: white !important;
+}
+
+/* Table styling improvements */
+.table-responsive table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.table-responsive th,
+.table-responsive td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.table-responsive th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Gjor det sann at det som er i tabellene ikke gar utover ramma pa sma skjermer */
+.table-responsive {
+    overflow-x: auto; /* Adds horizontal scrollbar if needed */
+}
+
+.table {
+    width: 100%; /* Ensure the table takes the full width of the container */
+    table-layout: auto; /* Ensure the table layout is fixed */
+}
+
+/* Table scroll wrapper for horizontal scrolling */
+.table-scroll-wrapper {
+    overflow-x: hidden; /* Hide scroll bar by default */
+    overflow-y: hidden;
+    width: 100%;
+    border: 1px solid #dee2e6;
+    margin: 0.5rem 0;
+}
+
+/* Show scroll bar only when needed on smaller screens */
+@media (max-width: 768px) {
+    .table-scroll-wrapper {
+        overflow-x: auto;
+    }
+}
+
+/* Make tables inside scroll wrapper horizontally scrollable */
+.table-scroll-wrapper table {
+    min-width: 600px;
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+/* Mobile-specific table improvements */
+@media (max-width: 768px) {
+    .table-scroll-wrapper table {
+        min-width: 500px; /* Smaller minimum width on mobile */
+    }
+
+    /* Make table cells more compact on mobile */
+    .table-scroll-wrapper th,
+    .table-scroll-wrapper td {
+        padding: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    /* Extend scroll wrapper to screen edges on mobile */
+    .table-scroll-wrapper {
+        margin: 0.5rem -15px;
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+    }
+}
+
+.table-responsive-lg {
+    overflow-x: auto; /* Adds horizontal scrollbar if needed */
+}

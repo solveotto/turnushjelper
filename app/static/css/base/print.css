@@ -1,0 +1,36 @@
+@media print {
+    .print-frame {
+        border: 1px solid rgb(53, 52, 52);
+        width: 100%;
+        padding: 1px; /* Reduced padding */
+        margin: 0; /* No margin to prevent extra spacing */
+        page-break-inside: avoid;
+    }
+    .print-frame:first-child {
+        margin-top: 0; /* Ensure first item has no top margin */
+    }
+    .print-frame:nth-of-type(3n) {
+        page-break-after: always;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th,
+    td {
+        border: 1px solid black;
+        padding: 1px; /* Reduced padding */
+        text-align: center;
+        font-size: 0.6em; /* Further reduced font size */
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    h5 {
+        font-size: 0.1em; /* Further reduced font size */
+        margin: 1px 0; /* Reduced margin */
+    }
+    .small-text {
+        font-size: 0.9em; /* Reduced font size for small-text class */
+    }
+}
