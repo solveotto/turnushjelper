@@ -9,7 +9,6 @@ from app.forms import (
     CreateTurnusSetForm,
     CreateUserForm,
     EditUserForm,
-    SelectTurnusSetForm,
     UploadStreklisteForm,
 )
 from app.utils import db_utils
@@ -139,7 +138,7 @@ def create_turnus_set():
     form = CreateTurnusSetForm()
 
     if form.validate_on_submit():
-        year_id = form.year_identifier.data.upper()
+        year_id = (form.year_identifier.data or "").upper()
 
         # Determine file paths
         if form.use_existing_files.data:
@@ -255,9 +254,8 @@ def handle_pdf_upload(pdf_file, year_id):
 
         # Generate JSON files
         turnus_json_path = scraper.create_json(year_id=year_id)
-        excel_path = scraper.create_excel(year_id=year_id)
 
-        flash(f"PDF skrapet! JSON- og Excel-filer opprettet.", "success")
+        flash("PDF skrapet! JSON- og Excel-filer opprettet.", "success")
         return turnus_json_path, None  # df_json_path will be generated later
 
     except Exception as e:
@@ -531,7 +529,7 @@ def generate_strekliste(turnus_set_id):
         ), 400
 
     # Check if force regenerate is requested
-    force = request.json.get("force", False) if request.is_json else False
+    force = (request.json or {}).get("force", False) if request.is_json else False
 
     # Generate images
     result = strekliste_generator.generate_all_images(version, force=force)

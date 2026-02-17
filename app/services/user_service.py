@@ -1,5 +1,4 @@
 import logging
-from errno import EILSEQ
 
 import bcrypt
 from sqlalchemy import func

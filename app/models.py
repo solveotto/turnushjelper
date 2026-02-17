@@ -1,4 +1,5 @@
 import bcrypt
+from datetime import datetime
 from flask_login import UserMixin
 from sqlalchemy import Column, Integer, String, DateTime, UniqueConstraint, func, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,8 +20,8 @@ class DBUser(Base):
     is_auth: Mapped[int] = mapped_column(Integer, default=0)
     email = Column(String(255), nullable=True)
     email_verified: Mapped[int] = mapped_column(Integer, default=0)
-    created_at = Column(DateTime, default=func.now())
-    verification_sent_at = Column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class AuthorizedEmails(Base):
@@ -39,8 +40,8 @@ class EmailVerificationToken(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     token = Column(String(255), unique=True, nullable=False)
-    created_at = Column(DateTime, default=func.now())
-    expires_at = Column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     used: Mapped[int] = mapped_column(Integer, default=0)
     token_type = Column(String(50), default='verification')
 

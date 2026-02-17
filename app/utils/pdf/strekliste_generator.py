@@ -1,5 +1,33 @@
 from __future__ import annotations
 
+import io
+import os
+import re
+from typing import TYPE_CHECKING
+
+from config import AppConfig
+
+if TYPE_CHECKING:
+    import fitz
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFont
+
+try:
+    import fitz  # PyMuPDF
+
+    FITZ_AVAILABLE = True
+except ImportError:
+    FITZ_AVAILABLE = False
+
+try:
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFont
+
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
+
 """
 Strekliste Generator Module
 Generates shift timeline PNG images from strekliste PDF files.
@@ -9,27 +37,6 @@ them as PNG images with an hour ruler (0-23).
 
 Adapted from the standalone strekliste API.
 """
-
-import os
-import re
-import io
-from config import AppConfig
-from typing import Optional, Tuple, Dict, Any
-
-
-try:
-    import fitz  # PyMuPDF
-    FITZ_AVAILABLE = True
-except ImportError:
-    FITZ_AVAILABLE = False
-
-try:
-    from PIL import Image, ImageDraw, ImageFont
-    import numpy as np
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
-
 
 # Shift numbers appear in the leftmost "Nr." column
 # For rotated pages, we need to transform coordinates from PDF space to visual space
@@ -50,15 +57,15 @@ def get_paths(version: str) -> dict:
         dict with 'pdf_path', 'images_dir', and 'exists' status
     """
     version = version.lower()
-    base_dir = os.path.join(AppConfig.turnusfiler_dir, version, 'streklister')
-    pdf_path = os.path.join(base_dir, f'{version}_streker.pdf')
-    images_dir = os.path.join(base_dir, 'png')
+    base_dir = os.path.join(AppConfig.turnusfiler_dir, version, "streklister")
+    pdf_path = os.path.join(base_dir, f"{version}_streker.pdf")
+    images_dir = os.path.join(base_dir, "png")
 
     return {
-        'pdf_path': pdf_path,
-        'images_dir': images_dir,
-        'pdf_exists': os.path.exists(pdf_path),
-        'images_dir_exists': os.path.exists(images_dir)
+        "pdf_path": pdf_path,
+        "images_dir": images_dir,
+        "pdf_exists": os.path.exists(pdf_path),
+        "images_dir_exists": os.path.exists(images_dir),
     }
 
 
@@ -75,26 +82,27 @@ def get_strekliste_status(version: str) -> dict:
     paths = get_paths(version)
 
     image_count = 0
-    if paths['images_dir_exists']:
+    if paths["images_dir_exists"]:
         try:
-            image_count = len([f for f in os.listdir(paths['images_dir'])
-                             if f.endswith('.png')])
+            image_count = len(
+                [f for f in os.listdir(paths["images_dir"]) if f.endswith(".png")]
+            )
         except OSError:
             image_count = 0
 
-    if not paths['pdf_exists']:
-        status = 'no_pdf'
+    if not paths["pdf_exists"]:
+        status = "no_pdf"
     elif image_count == 0:
-        status = 'pdf_ready'
+        status = "pdf_ready"
     else:
-        status = 'images_generated'
+        status = "images_generated"
 
     return {
-        'pdf_exists': paths['pdf_exists'],
-        'image_count': image_count,
-        'status': status,
-        'pdf_path': paths['pdf_path'],
-        'images_dir': paths['images_dir']
+        "pdf_exists": paths["pdf_exists"],
+        "image_count": image_count,
+        "status": status,
+        "pdf_path": paths["pdf_path"],
+        "images_dir": paths["images_dir"],
     }
 
 
@@ -110,7 +118,7 @@ def get_shift_rows(page) -> list:
     shifts = []
     leftmost_texts = []  # All text in leftmost column for suffix detection
     blocks = page.get_text("dict")["blocks"]
-    pattern = re.compile(r'^(\d{4,5})(?:-.*)?$')
+    pattern = re.compile(r"^(\d{4,5})(?:-.*)?$")
 
     # Get transformation matrix from PDF coords to visual coords
     # Inverse of derotation_matrix transforms to visual space
@@ -133,21 +141,25 @@ def get_shift_rows(page) -> list:
                 if visual_point.x < SHIFT_NR_VISUAL_X_MAX:
                     match = pattern.match(text)
                     if match:
-                        shifts.append({
-                            "nr": text,
-                            "nr_base": match.group(1),
-                            "visual_y": visual_point.y,
-                            "visual_x": visual_point.x,
-                            "bbox": bbox,
-                            "suffix": None  # Will be populated later
-                        })
+                        shifts.append(
+                            {
+                                "nr": text,
+                                "nr_base": match.group(1),
+                                "visual_y": visual_point.y,
+                                "visual_x": visual_point.x,
+                                "bbox": bbox,
+                                "suffix": None,  # Will be populated later
+                            }
+                        )
                     else:
                         # Non-shift text in leftmost column (potential suffix)
-                        leftmost_texts.append({
-                            "text": text,
-                            "visual_y": visual_point.y,
-                            "visual_x": visual_point.x,
-                        })
+                        leftmost_texts.append(
+                            {
+                                "text": text,
+                                "visual_y": visual_point.y,
+                                "visual_x": visual_point.x,
+                            }
+                        )
 
     # Sort by visual y position (top to bottom as seen)
     shifts.sort(key=lambda x: x["visual_y"])
@@ -155,7 +167,7 @@ def get_shift_rows(page) -> list:
     # Find suffix text for each shift
     # Suffix is text that appears below a shift number but before the next shift
     # Pattern to detect time strings (e.g., "20:20", "7:30") which should not be suffixes
-    time_pattern = re.compile(r'^\d{1,2}:\d{2}$')
+    time_pattern = re.compile(r"^\d{1,2}:\d{2}$")
 
     for i, shift in enumerate(shifts):
         # Determine y-range for suffix: between this shift and next shift
@@ -174,9 +186,11 @@ def get_shift_rows(page) -> list:
             # Skip time strings - they belong to shift schedules, not names
             if time_pattern.match(txt["text"]):
                 continue
-            if (txt["visual_y"] > y_start + 5 and  # Below shift number
-                txt["visual_y"] < y_end - 5 and     # Above next shift
-                abs(txt["visual_x"] - shift["visual_x"]) < x_tolerance):
+            if (
+                txt["visual_y"] > y_start + 5  # Below shift number
+                and txt["visual_y"] < y_end - 5  # Above next shift
+                and abs(txt["visual_x"] - shift["visual_x"]) < x_tolerance
+            ):
                 suffix_parts.append((txt["visual_y"], txt["text"]))
 
         if suffix_parts:
@@ -192,10 +206,10 @@ def get_full_shift_name(shift: dict) -> str:
     name = shift["nr"]
     if shift.get("suffix"):
         # Remove invalid filename chars
-        suffix = re.sub(r'[\\/*?:"<>|]', '', shift["suffix"])
+        suffix = re.sub(r'[\\/*?:"<>|]', "", shift["suffix"])
         name = f"{name}{suffix}"
     # Replace all whitespace with underscores for consistent matching
-    name = re.sub(r'\s+', '_', name)
+    name = re.sub(r"\s+", "_", name)
     return name
 
 
@@ -213,13 +227,17 @@ def find_row_bounds(page, shift_nr: str) -> tuple | None:
         visual_height = page.rect.height
 
     for i, shift in enumerate(shifts):
-        if shift["nr"] == shift_nr or shift["nr_base"] == shift_nr or shift_nr in shift["nr"]:
+        if (
+            shift["nr"] == shift_nr
+            or shift["nr_base"] == shift_nr
+            or shift_nr in shift["nr"]
+        ):
             # Top of row: slightly above this shift
             y_top = shift["visual_y"] - 5
 
             # Bottom of row: midpoint to next shift, or reasonable height
             if i < len(shifts) - 1:
-                y_bottom = (shift["visual_y"] + shifts[i+1]["visual_y"]) / 2 + 5
+                y_bottom = (shift["visual_y"] + shifts[i + 1]["visual_y"]) / 2 + 5
             else:
                 y_bottom = min(shift["visual_y"] + 60, visual_height - 10)
 
@@ -228,7 +246,9 @@ def find_row_bounds(page, shift_nr: str) -> tuple | None:
     return None
 
 
-def find_separator_lines(img, min_thickness: int = 2, max_brightness: int = 100) -> list:
+def find_separator_lines(
+    img, min_thickness: int = 2, max_brightness: int = 100
+) -> list:
     """
     Detect horizontal black separator lines in the image.
     Returns list of y-positions where thick black lines are found.
@@ -240,7 +260,7 @@ def find_separator_lines(img, min_thickness: int = 2, max_brightness: int = 100)
     if not PIL_AVAILABLE:
         return []
 
-    gray = img.convert('L')
+    gray = img.convert("L")
     arr = np.array(gray)
     row_brightness = np.mean(arr, axis=1)
 
@@ -261,7 +281,7 @@ def find_separator_lines(img, min_thickness: int = 2, max_brightness: int = 100)
             if thickness >= min_thickness:
                 # Check that at least one row in the group is truly dark
                 # (real separator lines have very low mean brightness)
-                group_min_brightness = np.min(row_brightness[start:prev + 1])
+                group_min_brightness = np.min(row_brightness[start : prev + 1])
                 if group_min_brightness < max_brightness:
                     lines.append((start + prev) // 2)
             start = row
@@ -270,27 +290,31 @@ def find_separator_lines(img, min_thickness: int = 2, max_brightness: int = 100)
     # Don't forget the last group
     thickness = prev - start + 1
     if thickness >= min_thickness:
-        group_min_brightness = np.min(row_brightness[start:prev + 1])
+        group_min_brightness = np.min(row_brightness[start : prev + 1])
         if group_min_brightness < max_brightness:
             lines.append((start + prev) // 2)
 
     return lines
 
 
-def create_hour_ruler(width: int, height: int = 30, zoom: int = 1) -> Image.Image | None:
+def create_hour_ruler(
+    width: int, height: int = 30, zoom: int = 1
+) -> Image.Image | None:
     """Create a horizontal ruler showing hours 0-23."""
     if not PIL_AVAILABLE:
         return None
 
     # Scale height with zoom for proportional appearance
     scaled_height = int(height * zoom / 3)
-    ruler = Image.new('RGB', (width, scaled_height), 'white')
+    ruler = Image.new("RGB", (width, scaled_height), "white")
     draw = ImageDraw.Draw(ruler)
 
     # Timeline positions as ratios of width (zoom-independent)
     # These ratios represent where the timeline starts and ends in the cropped image
-    timeline_start_ratio = 0.149   # Timeline starts at ~30% from left (shift info column)
-    timeline_end_ratio = 0.969    # Timeline ends at ~97% (margin on right)
+    timeline_start_ratio = (
+        0.149  # Timeline starts at ~30% from left (shift info column)
+    )
+    timeline_end_ratio = 0.969  # Timeline ends at ~97% (margin on right)
 
     timeline_start = int(width * timeline_start_ratio)
     timeline_end = int(width * timeline_end_ratio)
@@ -307,7 +331,7 @@ def create_hour_ruler(width: int, height: int = 30, zoom: int = 1) -> Image.Imag
     for hour in range(24):
         x = timeline_start + (hour / 23) * (timeline_end - timeline_start)
         # Use anchor='mm' (middle-middle) to center text on both axes
-        draw.text((x, y_pos), str(hour), fill='black', anchor='mm', font=font)
+        draw.text((x, y_pos), str(hour), fill="black", anchor="mm", font=font)
 
     return ruler
 
@@ -318,7 +342,7 @@ def render_shift_image(shift_nr: str, version: str) -> bytes | None:
         return None
 
     paths = get_paths(version)
-    pdf_path = paths['pdf_path']
+    pdf_path = paths["pdf_path"]
 
     if not os.path.exists(pdf_path):
         return None
@@ -355,25 +379,28 @@ def render_shift_image(shift_nr: str, version: str) -> bytes | None:
 
             # Find the separator line just above this shift (top boundary)
             lines_above = [y for y in separator_lines if y < shift_y]
-            y_top = max(lines_above) if lines_above else max(0, shift_y - int(10 * zoom))
+            y_top = (
+                max(lines_above) if lines_above else max(0, shift_y - int(10 * zoom))
+            )
 
             # Find the separator line just below this shift (bottom boundary)
             lines_below = [y for y in separator_lines if y > shift_y]
-            y_bottom = min(lines_below) + 2 if lines_below else min(img.height, shift_y + int(40 * zoom))
-
-            crop_box = (
-                x_left,
-                y_top,
-                img.width - x_right_crop,
-                y_bottom
+            y_bottom = (
+                min(lines_below) + 2
+                if lines_below
+                else min(img.height, shift_y + int(40 * zoom))
             )
+
+            crop_box = (x_left, y_top, img.width - x_right_crop, y_bottom)
 
             cropped = img.crop(crop_box)
 
             # Create and attach hour ruler
             ruler = create_hour_ruler(cropped.width, zoom=zoom)
             if ruler is not None:
-                combined = Image.new('RGB', (cropped.width, cropped.height + ruler.height), 'white')
+                combined = Image.new(
+                    "RGB", (cropped.width, cropped.height + ruler.height), "white"
+                )
                 combined.paste(ruler, (0, 0))
                 combined.paste(cropped, (0, ruler.height))
             else:
@@ -397,7 +424,7 @@ def get_all_shifts(version: str) -> list:
         return []
 
     paths = get_paths(version)
-    pdf_path = paths['pdf_path']
+    pdf_path = paths["pdf_path"]
 
     if not os.path.exists(pdf_path):
         return []
@@ -420,7 +447,9 @@ def get_all_shifts(version: str) -> list:
     return all_shifts
 
 
-def generate_all_images(version: str, force: bool = False, progress_callback=None) -> dict:
+def generate_all_images(
+    version: str, force: bool = False, progress_callback=None
+) -> dict:
     """
     Pre-generate images for all shifts.
 
@@ -438,27 +467,27 @@ def generate_all_images(version: str, force: bool = False, progress_callback=Non
         dict with 'success', 'generated', 'skipped', 'errors', 'total'
     """
     if not FITZ_AVAILABLE:
-        return {'success': False, 'error': 'PyMuPDF (fitz) is not installed'}
+        return {"success": False, "error": "PyMuPDF (fitz) is not installed"}
 
     if not PIL_AVAILABLE:
-        return {'success': False, 'error': 'Pillow (PIL) is not installed'}
+        return {"success": False, "error": "Pillow (PIL) is not installed"}
 
     paths = get_paths(version)
 
-    if not paths['pdf_exists']:
-        return {'success': False, 'error': f'PDF not found: {paths["pdf_path"]}'}
+    if not paths["pdf_exists"]:
+        return {"success": False, "error": f"PDF not found: {paths['pdf_path']}"}
 
     # Ensure output directory exists
-    os.makedirs(paths['images_dir'], exist_ok=True)
+    os.makedirs(paths["images_dir"], exist_ok=True)
 
     # Clear existing images if force regeneration
     if force:
-        for filename in os.listdir(paths['images_dir']):
-            if filename.endswith('.png'):
-                os.remove(os.path.join(paths['images_dir'], filename))
+        for filename in os.listdir(paths["images_dir"]):
+            if filename.endswith(".png"):
+                os.remove(os.path.join(paths["images_dir"], filename))
 
     # Open PDF once
-    doc = fitz.open(paths['pdf_path'])
+    doc = fitz.open(paths["pdf_path"])
 
     # Collect all shifts with their page numbers in a single pass
     all_shifts = []
@@ -472,8 +501,8 @@ def generate_all_images(version: str, force: bool = False, progress_callback=Non
             full_name = get_full_shift_name(shift)
             if full_name not in seen:
                 seen.add(full_name)
-                shift['page_num'] = page_num
-                shift['full_name'] = full_name
+                shift["page_num"] = page_num
+                shift["full_name"] = full_name
                 all_shifts.append(shift)
 
     total = len(all_shifts)
@@ -492,8 +521,8 @@ def generate_all_images(version: str, force: bool = False, progress_callback=Non
     separator_lines = None
 
     for idx, shift in enumerate(all_shifts):
-        full_name = shift['full_name']
-        img_path = os.path.join(paths['images_dir'], f"{full_name}.png")
+        full_name = shift["full_name"]
+        img_path = os.path.join(paths["images_dir"], f"{full_name}.png")
 
         if os.path.exists(img_path) and not force:
             skipped.append(full_name)
@@ -503,8 +532,8 @@ def generate_all_images(version: str, force: bool = False, progress_callback=Non
 
         try:
             # Only re-render page if we moved to a new page
-            if shift['page_num'] != current_page_num:
-                current_page_num = shift['page_num']
+            if shift["page_num"] != current_page_num:
+                current_page_num = shift["page_num"]
                 page = doc[current_page_num]
 
                 # Render page once
@@ -524,25 +553,28 @@ def generate_all_images(version: str, force: bool = False, progress_callback=Non
 
             # Find the separator line just above this shift (top boundary)
             lines_above = [y for y in separator_lines if y < shift_y]
-            y_top = max(lines_above) if lines_above else max(0, shift_y - int(10 * zoom))
+            y_top = (
+                max(lines_above) if lines_above else max(0, shift_y - int(10 * zoom))
+            )
 
             # Find the separator line just below this shift (bottom boundary)
             lines_below = [y for y in separator_lines if y > shift_y]
-            y_bottom = min(lines_below) + 2 if lines_below else min(page_img.height, shift_y + int(40 * zoom))
-
-            crop_box = (
-                x_left,
-                y_top,
-                page_img.width - x_right_crop,
-                y_bottom
+            y_bottom = (
+                min(lines_below) + 2
+                if lines_below
+                else min(page_img.height, shift_y + int(40 * zoom))
             )
+
+            crop_box = (x_left, y_top, page_img.width - x_right_crop, y_bottom)
 
             cropped = page_img.crop(crop_box)
 
             # Create and attach hour ruler
             ruler = create_hour_ruler(cropped.width, zoom=zoom)
             if ruler is not None:
-                combined = Image.new('RGB', (cropped.width, cropped.height + ruler.height), 'white')
+                combined = Image.new(
+                    "RGB", (cropped.width, cropped.height + ruler.height), "white"
+                )
                 combined.paste(ruler, (0, 0))
                 combined.paste(cropped, (0, ruler.height))
             else:
@@ -553,7 +585,7 @@ def generate_all_images(version: str, force: bool = False, progress_callback=Non
             generated.append(full_name)
 
         except Exception as e:
-            errors.append({'shift_nr': full_name, 'error': str(e)})
+            errors.append({"shift_nr": full_name, "error": str(e)})
 
         if progress_callback:
             progress_callback(idx + 1, total, full_name)
@@ -561,11 +593,11 @@ def generate_all_images(version: str, force: bool = False, progress_callback=Non
     doc.close()
 
     return {
-        'success': True,
-        'generated': generated,
-        'skipped': skipped,
-        'errors': errors,
-        'total': total
+        "success": True,
+        "generated": generated,
+        "skipped": skipped,
+        "errors": errors,
+        "total": total,
     }
 
 
@@ -581,28 +613,28 @@ def delete_all_images(version: str) -> dict:
     """
     paths = get_paths(version)
 
-    if not paths['images_dir_exists']:
-        return {'success': True, 'deleted_count': 0, 'message': 'No images directory exists'}
+    if not paths["images_dir_exists"]:
+        return {
+            "success": True,
+            "deleted_count": 0,
+            "message": "No images directory exists",
+        }
 
     deleted_count = 0
     errors = []
 
     try:
-        for filename in os.listdir(paths['images_dir']):
-            if filename.endswith('.png'):
+        for filename in os.listdir(paths["images_dir"]):
+            if filename.endswith(".png"):
                 try:
-                    os.remove(os.path.join(paths['images_dir'], filename))
+                    os.remove(os.path.join(paths["images_dir"], filename))
                     deleted_count += 1
                 except OSError as e:
-                    errors.append({'file': filename, 'error': str(e)})
+                    errors.append({"file": filename, "error": str(e)})
     except OSError as e:
-        return {'success': False, 'error': f'Failed to access images directory: {e}'}
+        return {"success": False, "error": f"Failed to access images directory: {e}"}
 
-    return {
-        'success': True,
-        'deleted_count': deleted_count,
-        'errors': errors
-    }
+    return {"success": True, "deleted_count": deleted_count, "errors": errors}
 
 
 def save_uploaded_pdf(file_storage, version: str) -> dict:
@@ -620,17 +652,11 @@ def save_uploaded_pdf(file_storage, version: str) -> dict:
     paths = get_paths(version)
 
     # Ensure directory exists
-    base_dir = os.path.dirname(paths['pdf_path'])
+    base_dir = os.path.dirname(paths["pdf_path"])
     os.makedirs(base_dir, exist_ok=True)
 
     try:
-        file_storage.save(paths['pdf_path'])
-        return {
-            'success': True,
-            'path': paths['pdf_path']
-        }
+        file_storage.save(paths["pdf_path"])
+        return {"success": True, "path": paths["pdf_path"]}
     except Exception as e:
-        return {
-            'success': False,
-            'error': str(e)
-        }
+        return {"success": False, "error": str(e)}

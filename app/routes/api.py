@@ -1,116 +1,146 @@
-import os
-import re
 import glob
 import logging
-from flask import Blueprint, request, jsonify, send_from_directory
-from flask_login import login_required, current_user
-from app.utils import db_utils
-from app.utils import shift_matcher
-from app.routes.main import favorite_lock
+import os
+import re
+
+from flask import Blueprint, jsonify, request, send_from_directory
+from flask_login import current_user, login_required
+
+from app.extensions import favorite_lock
+from app.utils import db_utils, shift_matcher
 from config import AppConfig
 
 logger = logging.getLogger(__name__)
 
-api = Blueprint('api', __name__, url_prefix='/api')
+api = Blueprint("api", __name__, url_prefix="/api")
 
-@api.route('/js_select_shift', methods=['POST'])
+
+@api.route("/js_select_shift", methods=["POST"])
 def select_shift():
-    data = request.get_json()
-    shift_title = data.get('shift_title')
-    
+    data = request.get_json() or {}
+    shift_title = data.get("shift_title")
+
     if shift_title:
         # Redirect to the display_shift page instead of returning JSON
         from flask import redirect, url_for
-        return redirect(url_for('shifts.display_shift', shift_title=shift_title))
-    else:
-        return jsonify({'status': 'error', 'message': 'No shift title provided'})
 
-@api.route('/toggle_favorite', methods=['POST'])
+        return redirect(url_for("shifts.display_shift", shift_title=shift_title))
+    else:
+        return jsonify({"status": "error", "message": "No shift title provided"})
+
+
+@api.route("/toggle_favorite", methods=["POST"])
 @login_required
 def toggle_favorite():
-    data = request.get_json()
-    favorite = data.get('favorite')
-    shift_title = data.get('shift_title')
+    data = request.get_json() or {}
+    favorite = data.get("favorite")
+    shift_title = data.get("shift_title")
 
     # Validate input
     if not shift_title:
-        return jsonify({'status': 'error', 'message': 'No shift title provided'})
-    
+        return jsonify({"status": "error", "message": "No shift title provided"})
+
     if favorite not in [True, False]:
-        return jsonify({'status': 'error', 'message': 'Invalid favorite value'})
+        return jsonify({"status": "error", "message": "Invalid favorite value"})
 
     with favorite_lock:
         try:
             # Get user's selected turnus set
             from app.utils.turnus_helpers import get_user_turnus_set
+
             user_turnus_set = get_user_turnus_set()
-            turnus_set_id = user_turnus_set['id'] if user_turnus_set else None
-            
+            turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
+
             if not turnus_set_id:
-                return jsonify({'status': 'error', 'message': 'No turnus set selected'})
-            
+                return jsonify({"status": "error", "message": "No turnus set selected"})
+
             user_id = current_user.get_id()
-            
+
             if favorite:
                 # Check if already exists first (handle potential duplicates from hibernation)
                 existing_favorites = db_utils.get_favorite_lst(user_id, turnus_set_id)
                 if shift_title in existing_favorites:
                     # Already exists, just return success (cleanup handled in get_favorite_lst)
-                    return jsonify({'status': 'success', 'message': 'Already in favorites'})
-                
+                    return jsonify(
+                        {"status": "success", "message": "Already in favorites"}
+                    )
+
                 # Calculate the next order index for the user's selected turnus set
                 order_index = db_utils.get_max_ordered_index(user_id, turnus_set_id) + 1
-                success = db_utils.add_favorite(user_id, shift_title, order_index, turnus_set_id)
+                success = db_utils.add_favorite(
+                    user_id, shift_title, order_index, turnus_set_id
+                )
                 if success:
-                    return jsonify({'status': 'success', 'message': 'Added to favorites'})
+                    return jsonify(
+                        {"status": "success", "message": "Added to favorites"}
+                    )
                 else:
-                    return jsonify({'status': 'error', 'message': 'Failed to add favorite - may already exist'})
+                    return jsonify(
+                        {
+                            "status": "error",
+                            "message": "Failed to add favorite - may already exist",
+                        }
+                    )
             else:
                 # Check if exists before trying to remove
                 existing_favorites = db_utils.get_favorite_lst(user_id, turnus_set_id)
                 if shift_title not in existing_favorites:
-                    return jsonify({'status': 'success', 'message': 'Already removed from favorites'})
-                
+                    return jsonify(
+                        {
+                            "status": "success",
+                            "message": "Already removed from favorites",
+                        }
+                    )
+
                 success = db_utils.remove_favorite(user_id, shift_title, turnus_set_id)
                 if success:
-                    return jsonify({'status': 'success', 'message': 'Removed from favorites'})
+                    return jsonify(
+                        {"status": "success", "message": "Removed from favorites"}
+                    )
                 else:
-                    return jsonify({'status': 'error', 'message': 'Failed to remove favorite'})
+                    return jsonify(
+                        {"status": "error", "message": "Failed to remove favorite"}
+                    )
         except Exception as e:
             logger.error("Error in toggle_favorite: %s", e)
-            return jsonify({'status': 'error', 'message': f'Server error: {str(e)}'})
+            return jsonify({"status": "error", "message": f"Server error: {str(e)}"})
 
-@api.route('/move-favorite', methods=['POST'])
+
+@api.route("/move-favorite", methods=["POST"])
 @login_required
 def move_favorite():
-    data = request.get_json()
-    shift_title = data.get('shift_title')
-    direction = data.get('direction')
+    data = request.get_json() or {}
+    shift_title = data.get("shift_title")
+    direction = data.get("direction")
     user_id = current_user.get_id()
-    
-    if not shift_title or direction not in ['up', 'down']:
-        return jsonify({'status': 'error', 'message': 'Invalid parameters'})
-    
+
+    if not shift_title or direction not in ["up", "down"]:
+        return jsonify({"status": "error", "message": "Invalid parameters"})
+
+    db_session = None
     try:
         # Get user's selected turnus set
         from app.utils.turnus_helpers import get_user_turnus_set
+
         user_turnus_set = get_user_turnus_set()
-        turnus_set_id = user_turnus_set['id'] if user_turnus_set else None
-        
+        turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
+
         if not turnus_set_id:
-            return jsonify({'status': 'error', 'message': 'No turnus set selected'})
-        
+            return jsonify({"status": "error", "message": "No turnus set selected"})
+
         db_session = db_utils.get_db_session()
 
         # Get current favorites with order FOR THE SPECIFIC TURNUS SET
-        current_favorites = db_session.query(db_utils.Favorites).filter_by(
-            user_id=user_id,
-            turnus_set_id=turnus_set_id
-        ).order_by(db_utils.Favorites.order_index).all()
+        current_favorites = (
+            db_session.query(db_utils.Favorites)
+            .filter_by(user_id=user_id, turnus_set_id=turnus_set_id)
+            .order_by(db_utils.Favorites.order_index)
+            .all()
+        )
 
         if not current_favorites:
             db_session.close()
-            return jsonify({'status': 'error', 'message': 'No favorites found'})
+            return jsonify({"status": "error", "message": "No favorites found"})
 
         # Find current position
         current_index = None
@@ -121,16 +151,18 @@ def move_favorite():
 
         if current_index is None:
             db_session.close()
-            return jsonify({'status': 'error', 'message': 'Favorite not found'})
+            return jsonify({"status": "error", "message": "Favorite not found"})
 
         # Calculate new position
-        if direction == 'up' and current_index > 0:
+        if direction == "up" and current_index > 0:
             new_index = current_index - 1
-        elif direction == 'down' and current_index < len(current_favorites) - 1:
+        elif direction == "down" and current_index < len(current_favorites) - 1:
             new_index = current_index + 1
         else:
             db_session.close()
-            return jsonify({'status': 'error', 'message': 'Cannot move in that direction'})
+            return jsonify(
+                {"status": "error", "message": "Cannot move in that direction"}
+            )
 
         # Swap the order_index values
         current_favorite = current_favorites[current_index]
@@ -145,53 +177,60 @@ def move_favorite():
         db_session.commit()
         db_session.close()
 
-        return jsonify({'status': 'success', 'message': 'Favorite moved successfully'})
+        return jsonify({"status": "success", "message": "Favorite moved successfully"})
 
     except Exception as e:
-        if 'db_session' in locals():
+        if db_session is not None:
             db_session.rollback()
             db_session.close()
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({"status": "error", "message": str(e)})
 
-@api.route('/set-favorite-position', methods=['POST'])
+
+@api.route("/set-favorite-position", methods=["POST"])
 @login_required
 def set_favorite_position():
     """Move a favorite directly to a specific position."""
-    data = request.get_json()
-    shift_title = data.get('shift_title')
-    new_position = data.get('new_position')  # 1-indexed position from user
+    data = request.get_json() or {}
+    shift_title = data.get("shift_title")
+    new_position = data.get("new_position")  # 1-indexed position from user
     user_id = current_user.get_id()
 
     if not shift_title or new_position is None:
-        return jsonify({'status': 'error', 'message': 'Invalid parameters'})
+        return jsonify({"status": "error", "message": "Invalid parameters"})
 
     try:
         new_position = int(new_position)
         if new_position < 1:
-            return jsonify({'status': 'error', 'message': 'Position must be at least 1'})
+            return jsonify(
+                {"status": "error", "message": "Position must be at least 1"}
+            )
     except (ValueError, TypeError):
-        return jsonify({'status': 'error', 'message': 'Position must be a number'})
+        return jsonify({"status": "error", "message": "Position must be a number"})
 
+    db_session = None
     try:
         # Get user's selected turnus set
         from app.utils.turnus_helpers import get_user_turnus_set
+
         user_turnus_set = get_user_turnus_set()
-        turnus_set_id = user_turnus_set['id'] if user_turnus_set else None
+        turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
 
         if not turnus_set_id:
-            return jsonify({'status': 'error', 'message': 'No turnus set selected'})
+            return jsonify({"status": "error", "message": "No turnus set selected"})
 
         db_session = db_utils.get_db_session()
 
         # Get current favorites ordered by order_index
-        current_favorites = db_session.query(db_utils.Favorites).filter_by(
-            user_id=user_id,
-            turnus_set_id=turnus_set_id
-        ).order_by(db_utils.Favorites.order_index).all()
+        current_favorites = (
+            db_session.query(db_utils.Favorites)
+            .filter_by(user_id=user_id, turnus_set_id=turnus_set_id)
+            .order_by(db_utils.Favorites.order_index)
+            .all()
+        )
 
         if not current_favorites:
             db_session.close()
-            return jsonify({'status': 'error', 'message': 'No favorites found'})
+            return jsonify({"status": "error", "message": "No favorites found"})
 
         # Clamp position to valid range
         max_position = len(current_favorites)
@@ -209,12 +248,12 @@ def set_favorite_position():
 
         if favorite_to_move is None:
             db_session.close()
-            return jsonify({'status': 'error', 'message': 'Favorite not found'})
+            return jsonify({"status": "error", "message": "Favorite not found"})
 
         # If already at the target position, nothing to do
         if current_index == new_index:
             db_session.close()
-            return jsonify({'status': 'success', 'message': 'Already at that position'})
+            return jsonify({"status": "success", "message": "Already at that position"})
 
         # Remove the favorite from the list and reinsert at new position
         current_favorites.pop(current_index)
@@ -227,48 +266,56 @@ def set_favorite_position():
         db_session.commit()
         db_session.close()
 
-        return jsonify({'status': 'success', 'message': 'Favorite position updated'})
+        return jsonify({"status": "success", "message": "Favorite position updated"})
 
     except Exception as e:
-        if 'db_session' in locals():
+        if db_session is not None:
             db_session.rollback()
             db_session.close()
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({"status": "error", "message": str(e)})
 
-@api.route('/generate-turnusnokkel', methods=['POST'])
+
+@api.route("/generate-turnusnokkel", methods=["POST"])
 @login_required
 def generate_turnusnokkel():
-    data = request.get_json()
-    turnus_name = data.get('turnus_name')
-    turnus_set_id = data.get('turnus_set_id')
-    
+    data = request.get_json() or {}
+    turnus_name = data.get("turnus_name")
+    turnus_set_id = data.get("turnus_set_id")
+
     if not turnus_name or not turnus_set_id:
-        return jsonify({'status': 'error', 'message': 'Missing turnus name or turnus set ID'})
-    
+        return jsonify(
+            {"status": "error", "message": "Missing turnus name or turnus set ID"}
+        )
+
     try:
-        logger.debug("Generating turnusnøkkel for turnus_name=%s, turnus_set_id=%s", turnus_name, turnus_set_id)
-        
+        logger.debug(
+            "Generating turnusnøkkel for turnus_name=%s, turnus_set_id=%s",
+            turnus_name,
+            turnus_set_id,
+        )
+
         # Import the turnusnøkkel generator
-        from app.utils.turnusnokkel_gen import TurnusnokkelGen
-        from flask import send_file
         import tempfile
-        import os
-        
+
+        from flask import send_file
+
+        from app.utils.turnusnokkel_gen import TurnusnokkelGen
+
         # Create generator instance and generate the turnusnøkkel
         generator = TurnusnokkelGen(turnus_name, turnus_set_id)
         result = generator.generate_single_turnus_nokkel()
-        
+
         logger.debug("Turnusnøkkel generator result: %s", result)
-        
-        if result['success']:
+
+        if result["success"]:
             # Get the workbook object from the result
-            workbook = result.get('workbook')
-            filename = result['filename']
-            
+            workbook = result.get("workbook")
+            filename = result["filename"]
+
             if workbook:
                 # Create a temp file, close it, then save workbook to it
                 # (Windows locks files so we can't have two handles open)
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
                 temp_file_path = temp_file.name
                 temp_file.close()
                 workbook.save(temp_file_path)
@@ -278,7 +325,7 @@ def generate_turnusnokkel():
                         temp_file_path,
                         as_attachment=True,
                         download_name=filename,
-                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     )
 
                     # Clean up temp file after response is sent
@@ -289,19 +336,24 @@ def generate_turnusnokkel():
 
                     return response
                 except Exception as e:
+                    logger.error("Error creating workbook: %s", e)
                     if os.path.exists(temp_file_path):
                         os.unlink(temp_file_path)
-                    raise e
+                    raise
             else:
-                return jsonify({'status': 'error', 'message': 'Generated workbook not found'})
+                return jsonify(
+                    {"status": "error", "message": "Generated workbook not found"}
+                )
         else:
-            return jsonify({'status': 'error', 'message': result['error']})
-            
+            return jsonify({"status": "error", "message": result["error"]})
+
     except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Failed to generate turnusnøkkel: {str(e)}'})
+        return jsonify(
+            {"status": "error", "message": f"Failed to generate turnusnøkkel: {str(e)}"}
+        )
 
 
-@api.route('/import-favorites-preview', methods=['POST'])
+@api.route("/import-favorites-preview", methods=["POST"])
 @login_required
 def import_favorites_preview():
     """
@@ -313,10 +365,10 @@ def import_favorites_preview():
     - source_turnus_set_id: Single source ID (for backwards compatibility)
     - source_turnus_set_ids: List of source IDs (new multi-year feature)
     """
-    data = request.get_json()
-    source_turnus_set_id = data.get('source_turnus_set_id')
-    source_turnus_set_ids = data.get('source_turnus_set_ids')
-    top_n = data.get('top_n', 5)
+    data = request.get_json() or {}
+    source_turnus_set_id = data.get("source_turnus_set_id")
+    source_turnus_set_ids = data.get("source_turnus_set_ids")
+    top_n = data.get("top_n", 5)
 
     # Handle both single and multiple sources
     if source_turnus_set_ids:
@@ -324,15 +376,19 @@ def import_favorites_preview():
         try:
             source_ids = [int(sid) for sid in source_turnus_set_ids]
         except (ValueError, TypeError):
-            return jsonify({'status': 'error', 'message': 'Invalid source turnus set IDs'})
+            return jsonify(
+                {"status": "error", "message": "Invalid source turnus set IDs"}
+            )
     elif source_turnus_set_id:
         # Legacy single-source mode
         try:
             source_ids = [int(source_turnus_set_id)]
         except (ValueError, TypeError):
-            return jsonify({'status': 'error', 'message': 'Invalid source turnus set ID'})
+            return jsonify(
+                {"status": "error", "message": "Invalid source turnus set ID"}
+            )
     else:
-        return jsonify({'status': 'error', 'message': 'No source turnus set provided'})
+        return jsonify({"status": "error", "message": "No source turnus set provided"})
 
     # Handle top_n: 0 means all matches
     try:
@@ -346,17 +402,20 @@ def import_favorites_preview():
 
     # Get current turnus set
     from app.utils.turnus_helpers import get_user_turnus_set
+
     user_turnus_set = get_user_turnus_set()
-    target_turnus_set_id = user_turnus_set['id'] if user_turnus_set else None
+    target_turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
 
     if not target_turnus_set_id:
-        return jsonify({'status': 'error', 'message': 'No active turnus set selected'})
+        return jsonify({"status": "error", "message": "No active turnus set selected"})
 
     # Remove target from sources if present
     source_ids = [sid for sid in source_ids if sid != target_turnus_set_id]
 
     if not source_ids:
-        return jsonify({'status': 'error', 'message': 'Source and target turnus sets are the same'})
+        return jsonify(
+            {"status": "error", "message": "Source and target turnus sets are the same"}
+        )
 
     user_id = current_user.get_id()
 
@@ -366,86 +425,102 @@ def import_favorites_preview():
             user_id=user_id,
             source_turnus_set_ids=source_ids,
             target_turnus_set_id=target_turnus_set_id,
-            top_n=top_n
+            top_n=top_n,
         )
 
-        if not result['all_favorites']:
-            return jsonify({
-                'status': 'error',
-                'message': 'No favorites found in source turnus sets or stats unavailable'
-            })
+        if not result["all_favorites"]:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "No favorites found in source turnus sets or stats unavailable",
+                }
+            )
 
         target_set = db_utils.get_turnus_set_by_id(target_turnus_set_id)
+        if not target_set:
+            return jsonify(
+                {"status": "error", "message": "Target turnus set not found"}
+            ), 404
 
-        return jsonify({
-            'status': 'success',
-            'mode': 'multi_source',
-            'target_set': {
-                'id': target_set['id'],
-                'name': target_set['name'],
-                'year_identifier': target_set['year_identifier']
-            },
-            'by_source': result['by_source'],
-            'matches': result['all_favorites']  # Combined best matches
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "mode": "multi_source",
+                "target_set": {
+                    "id": target_set["id"],
+                    "name": target_set["name"],
+                    "year_identifier": target_set["year_identifier"],
+                },
+                "by_source": result["by_source"],
+                "matches": result["all_favorites"],  # Combined best matches
+            }
+        )
     else:
         # Single source - use original function
         matches = shift_matcher.find_matches_for_favorites(
             user_id=user_id,
             source_turnus_set_id=source_ids[0],
             target_turnus_set_id=target_turnus_set_id,
-            top_n=top_n
+            top_n=top_n,
         )
 
         if not matches:
-            return jsonify({
-                'status': 'error',
-                'message': 'No favorites found in source turnus set or stats unavailable'
-            })
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "No favorites found in source turnus set or stats unavailable",
+                }
+            )
 
         # Get info about the turnus sets
         source_set = db_utils.get_turnus_set_by_id(source_ids[0])
         target_set = db_utils.get_turnus_set_by_id(target_turnus_set_id)
 
-        return jsonify({
-            'status': 'success',
-            'mode': 'single_source',
-            'source_set': {
-                'id': source_set['id'],
-                'name': source_set['name'],
-                'year_identifier': source_set['year_identifier']
-            },
-            'target_set': {
-                'id': target_set['id'],
-                'name': target_set['name'],
-                'year_identifier': target_set['year_identifier']
-            },
-            'matches': matches
-        })
+        if not source_set or not target_set:
+            return jsonify({"status": "error", "message": "Turnus set not found"}), 404
+
+        return jsonify(
+            {
+                "status": "success",
+                "mode": "single_source",
+                "source_set": {
+                    "id": source_set["id"],
+                    "name": source_set["name"],
+                    "year_identifier": source_set["year_identifier"],
+                },
+                "target_set": {
+                    "id": target_set["id"],
+                    "name": target_set["name"],
+                    "year_identifier": target_set["year_identifier"],
+                },
+                "matches": matches,
+            }
+        )
 
 
-@api.route('/import-favorites-confirm', methods=['POST'])
+@api.route("/import-favorites-confirm", methods=["POST"])
 @login_required
 def import_favorites_confirm():
     """
     Add selected shifts as favorites in the current turnus set.
     """
-    data = request.get_json()
-    shifts_to_add = data.get('shifts', [])
+    data = request.get_json() or {}
+    shifts_to_add = data.get("shifts", [])
 
     if not shifts_to_add:
-        return jsonify({'status': 'error', 'message': 'No shifts provided'})
+        return jsonify({"status": "error", "message": "No shifts provided"})
 
     if not isinstance(shifts_to_add, list):
-        return jsonify({'status': 'error', 'message': 'Shifts must be a list'})
+        return jsonify({"status": "error", "message": "Shifts must be a list"})
 
     # Get current turnus set
     from app.utils.turnus_helpers import get_user_turnus_set
+
     user_turnus_set = get_user_turnus_set()
-    turnus_set_id = user_turnus_set['id'] if user_turnus_set else None
+    turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
 
     if not turnus_set_id:
-        return jsonify({'status': 'error', 'message': 'No active turnus set selected'})
+        return jsonify({"status": "error", "message": "No active turnus set selected"})
 
     user_id = current_user.get_id()
 
@@ -464,7 +539,9 @@ def import_favorites_confirm():
                     continue
 
                 current_max_index += 1
-                success = db_utils.add_favorite(user_id, shift_title, current_max_index, turnus_set_id)
+                success = db_utils.add_favorite(
+                    user_id, shift_title, current_max_index, turnus_set_id
+                )
 
                 if success:
                     added.append(shift_title)
@@ -472,18 +549,22 @@ def import_favorites_confirm():
                 else:
                     skipped.append(shift_title)
 
-            return jsonify({
-                'status': 'success',
-                'message': f'Added {len(added)} favorites',
-                'added': added,
-                'skipped': skipped
-            })
+            return jsonify(
+                {
+                    "status": "success",
+                    "message": f"Added {len(added)} favorites",
+                    "added": added,
+                    "skipped": skipped,
+                }
+            )
 
         except Exception as e:
-            return jsonify({'status': 'error', 'message': f'Error adding favorites: {str(e)}'})
+            return jsonify(
+                {"status": "error", "message": f"Error adding favorites: {str(e)}"}
+            )
 
 
-@api.route('/get-turnus-sets-for-import', methods=['GET'])
+@api.route("/get-turnus-sets-for-import", methods=["GET"])
 @login_required
 def get_turnus_sets_for_import():
     """
@@ -494,8 +575,9 @@ def get_turnus_sets_for_import():
 
     # Get current turnus set to exclude it
     from app.utils.turnus_helpers import get_user_turnus_set
+
     user_turnus_set = get_user_turnus_set()
-    current_turnus_set_id = user_turnus_set['id'] if user_turnus_set else None
+    current_turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
 
     # Get all turnus sets with stats
     sets_with_stats = shift_matcher.get_all_turnus_sets_with_stats()
@@ -503,27 +585,33 @@ def get_turnus_sets_for_import():
     # Filter to only sets where user has favorites (and not current set)
     available_sets = []
     for ts in sets_with_stats:
-        if ts['id'] == current_turnus_set_id:
+        if ts["id"] == current_turnus_set_id:
             continue
 
         # Check if user has favorites in this set
-        favorites = db_utils.get_favorite_lst(user_id, ts['id'])
+        favorites = db_utils.get_favorite_lst(user_id, ts["id"])
         if favorites:
-            ts['favorite_count'] = len(favorites)
+            ts["favorite_count"] = len(favorites)
             available_sets.append(ts)
 
-    return jsonify({
-        'status': 'success',
-        'turnus_sets': available_sets,
-        'current_set': {
-            'id': current_turnus_set_id,
-            'name': user_turnus_set['name'] if user_turnus_set else None,
-            'year_identifier': user_turnus_set['year_identifier'] if user_turnus_set else None
-        } if user_turnus_set else None
-    })
+    return jsonify(
+        {
+            "status": "success",
+            "turnus_sets": available_sets,
+            "current_set": {
+                "id": current_turnus_set_id,
+                "name": user_turnus_set["name"] if user_turnus_set else None,
+                "year_identifier": user_turnus_set["year_identifier"]
+                if user_turnus_set
+                else None,
+            }
+            if user_turnus_set
+            else None,
+        }
+    )
 
 
-@api.route('/shift-image/<int:turnus_set_id>/<shift_nr>')
+@api.route("/shift-image/<int:turnus_set_id>/<shift_nr>")
 @login_required
 def get_shift_image(turnus_set_id, shift_nr):
     """
@@ -533,33 +621,32 @@ def get_shift_image(turnus_set_id, shift_nr):
     # Get turnus set to find year_identifier
     turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
-        return jsonify({'status': 'error', 'message': 'Turnus set not found'}), 404
+        return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
     # Convert year_identifier (e.g., "R26") to folder name (e.g., "r26")
-    version = turnus_set['year_identifier'].lower()
+    version = turnus_set["year_identifier"].lower()
 
     # Build path to PNG directory
-    png_dir = os.path.join(AppConfig.turnusfiler_dir, version, 'streklister', 'png')
+    png_dir = os.path.join(AppConfig.turnusfiler_dir, version, "streklister", "png")
 
     # Sanitize shift_nr to prevent path traversal and normalize whitespace
     # Remove all whitespace to match filename convention (PDF names may have line breaks)
-    safe_shift_nr = re.sub(r'\s+', '', os.path.basename(shift_nr))
+    safe_shift_nr = re.sub(r"\s+", "", os.path.basename(shift_nr))
 
     # Try exact match first
-    exact_path = os.path.join(png_dir, f'{safe_shift_nr}.png')
+    exact_path = os.path.join(png_dir, f"{safe_shift_nr}.png")
     if os.path.isfile(exact_path):
-        return send_from_directory(png_dir, f'{safe_shift_nr}.png', mimetype='image/png')
+        return send_from_directory(
+            png_dir, f"{safe_shift_nr}.png", mimetype="image/png"
+        )
 
     # Try to find files that start with the shift number (handles suffixes like -Mod_1, -N05_1)
-    pattern = os.path.join(png_dir, f'{safe_shift_nr}*.png')
+    pattern = os.path.join(png_dir, f"{safe_shift_nr}*.png")
     matches = glob.glob(pattern)
     if matches:
         # Return the first match (prefer shorter names)
         matches.sort(key=len)
         filename = os.path.basename(matches[0])
-        return send_from_directory(png_dir, filename, mimetype='image/png')
+        return send_from_directory(png_dir, filename, mimetype="image/png")
 
-    return jsonify({
-        'status': 'error',
-        'message': 'Ingen tidslinje tilgjengelig'
-    }), 404
+    return jsonify({"status": "error", "message": "Ingen tidslinje tilgjengelig"}), 404

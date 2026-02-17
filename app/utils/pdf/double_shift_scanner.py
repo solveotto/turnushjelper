@@ -6,8 +6,6 @@ Scans a strekliste PDF for shift markers:
 - "**" markers indicate delt dagsverk (split work day)
 
 Outputs a JSON file with both types of markers.
-
-Dette er en test
 """
 
 import json
@@ -15,6 +13,8 @@ import os
 import re
 import sys
 from typing import TypedDict
+
+# from pandas.core.array_algos.transforms import shift
 
 # Allow running as standalone script
 sys.path.insert(
@@ -191,11 +191,12 @@ def scan_double_shifts(pdf_path: str) -> DoubleShiftResult:
                         single_stars.append({"y": y_mid, "x": x})
 
                 # Check 3: Shift number
-                if x < SHIFT_NR_VISUAL_X_MAX and SHIFT_NR_PATTERN.match(text):
+                shift_match = SHIFT_NR_PATTERN.match(text)
+                if x < SHIFT_NR_VISUAL_X_MAX and shift_match:
                     shift_numbers.append(
                         {
                             "nr": text,
-                            "nr_base": SHIFT_NR_PATTERN.match(text).group(1),
+                            "nr_base": shift_match.group(1),
                             "y": y_mid,
                         }
                     )
