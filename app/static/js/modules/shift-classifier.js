@@ -91,7 +91,7 @@ function classifyCell(timeText, customText) {
     }
 
     // Day-off codes
-    const dayOffCodes = ['XX', 'OO', 'TT', ''];
+    const dayOffCodes = ['X', 'O', 'T', ''];
     if (dayOffCodes.includes(times[0])) {
         return SHIFT_TYPES.DAY_OFF;
     }

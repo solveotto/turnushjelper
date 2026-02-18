@@ -95,7 +95,8 @@ class ShiftScraper:
             "OSL",
         ]
         self.ALLOW_FILTER = [":", "XX", "OO", "TT"]
-        self.FRIDAG_FILTER = ["XX", "OO", "TT"]
+        self.FRIDAG_FILTER = ["X", "O", "T"]
+        self.FRIDAG_NORMALIZE = {"XX": "X", "OO": "O", "TT": "T"}
 
         self.turnuser = []
 
@@ -257,9 +258,11 @@ class ShiftScraper:
 
                 # Process each time value normally
                 for time_val in times_to_add:
+                    # Normalize day-off codes: XX->X, OO->O, TT->T
+                    time_val = self.FRIDAG_NORMALIZE.get(time_val, time_val)
                     # Hvis det er uke1 og dag 1 så skal det ikke sjekkes om objektet finnes i uken og dagen før,
                     # men lagres i nåværende dag og uke.
-                    if (uke == 1 and dag == 1) or time_val in self.ALLOW_FILTER:
+                    if (uke == 1 and dag == 1) or time_val in self.ALLOW_FILTER or time_val in self.FRIDAG_FILTER:
                         turnus[uke][dag]["tid"].append(time_val)
 
                     # Hvis det mandag men ikke uke1.
@@ -272,10 +275,10 @@ class ShiftScraper:
                             and time_val == turnus[uke - 1][7]["tid"][1]
                         ):
                             pass
-                        # hvis objektet er :, XX, OO eller TT: lagre i nåværede dag og uke
+                        # hvis objektet er :, X, O eller T: lagre i nåværede dag og uke
                         elif any(
                             val in turnus[uke - 1][7]["tid"]
-                            for val in self.ALLOW_FILTER
+                            for val in self.ALLOW_FILTER + self.FRIDAG_FILTER
                         ):
                             turnus[uke][dag]["tid"].append(time_val)
                         # Hvis det bare er et objekt på søndag uke over: legg objekt til søndag
@@ -286,10 +289,10 @@ class ShiftScraper:
 
                     # Hvis det ikke er dag1
                     elif uke >= 1 and dag > 1:
-                        # Putter objekt i nåværende dag hvis dagen før er :, XX, TT, eller OO.
+                        # Putter objekt i nåværende dag hvis dagen før er :, X, T, eller O.
                         if any(
                             val in turnus[uke][dag - 1]["tid"]
-                            for val in self.ALLOW_FILTER
+                            for val in self.ALLOW_FILTER + self.FRIDAG_FILTER
                         ):
                             turnus[uke][dag]["tid"].append(time_val)
                         # Putter objekt i dagen før hvis det kun er en verdi der.
@@ -790,14 +793,14 @@ class ShiftScraper:
                                 "format": skjult_fridag_format,
                             },
                         )
-                        # XX, OO og TT celler
+                        # X, O og T celler
                         worksheet.conditional_format(
                             cell,
                             {
                                 "type": "formula",
-                                "criteria": "=(" + cell + '="XX ")'
-                                "OR (" + cell + '="OO ")'
-                                "OR (" + cell + '="TT ")',
+                                "criteria": "=(" + cell + '="X ")'
+                                "OR (" + cell + '="O ")'
+                                "OR (" + cell + '="T ")',
                                 "format": turnusfri_format,
                             },
                         )
