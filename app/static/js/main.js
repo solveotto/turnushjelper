@@ -55,10 +55,9 @@ class App {
             this.modules.shiftTimeline = new ShiftTimelineModal();
         }
 
-        // Initialize guided tour if on a tour-enabled page
-        if (document.querySelector('[data-tour-page]')) {
-            this.modules.guidedTour = new GuidedTour();
-        }
+        // Initialize guided tour (handles help button on all pages,
+        // auto-starts tour only on pages with data-tour-page)
+        this.modules.guidedTour = new GuidedTour();
     }
 
     getModule(name) {

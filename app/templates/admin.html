@@ -13,9 +13,15 @@
                     <a href="{{ url_for('admin.manage_turnus_sets') }}" class="btn btn-info me-2">
                         <i class="bi bi-calendar3"></i> Administrer turnussett
                     </a>
-                    <a href="{{ url_for('admin.create_user') }}" class="btn btn-success">
+                    <a href="{{ url_for('admin.create_user') }}" class="btn btn-success me-2">
                         <i class="bi bi-person-plus"></i> Opprett ny bruker
                     </a>
+                    <form method="POST" action="{{ url_for('admin.reset_tour') }}" style="display: inline;"
+                          onsubmit="return confirm('Er du sikker? Omvisningen vil starte på nytt for alle brukere.')">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-repeat"></i> Tilbakestill omvisning
+                        </button>
+                    </form>
                 </div>
             </div>
 

@@ -1,5 +1,7 @@
 // Guided Tour Module
 // Manages Driver.js-based guided tours for onboarding new users
+// and a separate help guide accessible from the dropdown menu.
+// Page detection is data-driven via [data-tour-page] attributes.
 
 export class GuidedTour {
     constructor() {
@@ -7,28 +9,77 @@ export class GuidedTour {
         this.init();
     }
 
-    init() {
-        // Only run on pages that have tour data
-        const pageLayout = document.querySelector('.page-layout');
-        if (!pageLayout) return;
+    async init() {
+        // Help menu: show the "Hjelp" link if help steps exist for this page
+        const helpSteps = await this.getHelpStepsForCurrentPage();
+        if (helpSteps && helpSteps.length > 0) {
+            this.showHelpMenuItem();
+            this.setupHelpButton();
+        }
 
-        this.tourSeen = pageLayout.dataset.tourSeen;
-        this.setupHelpButton();
-        this.detectAndStartTour();
+        // Onboarding tour: auto-start if user hasn't seen it (global flag)
+        const tourSeenEl = document.querySelector('[data-tour-seen]');
+        if (tourSeenEl) {
+            this.tourSeen = tourSeenEl.dataset.tourSeen;
+            if (this.tourSeen === '0') {
+                const tourSteps = await this.getStepsForCurrentPage();
+                if (tourSteps && tourSteps.length > 0) {
+                    setTimeout(() => this.startTour(), 1000);
+                }
+            }
+        }
+    }
+
+    showHelpMenuItem() {
+        const menuItem = document.getElementById('tour-help-menu-item');
+        if (menuItem) {
+            menuItem.style.display = '';
+        }
     }
 
     setupHelpButton() {
         const helpBtn = document.getElementById('start-tour-btn');
         if (helpBtn) {
-            helpBtn.addEventListener('click', () => this.startTour());
+            helpBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Close the Bootstrap dropdown before starting the help guide
+                const dropdownMenu = helpBtn.closest('.dropdown-menu');
+                if (dropdownMenu) {
+                    const toggle = dropdownMenu.closest('.dropdown').querySelector('[data-bs-toggle="dropdown"]');
+                    if (toggle) {
+                        bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+                    }
+                }
+                this.startHelp();
+            });
         }
     }
 
-    detectAndStartTour() {
-        // Auto-start tour if user hasn't seen it (1s delay for page to settle)
-        if (this.tourSeen === '0') {
-            setTimeout(() => this.startTour(), 1000);
+    async startHelp() {
+        const steps = await this.getHelpStepsForCurrentPage();
+        if (!steps || steps.length === 0) return;
+
+        if (typeof window.driver === 'undefined') {
+            console.warn('Driver.js not loaded');
+            return;
         }
+
+        this.driver = window.driver.js.driver({
+            showProgress: true,
+            animate: true,
+            overlayColor: 'rgba(30, 58, 138, 0.6)',
+            stagePadding: 8,
+            stageRadius: 8,
+            allowClose: true,
+            popoverClass: 'guided-tour-popover',
+            progressText: '{{current}} av {{total}}',
+            nextBtnText: 'Neste →',
+            prevBtnText: '← Forrige',
+            doneBtnText: 'Ferdig ✓',
+            steps: steps,
+        });
+
+        this.driver.drive();
     }
 
     async startTour() {
@@ -69,13 +120,27 @@ export class GuidedTour {
     }
 
     async getStepsForCurrentPage() {
-        // Detect current page and load appropriate tour steps
-        if (document.querySelector('.page-layout')) {
-            // We're on the turnusliste page (it has .page-layout)
-            const { getTurnuslisteTourSteps } = await import('./tour-definitions/turnusliste-tour.js');
-            return getTurnuslisteTourSteps();
+        const el = document.querySelector('[data-tour-page]');
+        if (!el) return null;
+        const page = el.dataset.tourPage;
+        try {
+            const mod = await import(`./tour-definitions/${page}-tour.js`);
+            return mod.default?.() || null;
+        } catch {
+            return null;
         }
-        return null;
+    }
+
+    async getHelpStepsForCurrentPage() {
+        const el = document.querySelector('[data-tour-page]');
+        if (!el) return null;
+        const page = el.dataset.tourPage;
+        try {
+            const mod = await import(`./tour-definitions/${page}-help.js`);
+            return mod.default?.() || null;
+        } catch {
+            return null;
+        }
     }
 
     async markTourSeen() {
@@ -88,9 +153,9 @@ export class GuidedTour {
             const data = await response.json();
             if (data.status === 'success') {
                 // Update the data attribute so re-triggering doesn't re-POST
-                const pageLayout = document.querySelector('.page-layout');
-                if (pageLayout) {
-                    pageLayout.dataset.tourSeen = '1';
+                const tourSeenEl = document.querySelector('[data-tour-seen]');
+                if (tourSeenEl) {
+                    tourSeenEl.dataset.tourSeen = '1';
                     this.tourSeen = '1';
                 }
             }

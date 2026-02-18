@@ -1,27 +1,13 @@
-// Tour step definitions for the Turnusliste page
-// Each step follows the Driver.js popover config format
+// Help guide step definitions for the Turnusliste page
+// Separate from the onboarding tour — no welcome step,
+// content can be added/removed independently.
 
 export default function() {
-  // Detect mobile vs desktop for the sorter button selector
   const isMobile = window.innerWidth < 992;
 
   return [
     {
-      // Step 1: Welcome (centered, no element)
-      popover: {
-        title: "Velkommen til Turnuslisten! 👋",
-        description: `
-                    <p>Denne guiden viser deg de viktigste funksjonene på denne siden.</p>
-                    <p>Her kan du se alle turnuser, sortere dem etter dine preferanser,
-                    og lagre favoritter for å sortere den prioriterte rekkefølgen.</p>
-                    <p class="tour-hint">Klikk <strong>Neste</strong> for å starte omvisningen.</p>
-                `,
-        side: "over",
-        align: "center",
-      },
-    },
-    {
-      // Step 2: Sort/Filter system
+      // Step 1: Sort/Filter system
       element: isMobile ? ".mobile-sorter-btn" : ".sorter-btn",
       popover: {
         title: "Sortering og filtrering",
@@ -41,7 +27,7 @@ export default function() {
       },
     },
     {
-      // Step 3: Favorites
+      // Step 2: Favorites
       element: ".custom-checkbox",
       popover: {
         title: "Favoritter ⭐",
@@ -55,7 +41,7 @@ export default function() {
       },
     },
     {
-      // Step 4: Dobbelttur (centered, no element — informational)
+      // Step 3: Dobbelttur (centered, no element — informational)
       popover: {
         title: "Dobbelturer",
         description: `
@@ -79,7 +65,7 @@ export default function() {
       },
     },
     {
-      // Step 5: Delt dagsverk (centered, no element — informational)
+      // Step 4: Delt dagsverk (centered, no element — informational)
       popover: {
         title: "Delte dagsverk",
         description: `
@@ -98,7 +84,7 @@ export default function() {
       },
     },
     {
-      // Step 6: Strekliste link
+      // Step 5: Strekliste link
       element: ".dagsverk-link",
       popover: {
         title: "Streklister",

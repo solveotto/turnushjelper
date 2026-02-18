@@ -1,8 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
-from app.database import get_db_session
-from app.models import DBUser
 from app.utils import db_utils, df_utils
 from app.utils.turnus_helpers import get_user_turnus_set
 
@@ -12,25 +10,7 @@ shifts = Blueprint("shifts", __name__)
 @shifts.route("/")
 @login_required
 def index():
-    """Landing page - redirects based on whether user has favorites"""
-    user_turnus_set = get_user_turnus_set()
-    turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
-
-    # Get favorites for current user
-    favoritt = (
-        db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
-        if current_user.is_authenticated
-        else []
-    )
-
-    if favoritt:
-        return redirect(url_for("shifts.turnusliste"))
-    elif turnus_set_id and db_utils.user_has_favorites_in_other_sets(
-        current_user.get_id(), turnus_set_id
-    ):
-        return redirect(url_for("shifts.favorites"))
-    else:
-        return redirect(url_for("shifts.turnusliste"))
+    return redirect(url_for("shifts.turnusliste"))
 
 
 @shifts.route("/turnusliste")
@@ -57,16 +37,6 @@ def turnusliste():
     # Get turnus parameter for highlighting specific turnus
     highlighted_turnus = request.args.get("turnus")
 
-    # Check if user has seen the turnusliste guided tour
-    has_seen_tour = 0
-    db_session = get_db_session()
-    try:
-        db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
-        if db_user:
-            has_seen_tour = db_user.has_seen_turnusliste_tour or 0
-    finally:
-        db_session.close()
-
     return render_template(
         "turnusliste.html",
         page_name="Turnusliste",
@@ -80,7 +50,6 @@ def turnusliste():
         active_set=active_set,
         all_turnus_sets=db_utils.get_all_turnus_sets(),
         highlighted_turnus=highlighted_turnus,
-        has_seen_tour=has_seen_tour,
     )
 
 

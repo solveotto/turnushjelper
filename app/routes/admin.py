@@ -4,6 +4,7 @@ import os
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
 
+from app.database import get_db_session
 from app.decorators import admin_required
 from app.forms import (
     CreateTurnusSetForm,
@@ -11,6 +12,7 @@ from app.forms import (
     EditUserForm,
     UploadStreklisteForm,
 )
+from app.models import DBUser
 from app.utils import db_utils
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
@@ -24,6 +26,23 @@ admin = Blueprint("admin", __name__, url_prefix="/admin")
 def admin_dashboard():
     users = db_utils.get_all_users()
     return render_template("admin.html", users=users, page_name="Admin Panel")
+
+
+@admin.route("/reset-tour", methods=["POST"])
+@admin_required
+def reset_tour():
+    """Reset the guided tour flag for all users so the tour auto-starts again."""
+    db_session = get_db_session()
+    try:
+        db_session.query(DBUser).update({DBUser.has_seen_turnusliste_tour: 0})
+        db_session.commit()
+        flash("Omvisningen er tilbakestilt for alle brukere.", "success")
+    except Exception as e:
+        db_session.rollback()
+        flash(f"Feil ved tilbakestilling: {e}", "danger")
+    finally:
+        db_session.close()
+    return redirect(url_for("admin.admin_dashboard"))
 
 
 @admin.route("/create_user", methods=["GET", "POST"])

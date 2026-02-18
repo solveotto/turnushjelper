@@ -1,11 +1,12 @@
 import logging
 
 from flask import Flask
+from flask_login import current_user
 from flask_session import Session
 
-from app.database import create_tables
+from app.database import create_tables, get_db_session
 from app.extensions import cache, login_manager, mail
-from app.models import User
+from app.models import DBUser, User
 from app.services.user_service import init_default_admin
 from config import AppConfig
 
@@ -67,6 +68,17 @@ def create_app():
     app.config["SESSION_KEY_PREFIX"] = "session:"
 
     Session(app)
+
+    @app.context_processor
+    def inject_tour_state():
+        if current_user.is_authenticated:
+            db_session = get_db_session()
+            try:
+                db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
+                return {"has_seen_tour": db_user.has_seen_turnusliste_tour if db_user else 0}
+            finally:
+                db_session.close()
+        return {"has_seen_tour": 0}
 
     from app.routes.main import blueprints
 
