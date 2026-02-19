@@ -13,7 +13,6 @@ WORKFLOW:
     3. Activate turnus set in admin panel
 
 FEATURES:
-    - Automatically creates database tables if they don't exist
     - Works with both SQLite (dev) and MySQL (production)
     - Auto-generates statistics JSON if missing
     - Validates JSON file existence before processing
@@ -55,7 +54,6 @@ EXAMPLES:
 
 ERROR HANDLING:
     - Validates JSON file existence
-    - Creates database tables if missing
     - Generates statistics JSON if missing
     - Provides clear error messages for troubleshooting
 
@@ -75,7 +73,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.insert(0, project_root)
 
 # Now we can import from app
-from app.utils.db_utils import create_turnus_set, add_shifts_to_turnus_set, get_turnus_set_by_year, update_turnus_set_paths, create_tables
+from app.utils.db_utils import create_turnus_set, add_shifts_to_turnus_set, get_turnus_set_by_year, update_turnus_set_paths
 from app.utils.shift_stats import Turnus
 from config import AppConfig
 
@@ -84,15 +82,6 @@ def create_new_turnus(year_id, name, turnus_json_path=None, df_json_path=None):
     
     print(f"🚀 Creating new turnus set: {year_id}")
 
-     # Ensure database tables exist
-    print(f"🗄️  Ensuring database tables exist...")
-    try:
-        create_tables()
-        print(f"✅ Database tables ready")
-    except Exception as e:
-        print(f"❌ Error creating database tables: {e}")
-        return False
-    
     # If no paths provided, try to find files in turnusfiler directory
     if not turnus_json_path or not df_json_path:
         turnusfiler_dir = os.path.join(AppConfig.static_dir, 'turnusfiler', year_id.lower())

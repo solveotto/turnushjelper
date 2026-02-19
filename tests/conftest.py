@@ -107,7 +107,6 @@ def patch_db(db_session, monkeypatch):
 @pytest.fixture()
 def app(patch_db, monkeypatch):
     """Create a Flask test app with patched DB and disabled CSRF."""
-    monkeypatch.setattr("app.database.create_tables", lambda: None)
     monkeypatch.setattr("app.services.user_service.init_default_admin", lambda: None)
 
     from app import create_app

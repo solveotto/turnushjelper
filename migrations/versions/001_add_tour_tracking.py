@@ -1,7 +1,7 @@
 """add turnusliste tour tracking column
 
 Revision ID: 001_add_tour_tracking
-Revises:
+Revises: 000_initial_schema
 Create Date: 2026-02-17
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "001_add_tour_tracking"
-down_revision: Union[str, None] = None
+down_revision: Union[str, None] = "000_initial_schema"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

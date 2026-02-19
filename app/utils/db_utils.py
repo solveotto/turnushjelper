@@ -3,7 +3,7 @@
 All models, database infrastructure, and service functions have been
 extracted into dedicated modules during Phase 3 refactoring:
 
-  - app.database          — Base, engine, SessionLocal, get_db_session, create_tables
+  - app.database          — Base, engine, SessionLocal, get_db_session
   - app.models            — DBUser, AuthorizedEmails, EmailVerificationToken, TurnusSet, Favorites, Shifts
   - app.services.turnus_service    — turnus set CRUD
   - app.services.user_service      — user management
@@ -15,7 +15,7 @@ Existing imports like ``from app.utils import db_utils`` or
 """
 
 # Database infrastructure
-from app.database import Base, engine, SessionLocal, create_tables, get_db_session  # noqa: F401
+from app.database import Base, engine, SessionLocal, get_db_session  # noqa: F401
 
 # ORM models
 from app.models import (  # noqa: F401

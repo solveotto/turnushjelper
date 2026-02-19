@@ -74,10 +74,8 @@ def migrate_database():
         session.commit()
         print(f"Marked {len(existing_users)} existing users as verified")
 
-        # Create new tables (will use create_tables() which is idempotent)
-        from app.utils.db_utils import create_tables
-        create_tables()
-        print("Created new tables (authorized_emails, email_verification_tokens)")
+        # Tables are now managed by Alembic — run `alembic upgrade head`
+        print("Note: Tables are managed by Alembic. Run 'alembic upgrade head' to create tables.")
 
         print("\nMigration completed successfully!")
         print("\nNext steps:")
