@@ -95,12 +95,34 @@ class Turnus():
             afternoon_ends_before_20 = 0
             afternons_in_row = 0
             night_count = 0
-            
+            tidlig_6_8 = 0
+            tidlig_8_12 = 0
+            total_shift_hours = 0
+            current_work_streak = 0
+            longest_work_streak = 0
+            current_off_streak = 0
+            longest_off_streak = 0
+            prev_was_night = False
+
 
             for _index, _dagsverk in turuns_df_reset.iterrows():
-                if _dagsverk['start'] != _dagsverk['slutt']:     
-                    # Checks for bottom of the list
-                    if _index + 1 < len(turuns_df_reset):
+                is_work_day = _dagsverk['start'] != _dagsverk['slutt'] and _index + 1 < len(turuns_df_reset)
+
+                if is_work_day:
+                    current_work_streak += 1
+                    longest_work_streak = max(longest_work_streak, current_work_streak)
+                    current_off_streak = 0
+                else:
+                    if _index + 1 < len(turuns_df_reset):  # Not the summary row
+                        if prev_was_night:
+                            # Recovery day after night shift — doesn't count as true day off
+                            prev_was_night = False
+                        else:
+                            current_off_streak += 1
+                            longest_off_streak = max(longest_off_streak, current_off_streak)
+                    current_work_streak = 0
+
+                if is_work_day:
                         shift_cnt += 1
                         start = pd.to_datetime(_dagsverk['start'], format='%H:%M')
                         end = pd.to_datetime(_dagsverk['slutt'], format='%H:%M')
@@ -111,7 +133,9 @@ class Turnus():
                         # Adjust end time if it's on the next day
                         if end < start:
                             end += pd.Timedelta(days=1)
-                        
+
+                        total_shift_hours += (end - start).total_seconds() / 3600
+
                         # Classify night shifts — aligned with shift-classifier.js
                         # Nattevakt: crosses midnight AND ends 02:00+ next day
                         crosses_midnight = end.date() > start.date()
@@ -122,6 +146,7 @@ class Turnus():
                             if ukedag in weekend_days:
                                 natt_helg += 1
 
+                        prev_was_night = is_night
 
                         ### WEEKENDS ###
                         if ukedag == 'Fredag' and end.day > start.day:
@@ -179,7 +204,10 @@ class Turnus():
                             ### STARTS BEFORE 6 ####
                             if start.time() < time(6, 0):
                                 before_6 += 1
-                            
+                            elif start.time() < time(8, 0):
+                                tidlig_6_8 += 1
+                            else:
+                                tidlig_8_12 += 1
 
                         ### KVELDSVAKT — aligned with shift-classifier.js
                         # Starts 12:00+ and either ends same day, or crosses
@@ -197,6 +225,8 @@ class Turnus():
                 #### TEST ####
                 #print(f"{_dagsverk['turnus']}, {_dagsverk['uke_nr']}, {_dagsverk['ukedag']}, {sunday_hours}")
 
+            avg_shift_hours = round(total_shift_hours / shift_cnt, 1) if shift_cnt > 0 else 0
+
             # Adds shift as new row to dataframe
             new_row = pd.DataFrame({
                 'turnus': [turnus_navn], 
@@ -211,8 +241,12 @@ class Turnus():
                 'helgetimer_ettermiddag': [round(helgetimer_ettermiddag)],
                 'before_6': [before_6],
                 'afternoon_ends_before_20': [afternoon_ends_before_20],
-                'afternoons_in_row': [afternons_in_row]
-                
+                'afternoons_in_row': [afternons_in_row],
+                'tidlig_6_8': [tidlig_6_8],
+                'tidlig_8_12': [tidlig_8_12],
+                'longest_off_streak': [longest_off_streak],
+                'longest_work_streak': [longest_work_streak],
+                'avg_shift_hours': [avg_shift_hours],
                 })
             
             self.stats_df = pd.concat([self.stats_df, new_row], ignore_index=True)
@@ -235,7 +269,7 @@ def generate_statistics_for_year(year_id):
     print(f"✅ Statistics generated: {df_path}")
     print(f"Total turnuses: {len(turnus.stats_df)}")
     print("\nSample statistics:")
-    print(turnus.stats_df[['turnus', 'shift_cnt', 'tidlig', 'ettermiddag', 'natt', 'helgetimer']].head(10))
+    print(turnus.stats_df[['turnus', 'shift_cnt', 'tidlig', 'tidlig_6_8', 'tidlig_8_12', 'ettermiddag', 'natt', 'helgetimer', 'longest_off_streak', 'longest_work_streak', 'avg_shift_hours']].head(10))
     return turnus.stats_df
 
 if __name__ == '__main__':

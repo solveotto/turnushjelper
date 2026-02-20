@@ -122,7 +122,8 @@ def compare():
 
     # Prepare metrics for charts
     df = user_df_manager.df
-    metrics = ["natt", "tidlig", "shift_cnt", "before_6", "helgetimer"]
+    metrics = ["natt", "tidlig", "shift_cnt", "before_6", "helgetimer",
+               "tidlig_6_8", "tidlig_8_12", "longest_off_streak", "longest_work_streak", "avg_shift_hours"]
     labels = df["turnus"].tolist() if not df.empty else []
     data = {m: df[m].tolist() if m in df else [] for m in metrics}
 

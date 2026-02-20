@@ -3,6 +3,7 @@
 
 import { ShiftSelection } from './modules/shift-selection.js';
 import { ShiftColors } from './modules/shift-colors.js';
+import { PostNightMarker } from './modules/post-night-marker.js';
 import { SortingSystem } from './modules/sorting-system.js';
 import { Favorites } from './modules/favorites.js';
 import { PrintUtils } from './modules/print-utils.js';
@@ -32,6 +33,8 @@ class App {
         // Initialize shift colors if we have table cells (applies CSS classes)
         if (document.querySelector('td[id="cell"]')) {
             this.modules.shiftColors = new ShiftColors();
+            // Mark post-night recovery cells (must run after shift colors)
+            this.modules.postNightMarker = new PostNightMarker();
         }
 
         // Initialize shift selection if we have clickable rows

@@ -25,6 +25,11 @@ STAT_WEIGHTS = {
     'helgedager': 1.0,       # Weekend days
     'before_6': 1.0,         # Very early starts
     'natt_helg': 1.0,        # Night shifts on weekends
+    'tidlig_6_8': 1.0,       # Early morning shifts (6-8)
+    'tidlig_8_12': 1.0,      # Late morning shifts (8-12)
+    'longest_off_streak': 1.0, # Longest consecutive days off
+    'longest_work_streak': 1.0, # Longest consecutive work days
+    'avg_shift_hours': 1.0,  # Average shift duration
 }
 
 

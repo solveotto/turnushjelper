@@ -71,12 +71,17 @@ export class SortingSystem {
                     const ettermiddag = parseInt(dataRow.querySelector('.row:nth-child(1) .col:nth-child(3) b').textContent) || 0;
                     const natt = parseInt(dataRow.querySelector('.row:nth-child(1) .col:nth-child(4) b').textContent) || 0;
                     
-                    // Second row: Helgetimer, Helgtimer dag, Starter før 6, Slutt før 20
-                    const helgetimer = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(1) b').textContent) || 0;
-                    const before6 = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(3) b').textContent) || 0;
-                    const afternoonEnds = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(4) b').textContent) || 0;
-                    
-                    
+                    // Second row: Starter før 6, Tidlig 6-8, Tidlig 8-12, Snitt timer
+                    const before6 = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(1) b').textContent) || 0;
+                    const tidlig68 = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(2) b').textContent) || 0;
+                    const tidlig812 = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(3) b')?.textContent) || 0;
+                    const avgHours = parseFloat(dataRow.querySelector('.row:nth-child(2) .col:nth-child(4) b')?.textContent) || 0;
+
+                    // Third row: Helgetimer, Helgtimer dag, Lengste fri, Lengste rekke
+                    const helgetimer = parseInt(dataRow.querySelector('.row:nth-child(3) .col:nth-child(1) b')?.textContent) || 0;
+                    const longestOff = parseInt(dataRow.querySelector('.row:nth-child(3) .col:nth-child(3) b')?.textContent) || 0;
+                    const longestStreak = parseInt(dataRow.querySelector('.row:nth-child(3) .col:nth-child(4) b')?.textContent) || 0;
+
                     turnusData.push({
                         name: name,
                         element: item,
@@ -86,7 +91,11 @@ export class SortingSystem {
                         natt: natt,
                         helgetimer: helgetimer,
                         before_6: before6,
-                        afternoon_ends_before_20: afternoonEnds
+                        tidlig_6_8: tidlig68,
+                        tidlig_8_12: tidlig812,
+                        longest_off_streak: longestOff,
+                        longest_work_streak: longestStreak,
+                        avg_shift_hours: avgHours
                     });
                 } catch (error) {
                     console.error(`Error parsing data for turnus ${name}:`, error);
@@ -104,7 +113,8 @@ export class SortingSystem {
      * Calculate min/max values for each criterion from the current dataset
      */
     calculateMinMax(turnusData) {
-        const criteria = ['helgetimer', 'shift_cnt', 'tidlig', 'natt', 'ettermiddag', 'before_6', 'afternoon_ends_before_20'];
+        const criteria = ['helgetimer', 'shift_cnt', 'tidlig', 'natt', 'ettermiddag', 'before_6',
+                          'tidlig_6_8', 'tidlig_8_12', 'longest_off_streak', 'longest_work_streak', 'avg_shift_hours'];
         const minMax = {};
 
         criteria.forEach(key => {
@@ -133,7 +143,7 @@ export class SortingSystem {
         Object.entries(weights).forEach(([key, weight]) => {
             if (weight === 0) return; // Skip neutral weights
 
-            const dataKey = key === 'afternoon_ends' ? 'afternoon_ends_before_20' : key;
+            const dataKey = key;
             const value = turnus[dataKey] || 0;
             const { min, max } = minMax[dataKey] || { min: 0, max: 1 };
 
@@ -163,7 +173,11 @@ export class SortingSystem {
             natt: parseFloat(document.getElementById('natt-slider').value),
             ettermiddag: parseFloat(document.getElementById('ettermiddag-slider').value),
             before_6: parseFloat(document.getElementById('before-6-slider').value),
-            afternoon_ends: parseFloat(document.getElementById('afternoon-ends-slider').value)
+            tidlig_6_8: parseFloat(document.getElementById('tidlig-6-8-slider').value),
+            tidlig_8_12: parseFloat(document.getElementById('tidlig-8-12-slider').value),
+            longest_off_streak: parseFloat(document.getElementById('longest-off-slider').value),
+            longest_work_streak: parseFloat(document.getElementById('longest-streak-slider').value),
+            avg_shift_hours: parseFloat(document.getElementById('avg-hours-slider').value)
         };
 
         const turnusData = this.getTurnusData();
@@ -277,7 +291,11 @@ export class SortingSystem {
             natt: 'Natt',
             ettermiddag: 'Ettermiddag',
             before_6: 'Før 6:00',
-            afternoon_ends: 'Slutt før 20:00'
+            tidlig_6_8: 'Tidlig 6-8',
+            tidlig_8_12: 'Tidlig 8-12',
+            longest_off_streak: 'Lengste fri',
+            longest_work_streak: 'Lengste rekke',
+            avg_shift_hours: 'Snitt timer'
         };
         return labels[key] || key;
     }
@@ -291,7 +309,11 @@ export class SortingSystem {
                 natt: document.getElementById('natt-slider').value,
                 ettermiddag: document.getElementById('ettermiddag-slider').value,
                 before_6: document.getElementById('before-6-slider').value,
-                afternoon_ends: document.getElementById('afternoon-ends-slider').value
+                tidlig_6_8: document.getElementById('tidlig-6-8-slider').value,
+                tidlig_8_12: document.getElementById('tidlig-8-12-slider').value,
+                longest_off_streak: document.getElementById('longest-off-slider').value,
+                longest_work_streak: document.getElementById('longest-streak-slider').value,
+                avg_shift_hours: document.getElementById('avg-hours-slider').value
             };
             localStorage.setItem('turnuslisteSortingSettings', JSON.stringify(settings));
             console.log('Sorting settings saved:', settings);
@@ -322,9 +344,13 @@ export class SortingSystem {
         
         // Apply to desktop sliders
         Object.entries(settings).forEach(([key, value]) => {
-            const sliderId = key === 'shift_cnt' ? 'shift-cnt-slider' : 
+            const sliderId = key === 'shift_cnt' ? 'shift-cnt-slider' :
                            key === 'before_6' ? 'before-6-slider' :
-                           key === 'afternoon_ends' ? 'afternoon-ends-slider' :
+                           key === 'tidlig_6_8' ? 'tidlig-6-8-slider' :
+                           key === 'tidlig_8_12' ? 'tidlig-8-12-slider' :
+                           key === 'longest_off_streak' ? 'longest-off-slider' :
+                           key === 'longest_work_streak' ? 'longest-streak-slider' :
+                           key === 'avg_shift_hours' ? 'avg-hours-slider' :
                            `${key}-slider`;
             
             const slider = document.getElementById(sliderId);

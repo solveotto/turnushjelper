@@ -97,14 +97,50 @@
                 </div>
                 
                 <div class="filter-item">
-                    <label class="filter-label">Slutt før 20:00</label>
+                    <label class="filter-label">Tidlig 6-8</label>
                     <div class="slider-direction-info">
                         <span class="direction-left">Få</span>
                         <span class="direction-right">Mange</span>
                     </div>
-                    <input type="range" class="form-range filter-slider" id="afternoon-ends-slider" min="-10" max="10" value="0" step="0.5">
+                    <input type="range" class="form-range filter-slider" id="tidlig-6-8-slider" min="-10" max="10" value="0" step="0.5">
                 </div>
-                
+
+                <div class="filter-item">
+                    <label class="filter-label">Tidlig 8-12</label>
+                    <div class="slider-direction-info">
+                        <span class="direction-left">Få</span>
+                        <span class="direction-right">Mange</span>
+                    </div>
+                    <input type="range" class="form-range filter-slider" id="tidlig-8-12-slider" min="-10" max="10" value="0" step="0.5">
+                </div>
+
+                <div class="filter-item">
+                    <label class="filter-label">Lengste fri</label>
+                    <div class="slider-direction-info">
+                        <span class="direction-left">Kort</span>
+                        <span class="direction-right">Lang</span>
+                    </div>
+                    <input type="range" class="form-range filter-slider" id="longest-off-slider" min="-10" max="10" value="0" step="0.5">
+                </div>
+
+                <div class="filter-item">
+                    <label class="filter-label">Lengste rekke</label>
+                    <div class="slider-direction-info">
+                        <span class="direction-left">Kort</span>
+                        <span class="direction-right">Lang</span>
+                    </div>
+                    <input type="range" class="form-range filter-slider" id="longest-streak-slider" min="-10" max="10" value="0" step="0.5">
+                </div>
+
+                <div class="filter-item">
+                    <label class="filter-label">Snitt timer</label>
+                    <div class="slider-direction-info">
+                        <span class="direction-left">Kort</span>
+                        <span class="direction-right">Lang</span>
+                    </div>
+                    <input type="range" class="form-range filter-slider" id="avg-hours-slider" min="-10" max="10" value="0" step="0.5">
+                </div>
+
                 <div class="filter-actions">
                     <button id="reset-sorting" class="btn btn-warning btn-sm w-100">
                         <i class="bi bi-arrow-clockwise"></i> Reset
@@ -176,14 +212,50 @@
         </div>
         
         <div class="filter-item">
-            <label class="filter-label">Slutt før 20:00</label>
+            <label class="filter-label">Tidlig 6-8</label>
             <div class="slider-direction-info">
                 <span class="direction-left">Lav → Topp</span>
                 <span class="direction-right">Høy → Topp</span>
             </div>
-            <input type="range" class="form-range filter-slider" id="afternoon-ends-slider-mobile" min="-10" max="10" value="0" step="0.5">
+            <input type="range" class="form-range filter-slider" id="tidlig-6-8-slider-mobile" min="-10" max="10" value="0" step="0.5">
         </div>
-        
+
+        <div class="filter-item">
+            <label class="filter-label">Tidlig 8-12</label>
+            <div class="slider-direction-info">
+                <span class="direction-left">Lav → Topp</span>
+                <span class="direction-right">Høy → Topp</span>
+            </div>
+            <input type="range" class="form-range filter-slider" id="tidlig-8-12-slider-mobile" min="-10" max="10" value="0" step="0.5">
+        </div>
+
+        <div class="filter-item">
+            <label class="filter-label">Lengste fri</label>
+            <div class="slider-direction-info">
+                <span class="direction-left">Lav → Topp</span>
+                <span class="direction-right">Høy → Topp</span>
+            </div>
+            <input type="range" class="form-range filter-slider" id="longest-off-slider-mobile" min="-10" max="10" value="0" step="0.5">
+        </div>
+
+        <div class="filter-item">
+            <label class="filter-label">Lengste rekke</label>
+            <div class="slider-direction-info">
+                <span class="direction-left">Lav → Topp</span>
+                <span class="direction-right">Høy → Topp</span>
+            </div>
+            <input type="range" class="form-range filter-slider" id="longest-streak-slider-mobile" min="-10" max="10" value="0" step="0.5">
+        </div>
+
+        <div class="filter-item">
+            <label class="filter-label">Snitt timer</label>
+            <div class="slider-direction-info">
+                <span class="direction-left">Lav → Topp</span>
+                <span class="direction-right">Høy → Topp</span>
+            </div>
+            <input type="range" class="form-range filter-slider" id="avg-hours-slider-mobile" min="-10" max="10" value="0" step="0.5">
+        </div>
+
         <div class="filter-actions">
             <button id="reset-sorting-mobile" class="btn btn-warning btn-sm w-100">
                 <i class="bi bi-arrow-clockwise"></i> Reset
@@ -361,18 +433,30 @@
                                                     
                                                     <div class="row small-text">
                                                         <div class="col">
-                                                            Helgetimer: <b>{{row.helgetimer}}</b>
-                                                        </div>
-                                                        <div class="col">
-                                                            <div class="col">
-                                                                Helgtimer dag: <b>{{row.helgetimer_dagtid}}</b>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col">
                                                             Starter før 6: <b>{{ row.before_6 }}</b>
                                                         </div>
                                                         <div class="col">
-                                                            Slutt før 20: <b>{{ row.afternoon_ends_before_20 }}</b>
+                                                            Tidlig 6-8: <b>{{row.tidlig_6_8}}</b>
+                                                        </div>
+                                                        <div class="col">
+                                                            Tidlig 8-12: <b>{{row.tidlig_8_12}}</b>
+                                                        </div>
+                                                        <div class="col">
+                                                            Snitt timer: <b>{{row.avg_shift_hours}}</b>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row small-text">
+                                                        <div class="col">
+                                                            Helgetimer: <b>{{row.helgetimer}}</b>
+                                                        </div>
+                                                        <div class="col">
+                                                            Helgtimer dag: <b>{{row.helgetimer_dagtid}}</b>
+                                                        </div>
+                                                        <div class="col">
+                                                            Lengste fri: <b>{{row.longest_off_streak}}</b>
+                                                        </div>
+                                                        <div class="col">
+                                                            Lengste rekke: <b>{{row.longest_work_streak}}</b>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -409,58 +493,103 @@
                             <span class="direction-left">Få</span>
                             <span class="direction-right">Mange</span>
                         </div>
-                        <input type="range" class="form-range mobile-filter-slider" id="mobile-helgetimer-slider" min="-10" max="10" value="0" step="0.5" data-value="0">
+                        <input type="range" class="form-range filter-slider" id="helgetimer-slider-mobile" min="-10" max="10" value="0" step="0.5">
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label mobile-filter-label">Dagsverk</label>
                         <div class="d-flex justify-content-between mb-1">
                             <span class="direction-left">Få</span>
                             <span class="direction-right">Mange</span>
                         </div>
-                        <input type="range" class="form-range mobile-filter-slider" id="mobile-shift-cnt-slider" min="-10" max="10" value="0" step="0.5" data-value="0">
+                        <input type="range" class="form-range filter-slider" id="shift-cnt-slider-mobile" min="-10" max="10" value="0" step="0.5">
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label mobile-filter-label">Tidlig</label>
                         <div class="d-flex justify-content-between mb-1">
                             <span class="direction-left">Få</span>
                             <span class="direction-right">Mange</span>
                         </div>
-                        <input type="range" class="form-range mobile-filter-slider" id="mobile-early-slider" min="-10" max="10" value="0" step="0.5" data-value="0">
+                        <input type="range" class="form-range filter-slider" id="tidlig-slider-mobile" min="-10" max="10" value="0" step="0.5">
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Sen</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range mobile-filter-slider" id="mobile-late-slider" min="-10" max="10" value="0" step="0.5" data-value="0">
-                    </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label mobile-filter-label">Natt</label>
                         <div class="d-flex justify-content-between mb-1">
                             <span class="direction-left">Få</span>
                             <span class="direction-right">Mange</span>
                         </div>
-                        <input type="range" class="form-range mobile-filter-slider" id="mobile-night-slider" min="-10" max="10" value="0" step="0.5" data-value="0">
+                        <input type="range" class="form-range filter-slider" id="natt-slider-mobile" min="-10" max="10" value="0" step="0.5">
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Fridager</label>
+                        <label class="form-label mobile-filter-label">Ettermiddag</label>
                         <div class="d-flex justify-content-between mb-1">
                             <span class="direction-left">Få</span>
                             <span class="direction-right">Mange</span>
                         </div>
-                        <input type="range" class="form-range mobile-filter-slider" id="mobile-off-slider" min="-10" max="10" value="0" step="0.5" data-value="0">
+                        <input type="range" class="form-range filter-slider" id="ettermiddag-slider-mobile" min="-10" max="10" value="0" step="0.5">
                     </div>
-                    
+
+                    <div class="mb-3">
+                        <label class="form-label mobile-filter-label">Før 6:00</label>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="direction-left">Få</span>
+                            <span class="direction-right">Mange</span>
+                        </div>
+                        <input type="range" class="form-range filter-slider" id="before-6-slider-mobile" min="-10" max="10" value="0" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mobile-filter-label">Tidlig 6-8</label>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="direction-left">Få</span>
+                            <span class="direction-right">Mange</span>
+                        </div>
+                        <input type="range" class="form-range filter-slider" id="tidlig-6-8-slider-mobile" min="-10" max="10" value="0" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mobile-filter-label">Tidlig 8-12</label>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="direction-left">Få</span>
+                            <span class="direction-right">Mange</span>
+                        </div>
+                        <input type="range" class="form-range filter-slider" id="tidlig-8-12-slider-mobile" min="-10" max="10" value="0" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mobile-filter-label">Lengste fri</label>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="direction-left">Kort</span>
+                            <span class="direction-right">Lang</span>
+                        </div>
+                        <input type="range" class="form-range filter-slider" id="longest-off-slider-mobile" min="-10" max="10" value="0" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mobile-filter-label">Lengste rekke</label>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="direction-left">Kort</span>
+                            <span class="direction-right">Lang</span>
+                        </div>
+                        <input type="range" class="form-range filter-slider" id="longest-streak-slider-mobile" min="-10" max="10" value="0" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mobile-filter-label">Snitt timer</label>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="direction-left">Kort</span>
+                            <span class="direction-right">Lang</span>
+                        </div>
+                        <input type="range" class="form-range filter-slider" id="avg-hours-slider-mobile" min="-10" max="10" value="0" step="0.5">
+                    </div>
+
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="mobile-reset-sorting">
+                <button type="button" class="btn btn-secondary" id="reset-sorting-mobile">
                     <i class="bi bi-arrow-clockwise"></i> Tilbakestill
                 </button>
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">

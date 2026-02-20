@@ -217,18 +217,30 @@
                                         
                                         <div class="row small-text">
                                             <div class="col">
-                                                Helgetimer: <b>{{row.helgetimer}}</b>
-                                            </div>
-                                            <div class="col">
-                                                <div class="col">
-                                                    Helgtimer dag: <b>{{row.helgetimer_dagtid}}</b>
-                                                </div>
-                                            </div>
-                                            <div class="col">
                                                 Starter før 6: <b>{{ row.before_6 }}</b>
                                             </div>
                                             <div class="col">
-                                                Slutt før 20: <b>{{ row.afternoon_ends_before_20 }}</b>
+                                                Tidlig 6-8: <b>{{row.tidlig_6_8}}</b>
+                                            </div>
+                                            <div class="col">
+                                                Tidlig 8-12: <b>{{row.tidlig_8_12}}</b>
+                                            </div>
+                                            <div class="col">
+                                                Snitt timer: <b>{{row.avg_shift_hours}}</b>
+                                            </div>
+                                        </div>
+                                        <div class="row small-text">
+                                            <div class="col">
+                                                Helgetimer: <b>{{row.helgetimer}}</b>
+                                            </div>
+                                            <div class="col">
+                                                Helgtimer dag: <b>{{row.helgetimer_dagtid}}</b>
+                                            </div>
+                                            <div class="col">
+                                                Lengste fri: <b>{{row.longest_off_streak}}</b>
+                                            </div>
+                                            <div class="col">
+                                                Lengste rekke: <b>{{row.longest_work_streak}}</b>
                                             </div>
                                         </div>
                                     </div>

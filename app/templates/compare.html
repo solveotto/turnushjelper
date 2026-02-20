@@ -62,6 +62,37 @@
       {% include 'components/chart_card_component.html' with context %}
     </div>
 
+    <div class="col-12 col-lg-6">
+      {% set title = "Tidlig 6-8" %}
+      {% set order_container = "tidlig_6_8" %}
+      {% set chart_id = "tidlig_6_8" %}
+      {% include 'components/chart_card_component.html' with context %}
+    </div>
+    <div class="col-12 col-lg-6">
+      {% set title = "Tidlig 8-12" %}
+      {% set order_container = "tidlig_8_12" %}
+      {% set chart_id = "tidlig_8_12" %}
+      {% include 'components/chart_card_component.html' with context %}
+    </div>
+    <div class="col-12 col-lg-6">
+      {% set title = "Lengste fri" %}
+      {% set order_container = "longest_off_streak" %}
+      {% set chart_id = "longest_off_streak" %}
+      {% include 'components/chart_card_component.html' with context %}
+    </div>
+    <div class="col-12 col-lg-6">
+      {% set title = "Lengste rekke" %}
+      {% set order_container = "longest_work_streak" %}
+      {% set chart_id = "longest_work_streak" %}
+      {% include 'components/chart_card_component.html' with context %}
+    </div>
+    <div class="col-12 col-lg-6">
+      {% set title = "Snitt timer" %}
+      {% set order_container = "avg_shift_hours" %}
+      {% set chart_id = "avg_shift_hours" %}
+      {% include 'components/chart_card_component.html' with context %}
+    </div>
+
   </div>
 </div>
 
@@ -227,7 +258,12 @@
       'chart-natt': { arr: metricsData['natt'], label: 'Natt' },
       'chart-tidlig': { arr: metricsData['tidlig'], label: 'Tidlig' },
       'chart-before_6': { arr: metricsData['before_6'], label: 'Før 6:00' },
-      'chart-helgetimer': { arr: metricsData['helgetimer'], label: 'Helgetimer' }
+      'chart-helgetimer': { arr: metricsData['helgetimer'], label: 'Helgetimer' },
+      'chart-tidlig_6_8': { arr: metricsData['tidlig_6_8'], label: 'Tidlig 6-8' },
+      'chart-tidlig_8_12': { arr: metricsData['tidlig_8_12'], label: 'Tidlig 8-12' },
+      'chart-longest_off_streak': { arr: metricsData['longest_off_streak'], label: 'Lengste fri' },
+      'chart-longest_work_streak': { arr: metricsData['longest_work_streak'], label: 'Lengste rekke' },
+      'chart-avg_shift_hours': { arr: metricsData['avg_shift_hours'], label: 'Snitt timer' }
     };
 
     for (const [canvasId, cfg] of Object.entries(m)) {
@@ -256,7 +292,7 @@
       });
     });
   }
-  ['shift_cnt','natt','tidlig','before_6','helgetimer'].forEach(attachOrderGroup);
+  ['shift_cnt','natt','tidlig','before_6','helgetimer','tidlig_6_8','tidlig_8_12','longest_off_streak','longest_work_streak','avg_shift_hours'].forEach(attachOrderGroup);
   // View mode toggle listeners
   function setActiveMode(btn) {
     document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));

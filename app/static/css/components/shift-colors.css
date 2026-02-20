@@ -33,3 +33,12 @@
 .h-dag {
     background-color: var(--color-shift-holiday);
 }
+
+/* Recovery day after a night shift — purple fading to day-off green */
+.post-night-recovery {
+    background: linear-gradient(
+        to right,
+        #af57eb 0%,
+        var(--color-shift-day-off) 50%
+    );
+}
