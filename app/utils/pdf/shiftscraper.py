@@ -527,6 +527,47 @@ class ShiftScraper:
 
             return turnus
 
+        def extract_totalsummer():
+            """Find Totalsummer rows and extract KL.timer + Tj.timer for each turnus."""
+            import re
+
+            totalsummer_pattern = re.compile(r"\d{1,3}:\d{2}")  # matches HH:MM or HHH:MM totals
+
+            # Collect all Totalsummer occurrences sorted by vertical position
+            totalsummer_rows = [
+                w for w in text_objects if w["text"] == "Totalsummer"
+            ]
+            totalsummer_rows.sort(key=lambda w: w["top"])  # turnus1 comes first (lower y)
+
+            results = {}  # index (0, 1) -> {"kl_timer": ..., "tj_timer": ...}
+
+            for idx, row_word in enumerate(totalsummer_rows):
+                row_top = row_word["top"]
+                # Gather words on the same horizontal line (within ±5 px) that are to the right
+                same_line = [
+                    w for w in text_objects
+                    if abs(w["top"] - row_top) <= 5 and w["x0"] > row_word["x1"]
+                ]
+                same_line.sort(key=lambda w: w["x0"])  # left-to-right order
+
+                # Extract time-like values (e.g., "203:27")
+                times = []
+                for w in same_line:
+                    if totalsummer_pattern.fullmatch(w["text"]):
+                        times.append(w["text"])
+                    elif totalsummer_pattern.search(w["text"]):
+                        # Handle edge case where value is embedded in a larger token
+                        times.extend(totalsummer_pattern.findall(w["text"]))
+                    if len(times) == 2:
+                        break
+
+                results[idx] = {
+                    "kl_timer": times[0] if len(times) > 0 else None,
+                    "tj_timer": times[1] if len(times) > 1 else None,
+                }
+
+            return results
+
         # Henter ut alle objektene i pdf-en med bedre toleranse for å få med komplette tall
         text_objects = page.extract_words(x_tolerance=3, y_tolerance=2)
 
@@ -552,6 +593,13 @@ class ShiftScraper:
         # Sorterer først tiden. Sorteringen av dagsverk basserer seg på sorterte tider.
         sorter_turnus("tid")
         sorter_turnus("dagsverk")
+
+        totalsummer = extract_totalsummer()
+
+        turnus1["kl_timer"] = totalsummer.get(0, {}).get("kl_timer")
+        turnus1["tj_timer"] = totalsummer.get(0, {}).get("tj_timer")
+        turnus2["kl_timer"] = totalsummer.get(1, {}).get("kl_timer")
+        turnus2["tj_timer"] = totalsummer.get(1, {}).get("tj_timer")
 
         sorterte_turnuser_lst = []
 
@@ -603,6 +651,8 @@ class ShiftScraper:
 
                 # Pakker opp turnuser i uker og dager og legger de i rikigt ukedag
                 for uke in turnus_verdi.values():
+                    if not isinstance(uke, dict):
+                        continue
                     for dag in uke.values():
                         if len(dag["tid"]) == 0:
                             df_data[dag["ukedag"]].append("")

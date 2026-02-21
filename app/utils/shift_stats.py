@@ -94,6 +94,7 @@ class Turnus():
             afternoon_count = 0
             afternoon_ends_before_20 = 0
             afternons_in_row = 0
+            current_kveld_streak = 0
             night_count = 0
             tidlig_6_8 = 0
             tidlig_8_12 = 0
@@ -121,6 +122,7 @@ class Turnus():
                             current_off_streak += 1
                             longest_off_streak = max(longest_off_streak, current_off_streak)
                     current_work_streak = 0
+                    current_kveld_streak = 0
 
                 if is_work_day:
                         shift_cnt += 1
@@ -128,7 +130,6 @@ class Turnus():
                         end = pd.to_datetime(_dagsverk['slutt'], format='%H:%M')
                         ukedag = _dagsverk['ukedag']
                         weekend_days = ['Fredag', 'Lørdag', 'Søndag']
-                        midnight = start.replace(hour=23, minute=59, second=59)
 
                         # Adjust end time if it's on the next day
                         if end < start:
@@ -149,11 +150,13 @@ class Turnus():
                         prev_was_night = is_night
 
                         ### WEEKENDS ###
-                        if ukedag == 'Fredag' and end.day > start.day:
-                            saturday_hours = (end - (midnight + pd.Timedelta(seconds=1))).total_seconds() / 3600
-                            helgetimer += saturday_hours
-                            # fridays over 2 hours into saturday
-                            if saturday_hours > 0:
+                        if ukedag == 'Fredag':
+                            fri_17 = start.replace(hour=17, minute=0, second=0)
+                            if end > fri_17:
+                                helg_start = max(start, fri_17)
+                                friday_helg_hours = (end - helg_start).total_seconds() / 3600
+                                helgetimer += friday_helg_hours
+                                helgetimer_ettermiddag += friday_helg_hours   # always after 17:00 = evening
                                 helgedager += 1
 
 
@@ -162,36 +165,38 @@ class Turnus():
                             helgetimer += saturday_hours
                             helgedager += 1
 
-                            if start.time() > EVENING:
+                            if start.time() >= time(14, 0):
                                 helgetimer_ettermiddag += saturday_hours
 
                             # Counts daytime hours in weekend
-                            if start.time() < time(14,0):
-                                helgetimer_dagtid +=  saturday_hours
+                            if start.time() < time(14, 0):
+                                helgetimer_dagtid += saturday_hours
 
 
 
                         elif ukedag == 'Søndag':
-                            # counts hours before midnight and excludes hours after midnight in night shifts
+                            # counts hours from start through Monday 06:00 (weekend window end)
                             if end.day > start.day:
-                                sunday_hours = ((midnight + pd.Timedelta(seconds=1)) - start).total_seconds() / 3600
+                                mon_6am = start.replace(hour=6, minute=0, second=0) + pd.Timedelta(days=1)
+                                helg_end = min(end, mon_6am)
+                                sunday_hours = (helg_end - start).total_seconds() / 3600
                                 helgetimer += sunday_hours
-                                    
-                                # Counts evning hours
-                                if start.time() > EVENING:
+
+                                # Counts evening hours
+                                if start.time() >= time(14, 0):
                                     helgetimer_ettermiddag += sunday_hours
 
-                            # Counts sunday weekend hours    
+                            # Counts sunday weekend hours
                             else:
                                 sunday_hours = (end - start).total_seconds() / 3600
                                 helgetimer += sunday_hours
-                                
-                                # Counts evning hours
-                                if start.time() > EVENING:
+
+                                # Counts evening hours
+                                if start.time() >= time(14, 0):
                                     helgetimer_ettermiddag += sunday_hours
 
                                 # Counts daytime hours in weekend
-                                if start.time() < time(14,0):
+                                if start.time() < time(14, 0):
                                     helgetimer_dagtid += sunday_hours
 
                             helgedager += 1
@@ -220,6 +225,10 @@ class Turnus():
                             afternoon_count += 1
                             if not crosses_midnight and end.time() <= time(20):
                                 afternoon_ends_before_20 += 1
+                            current_kveld_streak += 1
+                            afternons_in_row = max(afternons_in_row, current_kveld_streak)
+                        else:
+                            current_kveld_streak = 0
                                     
 
                 #### TEST ####

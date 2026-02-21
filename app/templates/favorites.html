@@ -243,6 +243,14 @@
                                                 Lengste rekke: <b>{{row.longest_work_streak}}</b>
                                             </div>
                                         </div>
+                                        <div class="row small-text">
+                                            <div class="col-6">
+                                                KL.timer: <b>{{ data.kl_timer or '—' }}</b>
+                                            </div>
+                                            <div class="col-6">
+                                                Tj.timer: <b>{{ data.tj_timer or '—' }}</b>
+                                            </div>
+                                        </div>
                                     </div>
                                 {% endif %}
                             {% endfor %}
