@@ -1,3 +1,7 @@
+@page {
+    margin: 0.5cm;
+}
+
 @media print {
     .print-frame {
         border: 1px solid rgb(53, 52, 52);
@@ -9,7 +13,7 @@
     .print-frame:first-child {
         margin-top: 0; /* Ensure first item has no top margin */
     }
-    .print-frame:nth-of-type(3n) {
+    .print-frame:nth-of-type(2n) {
         page-break-after: always;
     }
     table {

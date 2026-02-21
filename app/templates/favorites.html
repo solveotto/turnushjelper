@@ -194,62 +194,36 @@
                                         </tr>
                                     {% endfor %}
                                 </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="6" style="border: 1px solid black;"></td>
+                                        <td style="border: 1px solid black; font-size: small; text-align: right; white-space: nowrap; padding: 2px 4px;">
+                                            <span class="text-muted">KL</span> <b>{{ data.kl_timer or '—' }}</b>
+                                        </td>
+                                        <td style="border: 1px solid black; font-size: small; text-align: right; white-space: nowrap; padding: 2px 4px;">
+                                            <span class="text-muted">Tj</span> <b>{{ data.tj_timer or '—' }}</b>
+                                        </td>
+                                    </tr>
+                                </tfoot>
                                 </table>
                             </div>
-                            
+
                             {% for row in df %}
                                 {% if row.turnus == name %}
                                     <div class="container-fluid data-felt text-center">
-                                        <div class="row small-text">
-                                            <div class="col">
-                                                Dagsverk: <b>{{row.shift_cnt}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Tidlig: <b>{{row.tidlig}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Kveld: <b>{{row.ettermiddag}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Natt: <b>{{row.natt}}</b>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row small-text">
-                                            <div class="col">
-                                                Starter før 6: <b>{{ row.before_6 }}</b>
-                                            </div>
-                                            <div class="col">
-                                                Tidlig 6-8: <b>{{row.tidlig_6_8}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Tidlig 8-12: <b>{{row.tidlig_8_12}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Snitt timer: <b>{{row.avg_shift_hours}}</b>
-                                            </div>
-                                        </div>
-                                        <div class="row small-text">
-                                            <div class="col">
-                                                Helgetimer: <b>{{row.helgetimer}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Helgtimer dag: <b>{{row.helgetimer_dagtid}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Lengste fri: <b>{{row.longest_off_streak}}</b>
-                                            </div>
-                                            <div class="col">
-                                                Lengste rekke: <b>{{row.longest_work_streak}}</b>
-                                            </div>
-                                        </div>
-                                        <div class="row small-text">
-                                            <div class="col-6">
-                                                KL.timer: <b>{{ data.kl_timer or '—' }}</b>
-                                            </div>
-                                            <div class="col-6">
-                                                Tj.timer: <b>{{ data.tj_timer or '—' }}</b>
-                                            </div>
+                                        <div class="small-text text-start" style="display:grid; grid-template-columns:repeat(8, auto); column-gap:0.6rem; row-gap:0;">
+                                            <span class="text-muted text-nowrap">Dagsverk</span><b>{{row.shift_cnt}}</b>
+                                            <span class="text-muted text-nowrap">Tidlig</span><b>{{row.tidlig}}</b>
+                                            <span class="text-muted text-nowrap">Kveld</span><b>{{row.ettermiddag}}</b>
+                                            <span class="text-muted text-nowrap">Natt</span><b>{{row.natt}}</b>
+                                            <span class="text-muted text-nowrap">Starter før 6</span><b>{{row.before_6}}</b>
+                                            <span class="text-muted text-nowrap">Tidlig 6-8</span><b>{{row.tidlig_6_8}}</b>
+                                            <span class="text-muted text-nowrap">Tidlig 8-12</span><b>{{row.tidlig_8_12}}</b>
+                                            <span class="text-muted text-nowrap">Snitt timer</span><b>{{row.avg_shift_hours}}</b>
+                                            <span class="text-muted text-nowrap">Helgetimer</span><b>{{row.helgetimer}}</b>
+                                            <span class="text-muted text-nowrap">Helgtimer dag</span><b>{{row.helgetimer_dagtid}}</b>
+                                            <span class="text-muted text-nowrap">Lengste fri</span><b>{{row.longest_off_streak}}</b>
+                                            <span class="text-muted text-nowrap">Lengste rekke</span><b>{{row.longest_work_streak}}</b>
                                         </div>
                                     </div>
                                 {% endif %}
