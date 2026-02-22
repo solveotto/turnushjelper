@@ -18,14 +18,15 @@
     }
     table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: collapse; 
+        font-size: 0.55em;
+        zoom: 0.85;
     }
     th,
     td {
         border: 1px solid black;
-        padding: 1px; /* Reduced padding */
+        padding: 0; /* Minimal padding */
         text-align: center;
-        font-size: 0.6em; /* Further reduced font size */
     }
     th {
         background-color: #f2f2f2;
