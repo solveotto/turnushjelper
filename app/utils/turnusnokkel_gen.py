@@ -126,7 +126,10 @@ class TurnusnokkelGen():
                     workbook[name].sheet_state = 'hidden'
             
             # Process the turnus data and insert into Excel
+            # Skip non-dict entries (e.g. 'kl_timer', 'tj_timer' metadata strings)
             for uke_nr, ukedata in target_turnus_data.items():
+                if not isinstance(ukedata, dict):
+                    continue
                 for dag_nr, dag_data in ukedata.items():
                     try:
                         start_value = dag_data['tid'][0] if dag_data['tid'] and len(dag_data['tid']) > 0 else ''
@@ -196,6 +199,8 @@ class TurnusnokkelGen():
                     raise ValueError(f"Sheet '{sheet_name}' not found in the Excel file.")
 
                 for uke_nr, ukedata in turnus_data.items():
+                    if not isinstance(ukedata, dict):
+                        continue
                     for dag_nr, dag_data in ukedata.items():
                     
                         try:
