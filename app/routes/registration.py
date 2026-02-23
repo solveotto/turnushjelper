@@ -4,6 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user
 
 from app.forms import RegisterForm, ResendVerificationForm
+from app.services import user_service
 from app.utils import db_utils, email_utils
 
 registration = Blueprint("registration", __name__)
@@ -11,7 +12,7 @@ registration = Blueprint("registration", __name__)
 
 @registration.route("/register", methods=["GET", "POST"])
 def register():
-    """Self-registration for users with authorized emails"""
+    """Self-registration for users with a pre-seeded stub account."""
     if current_user.is_authenticated:
         return redirect(url_for("shifts.index"))
 
@@ -21,10 +22,11 @@ def register():
         username = (form.username.data or "").strip()
         rullenummer = (form.rullenummer.data or "").strip()
 
-        # Check if email and rullenummer combination is authorized
-        if not db_utils.is_email_authorized(email, rullenummer):
+        # Check if rullenummer exists as an unactivated stub
+        stub = user_service.get_user_by_rullenummer(rullenummer)
+        if not stub or stub["is_stub"] != 1:
             flash(
-                "Denne kombinasjonen av e-post og rullenummer er ikke autorisert. Kontakt en administrator.",
+                "Dette rullenummeret er ikke autorisert. Kontakt en administrator.",
                 "danger",
             )
             return render_template("register.html", form=form)
@@ -42,13 +44,12 @@ def register():
             )
             return render_template("register.html", form=form)
 
-        # Create user account (unverified)
-        success, message, user_id = db_utils.create_user_with_email(
-            email=email,
+        # Activate the stub user with real credentials
+        success, message, user_id = user_service.activate_stub_user(
+            user_id=stub["id"],
             username=username,
+            email=email,
             password=form.password.data,
-            verified=False,
-            rullenummer=rullenummer,
         )
 
         if success:

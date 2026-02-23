@@ -29,6 +29,14 @@ def login():
             if db_user_data and User.verify_password(
                 db_user_data["password"], form.password.data
             ):
+                # Stub users have no usable credentials, but guard anyway
+                if db_user_data.get("is_stub") == 1:
+                    flash(
+                        "Kontoen er ikke aktivert ennå. Registrer deg først.",
+                        "warning",
+                    )
+                    return render_template("login.html", form=form)
+
                 # Check email verification status
                 if db_user_data.get("email_verified") == 0:
                     flash(

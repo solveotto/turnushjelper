@@ -23,17 +23,22 @@ class DBUser(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     has_seen_turnusliste_tour: Mapped[int] = mapped_column(Integer, default=0)
+    is_stub: Mapped[int] = mapped_column(Integer, default=0)
+    stasjoneringssted = Column(String(100), nullable=True)
+    ans_dato = Column(String(20), nullable=True)   # stored as DD.MM.YYYY string
+    fodt_dato = Column(String(20), nullable=True)  # stored as DD.MM.YYYY string
+    seniority_nr = Column(Integer, nullable=True)
 
 
 class AuthorizedEmails(Base):
     __tablename__ = 'authorized_emails'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
     rullenummer = Column(String(50), nullable=True)
     added_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
     added_at = Column(DateTime, default=func.now())
     notes = Column(String(500))
-    __table_args__ = (UniqueConstraint('email', 'rullenummer', name='unique_email_rullenummer'),)
+    __table_args__ = (UniqueConstraint('rullenummer', name='unique_rullenummer'),)
 
 
 class EmailVerificationToken(Base):
@@ -72,7 +77,7 @@ class Favorites(Base):
 class Shifts(Base):
     __tablename__ = 'shifts'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String(255), unique=True, nullable=False)
+    title = Column(String(255), nullable=False)
     turnus_set_id = Column(Integer, nullable=False)
     __table_args__ = (UniqueConstraint('title', 'turnus_set_id'),)
 

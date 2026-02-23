@@ -93,7 +93,7 @@ def upgrade() -> None:
     op.create_table(
         "shifts",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("title", sa.String(255), unique=True, nullable=False),
+        sa.Column("title", sa.String(255), nullable=False),
         sa.Column("turnus_set_id", sa.Integer(), nullable=False),
         sa.UniqueConstraint("title", "turnus_set_id"),
     )

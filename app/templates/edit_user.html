@@ -58,8 +58,9 @@
                             <div class="input-wrapper">
                                 <i class="bi bi-envelope input-icon"></i>
                                 {{ form.email(class="form-control-modern" + (" is-invalid" if form.email.errors else ""), placeholder=" ") }}
-                                <label class="floating-label">{{ form.email.label.text }}</label>
+                                <label class="floating-label">{{ form.email.label.text }} <span class="text-muted">(valgfritt)</span></label>
                             </div>
+                            <small class="form-hint">La stå tomt for å beholde eksisterende e-post uendret</small>
                             {% if form.email.errors %}
                                 <div class="error-message">
                                     {% for error in form.email.errors %}

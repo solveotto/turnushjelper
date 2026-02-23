@@ -9,6 +9,7 @@ from flask_login import current_user, login_required
 from app.database import get_db_session
 from app.extensions import favorite_lock
 from app.models import DBUser
+from app.services import user_service
 from app.utils import db_utils, shift_matcher
 from config import AppConfig
 
@@ -683,3 +684,29 @@ def mark_tour_seen():
         return jsonify({"status": "error", "message": "Server error"}), 500
     finally:
         db_session.close()
+
+
+@api.route("/check-rullenummer")
+def check_rullenummer():
+    """Return stub-user info for the registration name-preview widget.
+
+    Response shape:
+        {found: true,  name: "Etternavn, Fornavn", stasjoneringssted: "OSLO"}
+        {found: false, reason: "already_registered"}
+        {found: false, reason: "not_authorized"}
+    """
+    rullenummer = (request.args.get("rullenummer") or "").strip()
+    if not rullenummer:
+        return jsonify({"found": False, "reason": "not_authorized"})
+
+    stub = user_service.get_user_by_rullenummer(rullenummer)
+    if stub is None:
+        return jsonify({"found": False, "reason": "not_authorized"})
+    if stub["is_stub"] != 1:
+        return jsonify({"found": False, "reason": "already_registered"})
+
+    return jsonify({
+        "found": True,
+        "name": stub["name"] or "",
+        "stasjoneringssted": stub["stasjoneringssted"] or "",
+    })

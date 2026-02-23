@@ -43,7 +43,7 @@
                         <div class="alert-modern alert-info mb-4">
                             <div class="alert-content">
                                 <i class="bi bi-info-circle-fill"></i>
-                                <span><strong>Merk:</strong> Kun autoriserte e-postadresser og rullenummer kan registrere seg. Kontakt en administrator hvis du trenger tilgang.</span>
+                                <span><strong>Merk:</strong> Kun autoriserte rullenummer kan registrere seg. Kontakt en administrator hvis du trenger tilgang.</span>
                             </div>
                         </div>
 
@@ -70,9 +70,10 @@
                             <div class="form-group-modern">
                                 <div class="input-wrapper">
                                     <i class="bi bi-hash input-icon"></i>
-                                    {{ form.rullenummer(class="form-control-modern" + (" is-invalid" if form.rullenummer.errors else ""), placeholder=" ") }}
+                                    {{ form.rullenummer(class="form-control-modern" + (" is-invalid" if form.rullenummer.errors else ""), placeholder=" ", id="rullenummer") }}
                                     <label class="floating-label">{{ form.rullenummer.label.text }}</label>
                                 </div>
+                                <div id="rullenummer-preview" class="mt-1 small"></div>
                                 {% if form.rullenummer.errors %}
                                     <div class="error-message">
                                         {% for error in form.rullenummer.errors %}
@@ -154,5 +155,25 @@
             </div>
         </div>
     </div>
+<script>
+document.getElementById('rullenummer').addEventListener('blur', async function () {
+    const val = this.value.trim();
+    const preview = document.getElementById('rullenummer-preview');
+    if (!val) { preview.innerHTML = ''; return; }
+    try {
+        const res = await fetch(`/api/check-rullenummer?rullenummer=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        if (data.found) {
+            preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> ${data.name}${data.stasjoneringssted ? ' — ' + data.stasjoneringssted : ''}</span>`;
+        } else if (data.reason === 'already_registered') {
+            preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette rullenummeret er allerede registrert.</span>`;
+        } else {
+            preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Rullenummeret ble ikke funnet.</span>`;
+        }
+    } catch (e) {
+        preview.innerHTML = '';
+    }
+});
+</script>
 </body>
 </html>

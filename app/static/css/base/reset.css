@@ -36,11 +36,6 @@ body {
     padding-bottom: 56px; /* Adjust based on your lower navbar height */
 }
 
-@media (max-width: 576px) {
-    .form-label {
-        font-size: 0.875rem; /* Adjust the font size as needed */
-    }
-}
 
 a {
     text-decoration: none;

@@ -5,7 +5,7 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Administrer autoriserte e-poster</h1>
+                <h1>Administrer autoriserte rullenummer</h1>
                 <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Tilbake til admin
                 </a>
@@ -22,24 +22,24 @@
                 {% endif %}
             {% endwith %}
 
-            <!-- Add Single Email Form -->
+            <!-- Add Single Entry Form -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">Legg til autorisert e-post</h5>
+                    <h5 class="mb-0">Legg til autorisert rullenummer</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin.add_authorized_email') }}">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="email" class="form-label">E-postadresse</label>
+                                    <label for="email" class="form-label">E-postadresse <span class="text-muted">(valgfritt)</span></label>
                                     <input type="email" class="form-control" id="email" name="email"
-                                           required placeholder="bruker@eksempel.no">
+                                           placeholder="bruker@eksempel.no">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="rullenummer" class="form-label">Rullenummer</label>
+                                    <label for="rullenummer" class="form-label">Rullenummer <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="rullenummer" name="rullenummer"
                                            required placeholder="12345">
                                 </div>
@@ -53,7 +53,7 @@
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-plus-circle"></i> Legg til e-post
+                            <i class="bi bi-plus-circle"></i> Legg til rullenummer
                         </button>
                     </form>
                 </div>
@@ -85,7 +85,7 @@ bruker3@eksempel.no"></textarea>
             <!-- Authorized Emails List -->
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Autoriserte e-poster ({{ emails|length }})</h5>
+                    <h5 class="mb-0">Autoriserte rullenummer ({{ emails|length }})</h5>
                 </div>
                 <div class="card-body">
                     {% if emails %}
@@ -134,7 +134,7 @@ bruker3@eksempel.no"></textarea>
                         </div>
                     {% else %}
                         <div class="text-center py-4">
-                            <p class="text-muted">Ingen autoriserte e-poster ennå. Legg til e-poster ovenfor for å tillate selvregistrering.</p>
+                            <p class="text-muted">Ingen autoriserte rullenummer ennå. Legg til rullenummer ovenfor for å tillate selvregistrering.</p>
                         </div>
                     {% endif %}
                 </div>

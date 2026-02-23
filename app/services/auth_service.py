@@ -9,48 +9,40 @@ logger = logging.getLogger(__name__)
 
 
 def is_email_authorized(email, rullenummer=None):
-    """Check if email and rullenummer combination is in authorized list"""
+    """Check if rullenummer is in the authorized list (email is ignored for authorization)"""
+    if not rullenummer:
+        return False
     db_session = get_db_session()
     try:
-        if rullenummer:
-            result = db_session.query(AuthorizedEmails).filter_by(
-                email=email.lower(),
-                rullenummer=rullenummer
-            ).first()
-        else:
-            result = db_session.query(AuthorizedEmails).filter_by(email=email.lower()).first()
+        result = db_session.query(AuthorizedEmails).filter_by(rullenummer=rullenummer).first()
         return result is not None
     finally:
         db_session.close()
 
 
-def add_authorized_email(email, added_by, notes='', rullenummer=None):
-    """Add email and rullenummer to authorized list"""
+def add_authorized_email(email=None, added_by=None, notes='', rullenummer=None):
+    """Add a rullenummer (and optional email) to the authorized list"""
+    if not rullenummer:
+        return False, "Rullenummer er påkrevd"
+
     db_session = get_db_session()
     try:
-        if rullenummer:
-            existing = db_session.query(AuthorizedEmails).filter_by(
-                email=email.lower(),
-                rullenummer=rullenummer
-            ).first()
-        else:
-            existing = db_session.query(AuthorizedEmails).filter_by(email=email.lower()).first()
-
+        existing = db_session.query(AuthorizedEmails).filter_by(rullenummer=rullenummer).first()
         if existing:
-            return False, "E-post og rullenummer-kombinasjonen finnes allerede i autorisert liste"
+            return False, "Rullenummeret finnes allerede i autorisert liste"
 
-        new_email = AuthorizedEmails(
-            email=email.lower(),
+        new_entry = AuthorizedEmails(
+            email=email.lower() if email else None,
             rullenummer=rullenummer,
             added_by=added_by,
             notes=notes
         )
-        db_session.add(new_email)
+        db_session.add(new_entry)
         db_session.commit()
-        return True, "E-post lagt til i autorisert liste"
+        return True, "Rullenummer lagt til i autorisert liste"
     except Exception as e:
         db_session.rollback()
-        return False, f"Error adding email: {e}"
+        return False, f"Error adding entry: {e}"
     finally:
         db_session.close()
 

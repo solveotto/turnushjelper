@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% macro action_buttons(emp, missing=false) %}
+{# Eye + Edit are always shown #}
+<div class="btn-group btn-group-sm">
+    <a href="{{ url_for('admin.user_detail', user_id=emp.id) }}"
+       class="btn btn-outline-primary" title="Se detaljer">
+        <i class="bi bi-eye"></i>
+    </a>
+    <a href="{{ url_for('admin.edit_user', user_id=emp.id) }}"
+       class="btn btn-outline-secondary" title="Rediger">
+        <i class="bi bi-pencil"></i>
+    </a>
+    {% if emp.is_stub %}
+        {# Stub: only full delete (no credentials to reset) #}
+        <form method="POST"
+              action="{{ url_for('admin.delete_employee', user_id=emp.id) }}"
+              onsubmit="return confirm('Slette stub-bruker {{ emp.name }}?{% if missing %} NB: kan dukke opp igjen på neste PDF.{% endif %}')">
+            <button type="submit" class="btn btn-outline-danger" title="Slett">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+    {% else %}
+        {# Registered user: reset to stub (keep favorites) OR full delete #}
+        <form method="POST"
+              action="{{ url_for('admin.reset_to_stub', user_id=emp.id) }}"
+              onsubmit="return confirm('Tilbakestille {{ emp.username }} til stub-bruker? Kontoen slettes, men favoritter beholdes.{% if missing %} Anbefalt fremfor full sletting — brukeren kan være midlertidig borte fra listen.{% endif %}')">
+            <button type="submit" class="btn btn-outline-warning"
+                    title="Slett konto, behold favoritter">
+                <i class="bi bi-person-slash"></i>
+            </button>
+        </form>
+        <form method="POST"
+              action="{{ url_for('admin.delete_user', user_id=emp.id) }}"
+              onsubmit="return confirm('Slette bruker {{ emp.username }} og ALLE favoritter permanent?{% if missing %} OBS: brukeren mangler bare fra siste PDF — vurder å bruke tilbakestilling i stedet.{% endif %} Denne handlingen kan ikke angres.')">
+            <button type="submit" class="btn btn-outline-danger"
+                    title="Slett bruker og alle favoritter">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Ansattliste</h1>
+                <a
+                    href="{{ url_for('admin.admin_dashboard') }}"
+                    class="btn btn-secondary"
+                >
+                    <i class="bi bi-arrow-left"></i> Tilbake til admin
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %} {%
+            if messages %} {% for category, message in messages %}
+            <div
+                class="alert alert-{{ category }} alert-dismissible fade show"
+                role="alert"
+            >
+                {{ message }}
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                ></button>
+            </div>
+            {% endfor %} {% endif %} {% endwith %}
+
+            <!-- Ansienitetsliste PDF -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ansienitetsliste (PDF)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Lagret PDF:
+                        <code>app/static/turnusfiler/ansinitet.pdf</code>
+                        {% if pdf_exists %}
+                        <span class="badge bg-success ms-2"
+                            ><i class="bi bi-check-circle"></i> Funnet</span
+                        >
+                        {% if pdf_date %}
+                        <span class="badge bg-secondary ms-1"
+                            ><i class="bi bi-calendar3 me-1"></i>{{ pdf_date }}</span
+                        >
+                        {% endif %}
+                        {% else %}
+                        <span class="badge bg-danger ms-2"
+                            ><i class="bi bi-x-circle"></i> Ikke lastet
+                            opp</span
+                        >
+                        {% endif %}
+                    </p>
+
+                    <div class="row g-3">
+                        <!-- Upload new PDF -->
+                        <div class="col-md-5">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="mb-2">
+                                    <i
+                                        class="bi bi-upload text-primary me-1"
+                                    ></i>
+                                    Last opp ny PDF
+                                </h6>
+                                <p class="text-muted small mb-2">
+                                    Lagrer filen og synkroniserer ansattlisten
+                                    automatisk.
+                                </p>
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('admin.upload_ansinitet_pdf') }}"
+                                    enctype="multipart/form-data"
+                                >
+                                    <div class="input-group">
+                                        <input
+                                            type="file"
+                                            class="form-control form-control-sm"
+                                            name="pdf_file"
+                                            accept=".pdf"
+                                            required
+                                        />
+                                        <button
+                                            type="submit"
+                                            class="btn btn-primary btn-sm"
+                                        >
+                                            <i class="bi bi-cloud-upload"></i>
+                                            Last opp og synkroniser
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Sync / Import from existing PDF -->
+                        <div class="col-md-7">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="mb-2">
+                                    <i
+                                        class="bi bi-arrow-repeat text-warning me-1"
+                                    ></i>
+                                    Bruk eksisterende PDF
+                                </h6>
+                                <p class="text-muted small mb-2">
+                                    Kjør mot den allerede lagrede filen.
+                                </p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <div>
+                                        <form
+                                            method="POST"
+                                            action="{{ url_for('admin.sync_employees') }}"
+                                            onsubmit="
+                                                return confirm(
+                                                    'Synkroniser fra PDF? Nye legges til og eksisterende data oppdateres.',
+                                                );
+                                            "
+                                        >
+                                            <button
+                                                type="submit"
+                                                class="btn btn-warning btn-sm"
+                                                {%
+                                                if
+                                                not
+                                                pdf_exists
+                                                %}disabled{%
+                                                endif
+                                                %}
+                                            >
+                                                <i
+                                                    class="bi bi-arrow-repeat"
+                                                ></i>
+                                                Synkroniser
+                                            </button>
+                                        </form>
+                                        <small class="text-muted d-block mt-1"
+                                            >Legger til nye + oppdaterer endret
+                                            data</small
+                                        >
+                                    </div>
+                                    <div>
+                                        <form
+                                            method="POST"
+                                            action="{{ url_for('admin.import_employees') }}"
+                                            onsubmit="
+                                                return confirm(
+                                                    'Importer kun nye ansatte fra PDF?',
+                                                );
+                                            "
+                                        >
+                                            <button
+                                                type="submit"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                {%
+                                                if
+                                                not
+                                                pdf_exists
+                                                %}disabled{%
+                                                endif
+                                                %}
+                                            >
+                                                <i
+                                                    class="bi bi-file-earmark-plus"
+                                                ></i>
+                                                Kun nye
+                                            </button>
+                                        </form>
+                                        <small class="text-muted d-block mt-1"
+                                            >Hopper over eksisterende</small
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Add Form -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Legg til ansatt manuelt</h5>
+                </div>
+                <div class="card-body">
+                    <form id="add-employee-form" method="POST" action="{{ url_for('admin.add_employee') }}">
+                        <div class="row g-2">
+                            <div class="col-md-1">
+                                <label class="form-label mb-1">Nr.</label>
+                                <input type="number" class="form-control form-control-sm"
+                                       name="seniority_nr" placeholder="1" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1">Rullenr. <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="rullenummer" required placeholder="12345" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label mb-1">Etternavn <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="etternavn" required placeholder="Nordmann" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label mb-1">For- og mellomnavn <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="fornavn" required placeholder="Ola" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1">Stasjoneringssted</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="stasjoneringssted" placeholder="OSLO" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1">Ans.dato</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="ans_dato" placeholder="DD.MM.YYYY" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1">Fødselsdato</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="fodt_dato" placeholder="DD.MM.YYYY" />
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success btn-sm w-100">
+                                    <i class="bi bi-plus-circle"></i> Legg til
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Registered Users Table -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Registrerte brukere ({{ registered_list|length }})</h5>
+                    <span class="badge bg-success">{{ registered_list|length }} registrert</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if registered_list %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-sm mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nr.</th>
+                                    <th>Etternavn</th>
+                                    <th>For- og mellomnavn</th>
+                                    <th>Rullenr.</th>
+                                    <th>Brukernavn</th>
+                                    <th>E-post</th>
+                                    <th>Stasjoneringssted</th>
+                                    <th>Handlinger</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in registered_list %}
+                                <tr>
+                                    <td class="text-muted">{{ emp.seniority_nr or '-' }}</td>
+                                    <td>{{ emp.etternavn or emp.name or '-' }}</td>
+                                    <td>{{ emp.fornavn or '-' }}</td>
+                                    <td><code>{{ emp.rullenummer }}</code></td>
+                                    <td>{{ emp.username }}</td>
+                                    <td class="text-muted">{{ emp.email or '-' }}</td>
+                                    <td>{{ emp.stasjoneringssted or '-' }}</td>
+                                    <td>{{ action_buttons(emp) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted mb-0">Ingen registrerte brukere ennå.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stub / Unregistered Employee Table -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Ansatte ({{ stub_list|length }})</h5>
+                    <span class="badge bg-secondary">{{ stub_list|length }} ikke registrert</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if stub_list %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-sm mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nr.</th>
+                                    <th>Etternavn</th>
+                                    <th>For- og mellomnavn</th>
+                                    <th>Rullenr.</th>
+                                    <th>Stasjoneringssted</th>
+                                    <th>Ans.dato</th>
+                                    <th>Født. dato</th>
+                                    <th>Handlinger</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in stub_list %}
+                                <tr>
+                                    <td class="text-muted">{{ emp.seniority_nr or '-' }}</td>
+                                    <td>{{ emp.etternavn or emp.name or '-' }}</td>
+                                    <td>{{ emp.fornavn or '-' }}</td>
+                                    <td><code>{{ emp.rullenummer }}</code></td>
+                                    <td>{{ emp.stasjoneringssted or '-' }}</td>
+                                    <td>{{ emp.ans_dato or '-' }}</td>
+                                    <td>{{ emp.fodt_dato or '-' }}</td>
+                                    <td>{{ action_buttons(emp) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted mb-0">Ingen ansatte ennå. Last opp en PDF eller legg til manuelt.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Users not found in the current ansinitet.pdf -->
+            {% if not_on_list %}
+            <div class="card mb-4 border-warning">
+                <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                        Ikke på gjeldende ansattliste ({{ not_on_list|length }})
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-muted small">Mangler i sist synkroniserte PDF</span>
+                        {% set cleanup_count = not_on_list | selectattr('is_stub') | list | length %}
+                        {% if cleanup_count %}
+                        <form method="POST"
+                              action="{{ url_for('admin.cleanup_missing_stubs') }}"
+                              onsubmit="return confirm('Slette {{ cleanup_count }} uregistrerte stub-brukere som mangler fra ansattlisten? Registrerte brukere berøres ikke.')">
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                <i class="bi bi-trash me-1"></i>
+                                Rydd opp ({{ cleanup_count }} stubs)
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Etternavn</th>
+                                    <th>For- og mellomnavn</th>
+                                    <th>Rullenr.</th>
+                                    <th>Status</th>
+                                    <th>Brukernavn</th>
+                                    <th>Handlinger</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in not_on_list %}
+                                <tr class="table-warning">
+                                    <td>{{ emp.etternavn or emp.name or '-' }}</td>
+                                    <td>{{ emp.fornavn or '-' }}</td>
+                                    <td><code>{{ emp.rullenummer }}</code></td>
+                                    <td>
+                                        {% if emp.is_registered %}
+                                            <span class="badge bg-success">Registrert</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Ikke registrert</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted">
+                                        {% if not emp.is_stub %}{{ emp.username }}{% else %}—{% endif %}
+                                    </td>
+                                    <td>{{ action_buttons(emp, missing=true) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- System / Admin Users -->
+            {% if system_list %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-muted">Systembrukere ({{ system_list|length }})</h5>
+                    <small class="text-muted">Kontoer uten rullenummer — administratorer o.l.</small>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Brukernavn</th>
+                                <th>E-post</th>
+                                <th>Rolle</th>
+                                <th>Handlinger</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in system_list %}
+                            <tr>
+                                <td>{{ u.username }}</td>
+                                <td class="text-muted">{{ u.email or '-' }}</td>
+                                <td>
+                                    {% if u.is_auth %}
+                                        <span class="badge bg-warning text-dark">Administrator</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Bruker</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin.user_detail', user_id=u.id) }}"
+                                           class="btn btn-outline-primary" title="Se detaljer">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('admin.edit_user', user_id=u.id) }}"
+                                           class="btn btn-outline-secondary" title="Rediger">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% if u.id != current_user.id %}
+                                        <form method="POST"
+                                              action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                                              onsubmit="return confirm('Slette systembruker {{ u.username }}?')">
+                                            <button type="submit" class="btn btn-outline-danger" title="Slett">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <button type="button" class="btn btn-outline-danger disabled"
+                                                title="Du kan ikke slette din egen konto"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% block extra_css %}
+<style>
+    #add-employee-form .form-label {
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialise Bootstrap tooltips on this page
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        new bootstrap.Tooltip(el);
+    });
+</script>
+{% endblock %}
+{% endblock %}

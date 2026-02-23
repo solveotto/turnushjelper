@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, PasswordField, SubmitField, FloatField, IntegerField, BooleanField, FileField, TextAreaField
-from wtforms.validators import DataRequired, Length, NumberRange, EqualTo, ValidationError, Email
+from wtforms.validators import DataRequired, Length, NumberRange, EqualTo, ValidationError, Email, Optional
 from flask_wtf.file import FileAllowed
 
 class LoginForm(FlaskForm):
@@ -17,7 +17,7 @@ class CreateUserForm(FlaskForm):
 
 class EditUserForm(FlaskForm):
     username = StringField('Brukernavn', validators=[DataRequired(), Length(min=3, max=50)])
-    email = StringField('E-postadresse', validators=[Email(message='Vennligst oppgi en gyldig e-postadresse'), Length(max=255)])
+    email = StringField('E-postadresse', validators=[Optional(), Email(message='Vennligst oppgi en gyldig e-postadresse'), Length(max=255)])
     rullenummer = StringField('Rullenummer', validators=[Length(max=50)])
     password = PasswordField('Nytt passord (la stå tomt for å beholde nåværende)')
     confirm_password = PasswordField('Bekreft nytt passord')

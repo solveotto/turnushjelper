@@ -37,6 +37,8 @@ from app.services.user_service import (  # noqa: F401
     get_user_by_email, get_user_by_username, create_user_with_email,
     get_all_users, get_user_by_id, create_user, update_user,
     delete_user, toggle_user_auth, update_user_password,
+    get_user_by_rullenummer, create_stub_user, activate_stub_user, get_all_stub_users,
+    sync_employees_from_scrape,
 )
 
 # Favorites service

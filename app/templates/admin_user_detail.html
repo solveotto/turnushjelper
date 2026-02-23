@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="mb-0">
+                        {{ detail.etternavn or detail.username }}{% if detail.fornavn %}, {{ detail.fornavn }}{% endif %}
+                    </h1>
+                    <small class="text-muted">
+                        {% if detail.rullenummer %}
+                            Rullenr. <code>{{ detail.rullenummer }}</code> &mdash;
+                        {% endif %}
+                        {% if detail.is_stub %}
+                            <span class="badge bg-secondary">Ikke registrert</span>
+                        {% elif detail.is_auth %}
+                            <span class="badge bg-warning text-dark">Administrator</span>
+                        {% else %}
+                            <span class="badge bg-success">Registrert bruker</span>
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin.edit_user', user_id=detail.id) }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-pencil"></i> Rediger
+                    </a>
+                    <a href="{{ url_for('admin.manage_employees') }}"
+                       class="btn btn-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Tilbake
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats row -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-primary">{{ detail.total_favorites }}</div>
+                            <div class="text-muted small">Favoritter totalt</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-info">{{ detail.sets_used }}</div>
+                            <div class="text-muted small">Turnussett brukt</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold text-secondary">
+                                {% if age_days is not none %}{{ age_days }}{% else %}—{% endif %}
+                            </div>
+                            <div class="text-muted small">Dager siden oppretting</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body py-3">
+                            <div class="fs-2 fw-bold
+                                {% if detail.has_seen_tour %}text-success{% else %}text-warning{% endif %}">
+                                {% if detail.has_seen_tour %}
+                                    <i class="bi bi-check-circle"></i>
+                                {% else %}
+                                    <i class="bi bi-exclamation-circle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="text-muted small">Omvisning
+                                {% if detail.has_seen_tour %}fullført{% else %}ikke sett{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info cards -->
+            <div class="row g-3 mb-4">
+
+                <!-- HR / Personal info -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-person-badge me-1"></i> Persondata</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr>
+                                        <th class="text-muted fw-normal" style="width:45%">Ansienitetsnr.</th>
+                                        <td>{{ detail.seniority_nr or '—' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Rullenummer</th>
+                                        <td>{% if detail.rullenummer %}<code>{{ detail.rullenummer }}</code>{% else %}—{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Etternavn</th>
+                                        <td>{{ detail.etternavn or '—' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">For- og mellomnavn</th>
+                                        <td>{{ detail.fornavn or '—' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Stasjoneringssted</th>
+                                        <td>{{ detail.stasjoneringssted or '—' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Ans.dato</th>
+                                        <td>{{ detail.ans_dato or '—' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Fødselsdato</th>
+                                        <td>{{ detail.fodt_dato or '—' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account info -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-shield-lock me-1"></i> Kontoinformasjon</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr>
+                                        <th class="text-muted fw-normal" style="width:45%">Brukernavn</th>
+                                        <td>
+                                            {% if detail.username.startswith('__stub_') %}
+                                                <span class="text-muted fst-italic">{{ detail.username }}</span>
+                                            {% else %}
+                                                {{ detail.username }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">E-post</th>
+                                        <td>{{ detail.email or '—' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">E-post verifisert</th>
+                                        <td>
+                                            {% if detail.email_verified %}
+                                                <span class="badge bg-success">Ja</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Nei</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Rolle</th>
+                                        <td>
+                                            {% if detail.is_auth %}
+                                                <span class="badge bg-warning text-dark">Administrator</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Bruker</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Kontosstatus</th>
+                                        <td>
+                                            {% if detail.is_stub %}
+                                                <span class="badge bg-secondary">Stub (ikke registrert)</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Aktiv</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted fw-normal">Opprettet</th>
+                                        <td>
+                                            {% if detail.created_at %}
+                                                {{ detail.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Favorites -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-star me-1"></i> Favoritter</h6>
+                    <span class="badge bg-primary">{{ detail.total_favorites }} totalt</span>
+                </div>
+                <div class="card-body">
+                    {% if detail.favorites_by_set %}
+                        <div class="accordion" id="favoritesAccordion">
+                            {% for ts in detail.favorites_by_set %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#set-{{ ts.set_id }}"
+                                            aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                                        <span class="me-2 fw-semibold">{{ ts.set_name }}</span>
+                                        <span class="badge bg-secondary ms-1">{{ ts.shifts | length }} favoritter</span>
+                                    </button>
+                                </h2>
+                                <div id="set-{{ ts.set_id }}"
+                                     class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                                     data-bs-parent="#favoritesAccordion">
+                                    <div class="accordion-body p-0">
+                                        <ol class="list-group list-group-flush list-group-numbered">
+                                            {% for shift in ts.shifts %}
+                                            <li class="list-group-item list-group-item-action py-2">
+                                                <code>{{ shift }}</code>
+                                            </li>
+                                            {% endfor %}
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-4 mb-0">
+                            <i class="bi bi-star me-1"></i>
+                            Ingen favoritter registrert.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

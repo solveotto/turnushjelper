@@ -59,6 +59,8 @@ class DataframeManager():
             if os.path.exists(turnus_path):
                 with open(turnus_path, 'r') as f:
                     self.turnus_data = json.load(f)
+                # Normalize old-format timer keys (R24/R25) to the current schema
+                self.turnus_data = self._normalize_timer_fields(self.turnus_data)
                 # Apply double shift flags from double_shifts JSON file
                 self.turnus_data = self._apply_double_shift_flags(self.turnus_data, turnus_set['year_identifier'])
             else:
@@ -83,6 +85,25 @@ class DataframeManager():
     def has_data(self):
         """Check if we have valid data loaded"""
         return not self.df.empty and len(self.turnus_data) > 0
+
+    def _normalize_timer_fields(self, turnus_data):
+        """Normalize old-format timer keys to the current schema.
+
+        Older turnus JSON files (R24, R25) stored totals in 'kl_tim_total' /
+        'tj_timer_total' and per-week breakdowns in 'kl_tim' / 'tj_timer'
+        (dicts).  Current code (R26+) expects 'kl_timer' and 'tj_timer' to be
+        plain strings.  This pass promotes the old total fields so the template
+        always sees a string (or None) under the canonical keys.
+        """
+        for turnus_entry in turnus_data:
+            for data in turnus_entry.values():
+                if not isinstance(data, dict):
+                    continue
+                if not isinstance(data.get('kl_timer'), str):
+                    data['kl_timer'] = data.get('kl_tim_total') or None
+                if not isinstance(data.get('tj_timer'), str):
+                    data['tj_timer'] = data.get('tj_timer_total') or None
+        return turnus_data
 
     def _apply_double_shift_flags(self, turnus_data, year_id):
         """Apply shift flags based on double_shifts file."""

@@ -90,8 +90,8 @@ function classifyCell(timeText, customText) {
         return classifyShift(times[0], times[1]);
     }
 
-    // Day-off codes
-    const dayOffCodes = ['X', 'O', 'T', ''];
+    // Day-off codes ('XX' is used in older turnus JSON formats, 'X' in newer ones)
+    const dayOffCodes = ['X', 'XX', 'O', 'T', ''];
     if (dayOffCodes.includes(times[0])) {
         return SHIFT_TYPES.DAY_OFF;
     }
