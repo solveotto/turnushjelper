@@ -1,31 +1,40 @@
 @page {
+    size: A4 portrait;
     margin: 0.5cm;
 }
 
 @media print {
+    * {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+    }
     .print-frame {
         border: 1px solid rgb(53, 52, 52);
-        width: 100%;
+        width: 80%;
         padding: 1px; /* Reduced padding */
-        margin: 0; /* No margin to prevent extra spacing */
+        margin-bottom: 0.3cm; /* Small gap between the 3 frames per page */
         page-break-inside: avoid;
     }
     .print-frame:first-child {
         margin-top: 0; /* Ensure first item has no top margin */
     }
-    .print-frame:nth-of-type(2n) {
+    /* Set number of frames per page */
+    .print-frame:nth-of-type(3n) {
         page-break-after: always;
     }
     table {
         width: 100%;
-        border-collapse: collapse; 
+        border-collapse: collapse;
         font-size: 0.55em;
         zoom: 0.85;
     }
     th,
     td {
         border: 1px solid black;
-        padding: 0; /* Minimal padding */
         text-align: center;
     }
     th {

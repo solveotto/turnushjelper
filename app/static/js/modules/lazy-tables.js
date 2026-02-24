@@ -18,6 +18,18 @@ export class LazyTables {
         });
     }
 
+    // Re-register observers after the DOM has been replaced (e.g. after a print restore).
+    // The old observed nodes no longer exist; disconnect clears them and we re-observe
+    // any .list-group-item that still contains an unrendered <template>.
+    reinit() {
+        this.observer.disconnect();
+        document.querySelectorAll('.list-group-item').forEach(li => {
+            if (li.querySelector('template[data-lazy-table]')) {
+                this.observer.observe(li);
+            }
+        });
+    }
+
     handleIntersect(entries) {
         entries.forEach(entry => {
             if (!entry.isIntersecting) return;
