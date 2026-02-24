@@ -2,7 +2,7 @@
 // Separate from the onboarding tour — no welcome step,
 // content can be added/removed independently.
 
-export default function() {
+export default function () {
   const isMobile = window.innerWidth < 992;
 
   return [
@@ -46,17 +46,8 @@ export default function() {
         title: "Dobbelturer",
         description: `
                     <p>Noen turnuser har <strong>dobbelturer</strong> — to skift rett etter hverandre.</p>
-                    <div class="tour-visual-example">
-                        <div class="tour-example-cell tour-consecutive-arrow">
-                            <span class="tour-example-label">3139</span>
-                            <span class="tour-example-time">16:18 - 20:48</span>
-                        </div>
-                        <span class="tour-arrow-icon">→</span>
-                        <div class="tour-example-cell tour-consecutive-receiver">
-                            <span class="tour-example-label">3140</span>
-                            <span class="tour-example-time">07:01 - 14:33</span>
-                        </div>
-                    </div>
+                    <img src="static/img/tour/dobbeltur.png"
+                      style="display:block; margin:8px auto; max-width:50%; border-radius:2px;">
                     <p>Cellen med <strong>pil/markering</strong> viser at neste skift starter rett etter.</p>
                     <p class="tour-hint">Hvis du holder musen over pilen, vil du komme en pop-up.</p>
                 `,
@@ -69,13 +60,9 @@ export default function() {
       popover: {
         title: "Delte dagsverk",
         description: `
-                    <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause imellom.</p>
-                    <div class="tour-visual-example">
-                        <div class="tour-example-cell tour-delt-dagsverk">
-                            <span class="tour-example-label">3144 **</span>
-                            <span class="tour-example-time">20:23 - 08:28</span>
-                        </div>
-                    </div>
+                    <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause i dagsverket.</p>
+                    <img src="static/img/tour/deltdagsverk.png"
+                      style="display:block; margin:8px auto; max-width:25%; border-radius:2px;">
                     <p>Disse cellene er markert med <strong>**</strong> i tabellen.</p>
                     <p class="tour-hint">Det vil også her komme en pop-up som indikerer et delt dagsverk.</p>
                 `,

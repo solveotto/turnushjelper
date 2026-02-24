@@ -1,7 +1,7 @@
 // Tour step definitions for the Turnusliste page
 // Each step follows the Driver.js popover config format
 
-export default function() {
+export default function () {
   // Detect mobile vs desktop for the sorter button selector
   const isMobile = window.innerWidth < 992;
 
@@ -60,17 +60,8 @@ export default function() {
         title: "Dobbelturer",
         description: `
                     <p>Noen turnuser har <strong>dobbelturer</strong> — to skift rett etter hverandre.</p>
-                    <div class="tour-visual-example">
-                        <div class="tour-example-cell tour-consecutive-arrow">
-                            <span class="tour-example-label">3139</span>
-                            <span class="tour-example-time">16:18 - 20:48</span>
-                        </div>
-                        <span class="tour-arrow-icon">→</span>
-                        <div class="tour-example-cell tour-consecutive-receiver">
-                            <span class="tour-example-label">3140</span>
-                            <span class="tour-example-time">07:01 - 14:33</span>
-                        </div>
-                    </div>
+                    <img src="/static/img/tour/dobbelttur.png"
+                               style="max-width:100%; border-radius:6px; margin:8px 0;">
                     <p>Cellen med <strong>pil/markering</strong> viser at neste skift starter rett etter.</p>
                     <p class="tour-hint">Hvis du holder musen over pilen, vil du komme en pop-up.</p>
                 `,
@@ -83,7 +74,7 @@ export default function() {
       popover: {
         title: "Delte dagsverk",
         description: `
-                    <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause imellom.</p>
+                    <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause i dagsverket.</p>
                     <div class="tour-visual-example">
                         <div class="tour-example-cell tour-delt-dagsverk">
                             <span class="tour-example-label">3144 **</span>
