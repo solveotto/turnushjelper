@@ -9,6 +9,7 @@ import { Favorites } from './modules/favorites.js';
 import { PrintUtils } from './modules/print-utils.js';
 import { ShiftTimelineModal } from './modules/shift-timeline.js';
 import { GuidedTour } from './modules/guided-tour.js';
+import { LazyTables } from './modules/lazy-tables.js';
 
 // NOT USED
 // import { Utils, ScrollPosition } from './modules/utils.js';
@@ -30,11 +31,20 @@ class App {
         this.modules.favorites = new Favorites();
         // this.modules.scrollPosition = new ScrollPosition(); // Disabled - Utils not imported
 
-        // Initialize shift colors if we have table cells (applies CSS classes)
-        if (document.querySelector('td[id="cell"]')) {
+        // Initialize shift colors if we have table cells OR lazy tables pending render
+        const hasLazyTables = !!document.querySelector('template[data-lazy-table]');
+        if (hasLazyTables || document.querySelector('td[id="cell"]')) {
             this.modules.shiftColors = new ShiftColors();
             // Mark post-night recovery cells (must run after shift colors)
             this.modules.postNightMarker = new PostNightMarker();
+        }
+
+        // Initialize lazy table loader (defers heavy table DOM until scroll-into-view)
+        if (hasLazyTables) {
+            this.modules.lazyTables = new LazyTables(
+                this.modules.shiftColors,
+                this.modules.postNightMarker
+            );
         }
 
         // Initialize shift selection if we have clickable rows

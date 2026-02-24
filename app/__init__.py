@@ -4,7 +4,7 @@ from flask import Flask
 from flask_login import current_user
 from flask_session import Session
 
-from app.database import get_db_session
+from app.database import engine, get_db_session
 from app.extensions import cache, login_manager, mail
 from app.models import DBUser, User
 from app.services.user_service import init_default_admin
@@ -45,9 +45,9 @@ def create_app():
             pass
         return None
 
-    # Configure server-side session storage
-    app.config["SESSION_TYPE"] = "filesystem"
-    app.config["SESSION_FILE_DIR"] = AppConfig.sessions_dir
+    # Configure server-side session storage (SQLAlchemy-backed, eliminates filesystem I/O)
+    app.config["SESSION_TYPE"] = "sqlalchemy"
+    app.config["SESSION_SQLALCHEMY"] = engine
     app.config["SESSION_PERMANENT"] = False
     app.config["SESSION_USE_SIGNER"] = True
     app.config["SESSION_KEY_PREFIX"] = "session:"

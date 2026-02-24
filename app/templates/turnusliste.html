@@ -571,7 +571,7 @@
                                     </div>
                                     {% if name in favoritt %}
                                     <div
-                                        class="d-flex align-items-center gap-2"
+                                        class="d-flex align-items-center gap-2 turnus-favorite-badge"
                                     >
                                         <span class="text-muted small"
                                             >Favoritt:</span
@@ -663,7 +663,9 @@
                                     </div>
                                 </div>
 
-                                <!-- Table with scroll wrapper -->
+                                <!-- Lazy placeholder — replaced by JS when this item scrolls into view -->
+                                <div class="turnus-table-placeholder" style="height:3rem"></div>
+                                <template data-lazy-table>
                                 <div class="table-scroll-wrapper">
                                     <table>
                                         <thead class="text-center">
@@ -826,6 +828,7 @@
                                         </tfoot>
                                     </table>
                                 </div>
+                                </template>
                                 {% for row in df %} {% if row.turnus == name %}
                                 <div
                                     class="container-fluid data-felt text-center"

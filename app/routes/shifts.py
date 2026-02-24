@@ -1,8 +1,16 @@
 from flask import Blueprint, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
+from app.extensions import cache
 from app.utils import db_utils, df_utils
 from app.utils.turnus_helpers import get_user_turnus_set
+
+
+def _turnusliste_cache_key():
+    """Per-user, per-turnus-set cache key for the /turnusliste response."""
+    ts = get_user_turnus_set()
+    ts_id = ts['id'] if ts else 'none'
+    return f"view/turnusliste/{current_user.get_id()}/{ts_id}"
 
 shifts = Blueprint("shifts", __name__)
 
@@ -15,6 +23,7 @@ def index():
 
 @shifts.route("/turnusliste")
 @login_required
+@cache.cached(timeout=120, key_prefix=_turnusliste_cache_key)
 def turnusliste():
     # Get the turnus set for this user (their choice or system default)
     user_turnus_set = get_user_turnus_set()
@@ -57,6 +66,8 @@ def turnusliste():
 @login_required
 def switch_user_year(turnus_set_id):
     """Allow user to switch which year they're viewing (stored in session)"""
+    # Invalidate cached page for the previous turnus set before switching
+    cache.delete(_turnusliste_cache_key())
     # Store user's choice in their session
     session["user_selected_turnus_set"] = turnus_set_id
 

@@ -59,14 +59,20 @@ def toggle_favorite():
 
             user_id = current_user.get_id()
 
+            def _build_favorites_payload(message):
+                updated = db_utils.get_favorite_lst(user_id, turnus_set_id)
+                positions = {name: idx + 1 for idx, name in enumerate(updated)}
+                # Invalidate the cached turnusliste page so the next full load reflects the change
+                from app.extensions import cache as _cache
+                _cache.delete(f"view/turnusliste/{user_id}/{turnus_set_id}")
+                return {"status": "success", "message": message, "favorites": updated, "positions": positions}
+
             if favorite:
                 # Check if already exists first (handle potential duplicates from hibernation)
                 existing_favorites = db_utils.get_favorite_lst(user_id, turnus_set_id)
                 if shift_title in existing_favorites:
                     # Already exists, just return success (cleanup handled in get_favorite_lst)
-                    return jsonify(
-                        {"status": "success", "message": "Already in favorites"}
-                    )
+                    return jsonify(_build_favorites_payload("Already in favorites"))
 
                 # Calculate the next order index for the user's selected turnus set
                 order_index = db_utils.get_max_ordered_index(user_id, turnus_set_id) + 1
@@ -74,9 +80,7 @@ def toggle_favorite():
                     user_id, shift_title, order_index, turnus_set_id
                 )
                 if success:
-                    return jsonify(
-                        {"status": "success", "message": "Added to favorites"}
-                    )
+                    return jsonify(_build_favorites_payload("Added to favorites"))
                 else:
                     return jsonify(
                         {
@@ -88,18 +92,11 @@ def toggle_favorite():
                 # Check if exists before trying to remove
                 existing_favorites = db_utils.get_favorite_lst(user_id, turnus_set_id)
                 if shift_title not in existing_favorites:
-                    return jsonify(
-                        {
-                            "status": "success",
-                            "message": "Already removed from favorites",
-                        }
-                    )
+                    return jsonify(_build_favorites_payload("Already removed from favorites"))
 
                 success = db_utils.remove_favorite(user_id, shift_title, turnus_set_id)
                 if success:
-                    return jsonify(
-                        {"status": "success", "message": "Removed from favorites"}
-                    )
+                    return jsonify(_build_favorites_payload("Removed from favorites"))
                 else:
                     return jsonify(
                         {"status": "error", "message": "Failed to remove favorite"}
