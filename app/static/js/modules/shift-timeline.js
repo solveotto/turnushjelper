@@ -96,30 +96,46 @@ export class ShiftTimelineModal {
     }
 
     setupClickHandlers() {
-        // Find all dagsverk (shift number) elements in table cells and make them clickable
-        document.querySelectorAll('.dagsverk-link').forEach(element => {
+        // Event delegation: one listener on body catches clicks on any .dagsverk-link,
+        // including elements inserted lazily after page load.
+        document.body.addEventListener('click', (e) => {
+            const element = e.target.closest('.dagsverk-link');
+            if (!element) return;
+
             const shiftNr = element.dataset.shiftNr;
-            // Extract turnus_set_id from parent container
             const container = element.closest('.printable');
             const turnusSetId = container?.dataset.currentTurnusSetId;
 
-            // Only make clickable if there's a valid shift number (not empty/whitespace)
-            if (turnusSetId && shiftNr && shiftNr.trim()) {
-                const trimmedShiftNr = shiftNr.trim();
+            if (!turnusSetId || !shiftNr || !shiftNr.trim()) return;
 
-                // Skip if shift name starts with '9' and is more than 8 characters long
-                if (trimmedShiftNr.startsWith('9') && trimmedShiftNr.length > 8) {
-                    return; // Don't make this clickable
-                }
+            const trimmedShiftNr = shiftNr.trim();
+            if (trimmedShiftNr.startsWith('9') && trimmedShiftNr.length > 8) return;
 
-                element.classList.add('shift-timeline-trigger');
-                element.title = 'Klikk for strekliste';
-                element.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.show(turnusSetId, trimmedShiftNr);
-                });
-            }
+            e.preventDefault();
+            e.stopPropagation();
+            this.show(turnusSetId, trimmedShiftNr);
+        });
+
+        // Apply visual hint to elements already in the DOM (non-lazy pages like /favorites)
+        this.applyTriggerMarkup(document);
+    }
+
+    // Mark valid .dagsverk-link elements within a root with cursor + tooltip.
+    // Called once for the document on init, and again by LazyTables for each
+    // newly inserted table so lazy-loaded cells also get the visual hint.
+    applyTriggerMarkup(root) {
+        root.querySelectorAll('.dagsverk-link').forEach(element => {
+            const shiftNr = element.dataset.shiftNr;
+            const container = element.closest('.printable');
+            const turnusSetId = container?.dataset.currentTurnusSetId;
+
+            if (!turnusSetId || !shiftNr || !shiftNr.trim()) return;
+
+            const trimmedShiftNr = shiftNr.trim();
+            if (trimmedShiftNr.startsWith('9') && trimmedShiftNr.length > 8) return;
+
+            element.classList.add('shift-timeline-trigger');
+            element.title = 'Klikk for strekliste';
         });
     }
 

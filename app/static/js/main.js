@@ -39,11 +39,17 @@ class App {
             this.modules.postNightMarker = new PostNightMarker();
         }
 
+        // Initialize shift timeline modal before LazyTables so it can be passed in
+        if (document.querySelector('#shiftTimelineModal')) {
+            this.modules.shiftTimeline = new ShiftTimelineModal();
+        }
+
         // Initialize lazy table loader (defers heavy table DOM until scroll-into-view)
         if (hasLazyTables) {
             this.modules.lazyTables = new LazyTables(
                 this.modules.shiftColors,
-                this.modules.postNightMarker
+                this.modules.postNightMarker,
+                this.modules.shiftTimeline
             );
         }
 
@@ -61,11 +67,6 @@ class App {
         // Initialize sorting if we're on the turnusliste page
         if (document.querySelector('#helgetimer-slider')) {
             this.modules.sorting = new SortingSystem();
-        }
-
-        // Initialize shift timeline modal if present
-        if (document.querySelector('#shiftTimelineModal')) {
-            this.modules.shiftTimeline = new ShiftTimelineModal();
         }
 
         // Initialize guided tour (handles help button on all pages,

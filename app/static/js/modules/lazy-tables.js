@@ -3,9 +3,10 @@
 // is about to scroll into view, reducing initial DOM size significantly.
 
 export class LazyTables {
-    constructor(shiftColors, postNightMarker) {
+    constructor(shiftColors, postNightMarker, shiftTimeline) {
         this.shiftColors = shiftColors;
         this.postNightMarker = postNightMarker;
+        this.shiftTimeline = shiftTimeline;
         this.observer = new IntersectionObserver(
             this.handleIntersect.bind(this),
             { rootMargin: '400px' }  // pre-load 400px before visible
@@ -37,6 +38,8 @@ export class LazyTables {
             if (this.postNightMarker) {
                 li.querySelectorAll('table').forEach(t => this.postNightMarker.processTable(t));
             }
+            // Apply strekliste trigger class + tooltip to newly inserted dagsverk links
+            if (this.shiftTimeline) this.shiftTimeline.applyTriggerMarkup(li);
 
             this.observer.unobserve(li);
         });
