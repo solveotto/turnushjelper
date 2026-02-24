@@ -35,26 +35,34 @@ class DataframeManager():
             return False
         
         self.current_turnus_set = turnus_set
-        
+
+        # Resolve file paths before checking the cache
+        if turnus_set.get('turnus_file_path') and turnus_set.get('df_file_path'):
+            turnus_path = os.path.normpath(turnus_set['turnus_file_path'])
+            df_path = os.path.normpath(turnus_set['df_file_path'])
+        else:
+            year_id = turnus_set['year_identifier'].lower()
+            turnus_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnuser_{turnus_set["year_identifier"]}.json')
+            df_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_df_{turnus_set["year_identifier"]}.json')
+
+        # Check in-memory cache before hitting disk
+        from app.extensions import cache
+        cache_key = f"turnus_data_{turnus_set['id']}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            logger.debug("Cache hit for turnus set %s", turnus_set['year_identifier'])
+            self.turnus_data, df_dict, self.current_turnus_set = cached
+            self.df = pd.DataFrame(df_dict)
+            return True
+
         try:
-            # Use database file paths if available
-            if turnus_set.get('turnus_file_path') and turnus_set.get('df_file_path'):
-                # Convert database paths to OS-specific paths
-                turnus_path = os.path.normpath(turnus_set['turnus_file_path'])
-                df_path = os.path.normpath(turnus_set['df_file_path'])
-            else:
-                # Construct paths based on turnus set identifier
-                year_id = turnus_set['year_identifier'].lower()
-                turnus_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnuser_{turnus_set["year_identifier"]}.json')
-                df_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_df_{turnus_set["year_identifier"]}.json')
-            
             # Load dataframe
             if os.path.exists(df_path):
                 self.df = pd.read_json(df_path)
             else:
                 logger.warning("DataFrame file not found: %s", df_path)
                 self.df = pd.DataFrame()
-            
+
             # Load turnus data
             if os.path.exists(turnus_path):
                 with open(turnus_path, 'r') as f:
@@ -66,6 +74,9 @@ class DataframeManager():
             else:
                 logger.warning("Turnus file not found: %s", turnus_path)
                 self.turnus_data = []
+
+            # Store in cache (DataFrame serialised as dict to avoid pickling issues)
+            cache.set(cache_key, (self.turnus_data, self.df.to_dict(), self.current_turnus_set))
 
             return True
         except Exception as e:

@@ -46,6 +46,12 @@ export class ShiftColors {
         }
     }
 
+    // Apply colors to cells within a scoped root element (used by lazy table loader)
+    applyColorsToRoot(root) {
+        if (localStorage.getItem('shiftColorSettings')) return;
+        root.querySelectorAll('td[id="cell"]').forEach(td => this.colorCell(td));
+    }
+
     // Method to manually trigger color application (useful for dynamic content)
     refresh() {
         this.colorAllCells();
