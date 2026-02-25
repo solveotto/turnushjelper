@@ -772,3 +772,40 @@
         z-index: 1000;
     }
 }
+
+/* NAVBAR ICON ACTIONS — scalable icon button strip */
+.navbar-icon-actions {
+    gap: var(--spacing-xs);
+}
+
+.navbar-icon-btn {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    border-radius: var(--radius-md) !important;
+    padding: var(--spacing-sm) !important;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-normal);
+    line-height: 1;
+}
+
+.navbar-icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-icon-btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 2px;
+}
+
+.navbar-icon-btn i { font-size: 1.1rem; }
+
+@media print { .navbar-icon-actions { display: none !important; } }

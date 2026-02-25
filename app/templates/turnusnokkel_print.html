@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/shift-colors.css') }}">
+    <title>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            font-size: 0.78rem;
+        }
+        h1 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        .group {
+            margin-bottom: 1.4rem;
+            page-break-inside: avoid;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: #fff;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.2rem 0.35rem;
+            text-align: center;
+            white-space: nowrap;
+        }
+        th.linje-header {
+            background: #667eea;
+            color: #fff;
+        }
+        th.date-header {
+            background: #4a5568;
+            color: #fff;
+            font-size: 0.7rem;
+        }
+        th.sep, td.sep {
+            border-left: 3px solid #667eea;
+            padding: 0;
+            width: 2px;
+            background: #667eea !important;
+        }
+        /* Day name column */
+        td:first-child {
+            font-weight: bold;
+            text-align: left;
+        }
+        tr:not(.sat-row):not(.sun-row) td:first-child {
+            background: #f0f0f0;
+        }
+        /* Saturday: light blue on day-name cell only */
+        tr.sat-row td:first-child {
+            background-color: #dbeafe;
+        }
+        /* Sunday: light red on day-name cell only */
+        tr.sun-row td:first-child {
+            background-color: #fee2e2;
+        }
+        /* Date cells */
+        td.date-cell {
+            font-size: 0.7rem;
+            color: #555;
+        }
+        td.date-cell.holiday {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        /* Color legend */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem 0.9rem;
+            margin-bottom: 1rem;
+            font-size: 0.71rem;
+            align-items: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .swatch {
+            display: inline-block;
+            width: 0.9rem;
+            height: 0.9rem;
+            border-radius: 2px;
+            border: 1px solid rgba(0,0,0,0.18);
+            flex-shrink: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .swatch-sat { background: #dbeafe; }
+        .swatch-sun { background: #fee2e2; }
+        .legend-holiday-sample {
+            font-size: 0.65rem;
+            font-weight: bold;
+            color: #dc2626;
+        }
+        .action-bar {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff; padding: 0.3cm 0.5cm; font-size: 6.5pt; }
+            .group { margin-bottom: 0.5rem; }
+            th, td { padding: 0.1rem 0.2rem; }
+            th.date-header, td.date-cell { font-size: 6pt; }
+            /* Ensure shift colors print */
+            td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print action-bar">
+        <button class="btn btn-primary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer"></i> Skriv ut / Lagre PDF
+        </button>
+        <!-- EXCEL DOWNLOAD: Can be removed when Excel is phased out -->
+        <button class="btn btn-outline-success btn-sm" id="excel-btn">
+            <i class="bi bi-file-earmark-excel"></i> Last ned Excel
+        </button>
+    </div>
+
+    <h1>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier }}</h1>
+
+    {% if not template_found %}
+    <div class="alert alert-warning no-print">Turnusnøkkel-mal ikke funnet — viser kun rotasjonsdata.</div>
+    {% endif %}
+
+    {% for group in groups %}
+    <div class="group">
+        <table>
+            <thead>
+                <tr>
+                    <th class="linje-header">Dag</th>
+                    {% for lbl in linje_labels %}
+                    <th class="linje-header">{{ lbl }}</th>
+                    {% endfor %}
+                    {% if group.day_rows and group.day_rows[0].dates %}
+                    <th class="sep"></th>
+                    {% for uke in group.uke_labels %}
+                    <th class="date-header">{{ uke }}</th>
+                    {% endfor %}
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in group.day_rows %}
+                {%- set is_sat = loop.index0 == 5 %}
+                {%- set is_sun = loop.index0 == 6 %}
+                <tr class="{{ 'sat-row' if is_sat else ('sun-row' if is_sun else '') }}">
+                    <td>{{ row.name }}</td>
+                    {% for cell in row.cells %}
+                    <td data-shift-cell data-dagsverk="{{ cell.dagsverk }}">{{ cell.value }}</td>
+                    {% endfor %}
+                    {% if row.dates %}
+                    <td class="sep"></td>
+                    {% for date in row.dates %}
+                    <td class="date-cell{{ ' holiday' if date.holiday else '' }}">{{ date.value }}</td>
+                    {% endfor %}
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+    <script type="module">
+        import { classifyCell } from "{{ url_for('static', filename='js/modules/shift-classifier.js') }}";
+
+        document.querySelectorAll('[data-shift-cell]').forEach(td => {
+            const cls = classifyCell(td.textContent.trim(), td.dataset.dagsverk || '');
+            if (cls) td.classList.add(cls);
+        });
+    </script>
+
+    <script>
+        document.getElementById('excel-btn').addEventListener('click', function () {
+            const turnusName = {{ turnus_name | tojson }};
+            const turnusSetId = {{ turnus_set_id }};
+
+            fetch('/api/generate-turnusnokkel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ turnus_name: turnusName, turnus_set_id: turnusSetId })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(d => { throw new Error(d.message || 'Feil'); });
+                }
+                const cd = response.headers.get('Content-Disposition');
+                let filename = `Turnusnøkkel_${turnusName}.xlsx`;
+                if (cd) {
+                    const m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (m && m[1]) filename = m[1].replace(/['"]/g, '');
+                }
+                return response.blob().then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                });
+            })
+            .catch(err => alert(`Feil ved generering: ${err.message}`));
+        });
+    </script>
+</body>
+</html>

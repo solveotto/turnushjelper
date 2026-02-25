@@ -30,12 +30,12 @@ USAGE:
 ARGUMENTS:
     year_id (required): Year identifier (e.g., R23, R24, R25)
     name (required): Human-readable name for the turnus set
-    --json-path (optional): Custom path to turnuser_XX.json file
-    --df-path (optional): Custom path to turnus_df_XX.json file
+    --json-path (optional): Custom path to turnus_schedule_XX.json file
+    --df-path (optional): Custom path to turnus_stats_XX.json file
 
 FILE LOCATIONS:
-    Default JSON location: app/static/turnusfiler/{year_id}/turnuser_{year_id}.json
-    Default stats location: app/static/turnusfiler/{year_id}/turnus_df_{year_id}.json
+    Default JSON location: app/static/turnusfiler/{year_id}/turnus_schedule_{year_id}.json
+    Default stats location: app/static/turnusfiler/{year_id}/turnus_stats_{year_id}.json
 
 DATABASE OPERATIONS:
     - Creates turnus_sets table entry with file paths
@@ -49,8 +49,8 @@ EXAMPLES:
     
     # With custom file paths
     python app/scripts/create_new_turnus_year_in_database.py R24 "OSL Train Shifts 2024" \\
-        --json-path /path/to/turnuser_R24.json \\
-        --df-path /path/to/turnus_df_R24.json
+        --json-path /path/to/turnus_schedule_R24.json \\
+        --df-path /path/to/turnus_stats_R24.json
 
 ERROR HANDLING:
     - Validates JSON file existence
@@ -87,10 +87,10 @@ def create_new_turnus(year_id, name, turnus_json_path=None, df_json_path=None):
         turnusfiler_dir = os.path.join(AppConfig.static_dir, 'turnusfiler', year_id.lower())
         
         if not turnus_json_path:
-            turnus_json_path = os.path.join(turnusfiler_dir, f'turnuser_{year_id}.json')
-        
+            turnus_json_path = os.path.join(turnusfiler_dir, f'turnus_schedule_{year_id}.json')
+
         if not df_json_path:
-            df_json_path = os.path.join(turnusfiler_dir, f'turnus_df_{year_id}.json')
+            df_json_path = os.path.join(turnusfiler_dir, f'turnus_stats_{year_id}.json')
     
     # Validate that JSON files exist
     if not os.path.exists(turnus_json_path):
@@ -149,8 +149,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Create new turnus set in database from existing JSON files')
     parser.add_argument('year_id', help='Year identifier (e.g., R26)')
     parser.add_argument('name', help='Turnus set name (e.g., "OSL Train Shifts 2026")')
-    parser.add_argument('--json-path', help='Path to turnus JSON file (default: turnusfiler/year_id/turnuser_year_id.json)')
-    parser.add_argument('--df-path', help='Path to statistics JSON file (default: turnusfiler/year_id/turnus_df_year_id.json)')
+    parser.add_argument('--json-path', help='Path to turnus JSON file (default: turnusfiler/year_id/turnus_schedule_year_id.json)')
+    parser.add_argument('--df-path', help='Path to statistics JSON file (default: turnusfiler/year_id/turnus_stats_year_id.json)')
     
     args = parser.parse_args()
     

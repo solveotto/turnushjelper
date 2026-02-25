@@ -3,69 +3,9 @@
 
 // Global function for handling key button clicks
 function handleKeyFunction(turnusName) {
-    console.log('handleKeyFunction called with turnusName:', turnusName);
-    
-    // Get the current turnus set ID from the page
     const turnusSetId = getCurrentTurnusSetId();
-    console.log('Retrieved turnusSetId:', turnusSetId);
-    
-    if (!turnusSetId) {
-        console.log('No turnus set ID found, showing error');
-        alert('Kunne ikke finne aktiv turnus-sett');
-        return;
-    }
-    
-    // Show loading state (optional)
-    console.log(`Generating turnusnøkkel for: ${turnusName}`);
-    
-    // Call the API
-    fetch('/api/generate-turnusnokkel', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            turnus_name: turnusName,
-            turnus_set_id: turnusSetId
-        })
-    })
-    .then(response => {
-        if (response.ok) {
-            // Get the filename from the Content-Disposition header
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = `Turnusnøkkel_${turnusName}.xlsx`;
-            if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                if (filenameMatch && filenameMatch[1]) {
-                    filename = filenameMatch[1].replace(/['"]/g, '');
-                }
-            }
-            
-            // Create a blob and trigger download
-            return response.blob().then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                console.log(`Downloaded: ${filename}`);
-            });
-        } else {
-            // Handle error response
-            return response.json().then(data => {
-                throw new Error(data.message || 'Unknown error occurred');
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert(`Feil ved generering: ${error.message}`);
-    });
+    if (!turnusSetId) { alert('Kunne ikke finne aktiv turnus-sett'); return; }
+    window.open(`/turnusnokkel/${turnusSetId}/${encodeURIComponent(turnusName)}`, '_blank');
 }
 
 // Helper function to get current turnus set ID

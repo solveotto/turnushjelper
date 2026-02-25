@@ -190,8 +190,8 @@ def create_turnus_set():
             turnusfiler_dir = os.path.join(
                 AppConfig.static_dir, "turnusfiler", year_id.lower()
             )
-            turnus_json_path = os.path.join(turnusfiler_dir, f"turnuser_{year_id}.json")
-            df_json_path = os.path.join(turnusfiler_dir, f"turnus_df_{year_id}.json")
+            turnus_json_path = os.path.join(turnusfiler_dir, f"turnus_schedule_{year_id}.json")
+            df_json_path = os.path.join(turnusfiler_dir, f"turnus_stats_{year_id}.json")
 
             # Check if main turnus file exists
             if not os.path.exists(turnus_json_path):
@@ -236,7 +236,7 @@ def create_turnus_set():
                     AppConfig.static_dir,
                     "turnusfiler",
                     year_id.lower(),
-                    f"turnus_df_{year_id}.json",
+                    f"turnus_stats_{year_id}.json",
                 )
                 stats.stats_df.to_json(df_json_path)
                 flash("Statistikk-JSON generert automatisk.", "info")
@@ -297,7 +297,7 @@ def handle_pdf_upload(pdf_file, year_id):
         # Generate JSON files
         turnus_json_path = scraper.create_json(year_id=year_id)
 
-        flash("PDF skrapet! JSON- og Excel-filer opprettet.", "success")
+        flash("PDF skrapet! JSON-filer opprettet.", "success")
         return turnus_json_path, None  # df_json_path will be generated later
 
     except Exception as e:
@@ -353,11 +353,10 @@ def refresh_turnus_set(turnus_set_id):
         scraper = ShiftScraper()
         scraper.scrape_pdf(pdf_path, year_id)
         turnus_json_path = scraper.create_json(year_id=year_id)
-        scraper.create_excel(year_id=year_id)
 
         # Regenerate statistics JSON
         stats = Turnus(turnus_json_path)
-        df_json_path = os.path.join(turnusfiler_dir, f"turnus_df_{year_id}.json")
+        df_json_path = os.path.join(turnusfiler_dir, f"turnus_stats_{year_id}.json")
         stats.stats_df.to_json(df_json_path)
 
         # Update shift names in DB (preserving favorites)

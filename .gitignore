@@ -3,6 +3,9 @@ venv/
 .venv/
 instance/
 app/static/turnusfiler
+# Bytt tunrusfiler med denne hvis du vil ha med .json filer
+#app/static/turnusfiler/**/*.pdf
+#app/static/turnusfiler/**/*.png
 nul
 General/
 .metadata
@@ -13,7 +16,6 @@ __pycache__/
 *.swp
 *.swo
 *~
-
 
 .pytest_cache/
 .coverage

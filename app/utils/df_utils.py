@@ -42,8 +42,8 @@ class DataframeManager():
             df_path = os.path.normpath(turnus_set['df_file_path'])
         else:
             year_id = turnus_set['year_identifier'].lower()
-            turnus_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnuser_{turnus_set["year_identifier"]}.json')
-            df_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_df_{turnus_set["year_identifier"]}.json')
+            turnus_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_schedule_{turnus_set["year_identifier"]}.json')
+            df_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_stats_{turnus_set["year_identifier"]}.json')
 
         # Check in-memory cache before hitting disk
         from app.extensions import cache

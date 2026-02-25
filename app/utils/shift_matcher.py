@@ -60,7 +60,7 @@ def load_stats_for_turnus_set(turnus_set_id: int) -> Optional[pd.DataFrame]:
     # Fallback to standard location
     standard_path = os.path.join(
         AppConfig.static_dir, 'turnusfiler',
-        year_id.lower(), f'turnus_df_{year_id}.json'
+        year_id.lower(), f'turnus_stats_{year_id}.json'
     )
 
     if os.path.exists(standard_path):

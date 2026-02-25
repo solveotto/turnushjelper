@@ -175,7 +175,7 @@ class TurnusnokkelGen():
             raise ValueError(f"Sheet '{self.sheet_name}' not found in the Excel file.")
 
         # Step 2: Load the JSON file (assuming a 7x6 table structure)
-        with open('turnuser_R25.json', 'r') as file:
+        with open('turnus_schedule_R25.json', 'r') as file:
             json_data = json.load(file)
 
         # Step 4: Specify where to start inserting the data

@@ -31,28 +31,24 @@ export class GuidedTour {
     }
 
     showHelpMenuItem() {
-        const menuItem = document.getElementById('tour-help-menu-item');
-        if (menuItem) {
-            menuItem.style.display = '';
-        }
+        const desktopBtn = document.getElementById('help-icon-btn');
+        if (desktopBtn) desktopBtn.style.display = '';
+
+        const mobileItem = document.getElementById('help-icon-btn-mobile');
+        if (mobileItem) mobileItem.style.display = '';
     }
 
     setupHelpButton() {
-        const helpBtn = document.getElementById('start-tour-btn');
-        if (helpBtn) {
-            helpBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                // Close the Bootstrap dropdown before starting the help guide
-                const dropdownMenu = helpBtn.closest('.dropdown-menu');
-                if (dropdownMenu) {
-                    const toggle = dropdownMenu.closest('.dropdown').querySelector('[data-bs-toggle="dropdown"]');
-                    if (toggle) {
-                        bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
-                    }
-                }
-                this.startHelp();
-            });
-        }
+        const handler = (e) => {
+            e.preventDefault();
+            this.startHelp();
+        };
+
+        const desktopBtn = document.getElementById('help-icon-btn');
+        if (desktopBtn) desktopBtn.addEventListener('click', handler);
+
+        const mobileBtn = document.getElementById('help-icon-btn-mobile');
+        if (mobileBtn) mobileBtn.addEventListener('click', handler);
     }
 
     async startHelp() {
