@@ -1,9 +1,18 @@
-from flask import Blueprint, redirect, render_template, request, session, url_for
+import logging
+import os
+import tempfile
+from datetime import date
+
+from flask import Blueprint, redirect, render_template, request, send_file, session, url_for
 from flask_login import current_user, login_required
 
+from app.database import get_db_session
 from app.extensions import cache
+from app.models import DBUser
 from app.utils import db_utils, df_utils
 from app.utils.turnus_helpers import get_user_turnus_set
+
+logger = logging.getLogger(__name__)
 
 
 def _turnusliste_cache_key():
@@ -246,6 +255,279 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
         linje_labels=linje_labels,
         groups=groups,
         template_found=template_found)
+
+
+def _set_table_col_widths(table, col_widths_dxa):
+    """Set explicit tblGrid and per-cell tcW widths for cross-app compatibility.
+
+    IMPORTANT: call this AFTER all cell merges so that gridSpan is already set
+    and tcW can reflect the correct merged width. Using row._tr.iterchildren()
+    instead of row.cells avoids the python-docx behaviour of returning the same
+    merged cell object multiple times (once per logical column it spans), which
+    would produce wrong tcW values and cause the sum of per-row tcW to diverge
+    from tblW — a mismatch OpenOffice treats as a fatal table error.
+    """
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+
+    tbl = table._tbl
+    tblPr = tbl.find(qn("w:tblPr"))
+
+    # Total table width
+    tblW = tblPr.find(qn("w:tblW"))
+    if tblW is None:
+        tblW = OxmlElement("w:tblW")
+        tblPr.append(tblW)
+    tblW.set(qn("w:w"), str(sum(col_widths_dxa)))
+    tblW.set(qn("w:type"), "dxa")
+
+    # Replace tblGrid so renderers know exact column widths
+    old_grid = tbl.find(qn("w:tblGrid"))
+    if old_grid is not None:
+        tbl.remove(old_grid)
+    new_grid = OxmlElement("w:tblGrid")
+    for w in col_widths_dxa:
+        gc = OxmlElement("w:gridCol")
+        gc.set(qn("w:w"), str(w))
+        new_grid.append(gc)
+    tblPr.addnext(new_grid)
+
+    # Per-cell explicit widths — iterate actual <w:tc> elements, not row.cells.
+    # row.cells expands merged cells into one entry per logical column, so a cell
+    # with gridSpan=2 appears twice; iterchildren gives exactly one entry per
+    # physical cell, matching the gridSpan already written by merge().
+    for row in table.rows:
+        ci = 0
+        for tc in row._tr.iterchildren(qn("w:tc")):
+            if ci >= len(col_widths_dxa):
+                break
+            tcPr = tc.find(qn("w:tcPr"))
+            if tcPr is None:
+                tcPr = OxmlElement("w:tcPr")
+                tc.insert(0, tcPr)
+            tcW = tcPr.find(qn("w:tcW"))
+            if tcW is None:
+                tcW = OxmlElement("w:tcW")
+                tcPr.insert(0, tcW)
+            grid_span = tcPr.find(qn("w:gridSpan"))
+            span = int(grid_span.get(qn("w:val"), 1)) if grid_span is not None else 1
+            tcW.set(qn("w:w"), str(sum(col_widths_dxa[ci:ci + span])))
+            tcW.set(qn("w:type"), "dxa")
+            ci += span
+
+
+def _arial(run, size_pt, bold=False):
+    from docx.shared import Pt
+    run.font.name = "Arial"
+    run.font.size = Pt(size_pt)
+    if bold:
+        run.font.bold = True
+
+
+def _build_soknadsskjema_doc(dato, rullenr_og_navn, stasjoneringssted, kommentarer, favorites):
+    """Generate søknadsskjema from scratch matching the original form layout.
+
+    Layout (top to bottom):
+      1. Title
+      2. "Unngå stifter og tape..." instruction
+      3. Personal info table (Dato / Rullenr. / Stasjoneringssted / Kommentarer)
+      4. Instruction text about Linje (with bold + partial underlines)
+      5. Alt table (71 rows, merges done BEFORE _set_table_col_widths)
+
+    The merge-before-widths order is critical: python-docx's row.cells expands
+    merged cells (one entry per logical column), so calling _set_table_col_widths
+    before merging leaves merged cells with single-column tcW. The resulting
+    tcW-sum < tblW mismatch is treated as a fatal table error by OpenOffice.
+    """
+    from docx import Document
+    from docx.shared import Pt
+
+    doc = Document()
+
+    # Page: A4, margins matching original
+    section = doc.sections[0]
+    section.page_width = Pt(595)
+    section.page_height = Pt(842)
+    section.left_margin = Pt(71)
+    section.right_margin = Pt(71)
+    section.top_margin = Pt(27)
+    section.bottom_margin = Pt(35)
+
+    # Strip python-docx default 8 pt space-after + 1.15× line spacing from Normal
+    normal = doc.styles["Normal"]
+    normal.paragraph_format.space_before = Pt(0)
+    normal.paragraph_format.space_after = Pt(0)
+    normal.paragraph_format.line_spacing = 1.0
+
+    for p in list(doc.paragraphs):
+        p._element.getparent().remove(p._element)
+
+    def _p(text="", size_pt=11, bold=False):
+        para = doc.add_paragraph()
+        if text:
+            _arial(para.add_run(text), size_pt, bold)
+        return para
+
+    def _mixed(size_pt=11, *parts):
+        """Paragraph with mixed runs: each part is (text, bold, underline)."""
+        para = doc.add_paragraph()
+        for text, bold, underline in parts:
+            r = para.add_run(text)
+            _arial(r, size_pt, bold)
+            if underline:
+                r.font.underline = True
+        return para
+
+    # ── Title ──
+    _p("Søknad turplassering for              Lokomotivpersonalet", 16, bold=True)
+
+    # ── Top instruction ──
+    _p()
+    _p("Unngå stifter og tape")
+    _p("Bruk helst ensidig og merk hver ark med navn og rullenr")
+
+    # ── Personal info table ──
+    _p()
+    P_COL_WIDTHS = [2856, 6204]  # sum = 9060 dxa
+    p_tbl = doc.add_table(rows=4, cols=2, style="Table Grid")
+    _set_table_col_widths(p_tbl, P_COL_WIDTHS)
+    for i, (label, value) in enumerate([
+        ("Dato", dato),
+        ("Rullenr. og navn", rullenr_og_navn),
+        ("Stasjoneringsted", stasjoneringssted),
+        ("Evt. kommentarer", kommentarer),
+    ]):
+        _arial(p_tbl.rows[i].cells[0].paragraphs[0].add_run(label), 11, bold=True)
+        _arial(p_tbl.rows[i].cells[1].paragraphs[0].add_run(value), 11)
+
+    # ── Middle instruction (comes AFTER personal info table, matching original layout) ──
+    _p()
+    _mixed(11, ("Linje er ", True, False), ("uten", True, True), (" betydning:", True, False))
+    _p("Fyll kun ut kolonne 1.")
+    _p("Du plasseres i vilkårlig valgt linje.")
+    _mixed(11, ("Kun ", True, False), ("helg", True, True), (" er av betydning:", True, False))
+    _p("Fyll ut kolonne 1 og 2")
+    _p("Du plasseres i vilkårlig valgt linje innenfor din helg (Linje 1,3,5 eller 2,4,6)")
+    _mixed(11, ("Linje", True, True), (" er av betydning", True, False))
+    _p("Fyll ut kolonne 1 og 3")
+    _mixed(11,
+        ("Skriv linjer i ", False, False),
+        ("prioritert rekkefølge", False, True),
+        (" i kolonne 3. Du søker kun de linjene som er ført opp.", False, False),
+    )
+
+    # ── Alt table ──
+    # Widths scaled from original proportions to text area (9060 dxa = 595pt − 2×71pt).
+    COL_WIDTHS = [805, 841, 1459, 1497, 3010, 1448]  # sum = 9060 dxa
+
+    alt_tbl = doc.add_table(rows=3 + 71, cols=6, style="Table Grid")
+
+    def _cell(r, c, text, size_pt=10, bold=False):
+        _arial(alt_tbl.cell(r, c).paragraphs[0].add_run(text), size_pt, bold)
+
+    # Merges FIRST so gridSpan is set before _set_table_col_widths reads it
+    alt_tbl.cell(0, 0).merge(alt_tbl.cell(0, 1))
+    alt_tbl.cell(0, 2).merge(alt_tbl.cell(0, 3))
+    alt_tbl.cell(1, 0).merge(alt_tbl.cell(1, 1))
+    alt_tbl.cell(1, 2).merge(alt_tbl.cell(1, 3))
+
+    _set_table_col_widths(alt_tbl, COL_WIDTHS)
+
+    # Header row 0: Kolonne labels
+    _cell(0, 0, "Kolonne 1", bold=True)
+    _cell(0, 2, "Kolonne 2", bold=True)
+    _cell(0, 4, "Kolonne 3", bold=True)
+    _cell(0, 5, "Kolonne 4", bold=True)
+
+    # Header row 1: column descriptions (matching original text)
+    _cell(1, 0, "Tur\nnummer:")
+    _cell(1, 2, "Ønsker en av følgende linjer:\n(Sett X)\n(Ingen prioritering blant disse)")
+    _cell(1, 4, "Linjeprioritering\n(Skriv inn de linjene du ønsker i prioritert rekkefølge)")
+    _cell(1, 5, "H-dag\n(Skriv J for jobb.\nBlankt felt gir fri)")
+
+    # Header row 2: sub-column labels + down arrow indicating Tur nummer entry column
+    _cell(2, 1, "↓")
+    _cell(2, 2, "Linje 1,3,5")
+    _cell(2, 3, "Linje 2,4,6")
+
+    # Data rows: Alt.1 – Alt.71
+    for i in range(71):
+        _cell(3 + i, 0, f"Alt.{i + 1}")
+        if i < len(favorites):
+            _cell(3 + i, 1, favorites[i])
+
+    return doc
+
+
+@shifts.route("/soknadsskjema", methods=["GET", "POST"])
+@login_required
+def soknadsskjema():
+    user_turnus_set = get_user_turnus_set()
+    turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
+    user_id = current_user.get_id()
+
+    fav_order_lst = db_utils.get_favorite_lst(user_id, turnus_set_id)
+
+    # Pre-populate personal info from DBUser
+    db_session = get_db_session()
+    try:
+        db_user = db_session.query(DBUser).filter_by(id=user_id).first()
+        user_name = (db_user.name or "") if db_user else ""
+        user_rullenummer = (db_user.rullenummer or "") if db_user else ""
+        user_stasjoneringssted = (db_user.stasjoneringssted or "") if db_user else ""
+    finally:
+        db_session.close()
+
+    if request.method == "POST":
+        dato = request.form.get("dato", "")
+        rullenr_og_navn = request.form.get("rullenr_og_navn", "")
+        stasjoneringssted = request.form.get("stasjoneringssted", "")
+        kommentarer = request.form.get("kommentarer", "")
+
+        try:
+            doc = _build_soknadsskjema_doc(
+                dato, rullenr_og_navn, stasjoneringssted, kommentarer, fav_order_lst
+            )
+
+            year_id = user_turnus_set["year_identifier"] if user_turnus_set else "turnus"
+            filename = f"soknadsskjema_{year_id}.docx"
+
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+            temp_file_path = temp_file.name
+            temp_file.close()
+            doc.save(temp_file_path)
+
+            response = send_file(
+                temp_file_path,
+                as_attachment=True,
+                download_name=filename,
+                mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
+            @response.call_on_close
+            def cleanup():
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+
+            return response
+
+        except Exception as e:
+            logger.error("Error generating soknadsskjema: %s", e)
+            from flask import flash
+            flash("Feil ved generering av søknadsskjema. Prøv igjen.", "danger")
+
+    # GET (and POST error fallback)
+    default_rullenr_navn = f"{user_rullenummer} {user_name}".strip()
+    return render_template(
+        "søknadsskjema.html",
+        page_name="Søknadsskjema",
+        favorites=fav_order_lst,
+        current_turnus_set=user_turnus_set,
+        all_turnus_sets=db_utils.get_all_turnus_sets(),
+        today=date.today().strftime("%d.%m.%Y"),
+        default_rullenr_navn=default_rullenr_navn,
+        default_stasjoneringssted=user_stasjoneringssted,
+    )
 
 
 @shifts.route("/import-favorites")

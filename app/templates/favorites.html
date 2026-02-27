@@ -42,25 +42,16 @@
 <div class="container-fluid printable" data-tour-page="favorites" data-current-turnus-set-id="{{ current_turnus_set.id if current_turnus_set else '' }}">
     <div class="row justify-content-center">
         <div class="col-auto">
-            <!-- Import from previous year button -->
+            <!-- Action buttons -->
             {% if favorites|length != 0 %}
-                <div class="mb-5 no-print">
-                    <div class="card border-primary">
-                        <div class="card-body p-3">
-                            <div class="d-flex align-items-center justify-content-between gap-3">
-                                <div>
-                                    <h6 class="mb-1">
-                                        <a href="{{ url_for('shifts.import_favorites') }}">
-                                            <i class="bi bi-box-arrow-in-down text-primary"></i>
-                                                Finn lignende turnuser
-                                        </a>
-                                    </h6>
-                                    <small class="text-muted">Finn turnuser som er mest like dine favoritter fra tidligere år.</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-            </div>
+                <div class="mb-3 no-print d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('shifts.import_favorites') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-box-arrow-in-down"></i> Finn lignende turnuser
+                    </a>
+                    <a href="{{ url_for('shifts.soknadsskjema') }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-file-earmark-word"></i> Last ned søknadsskjema
+                    </a>
+                </div>
             {% endif %}
 
      

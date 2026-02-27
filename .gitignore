@@ -30,7 +30,7 @@ app/utils/sessions
 
 config.ini
 .env
-dummy.db
+*.db
 *.sql
 backups/
 tmpclaude-*
