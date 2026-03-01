@@ -82,6 +82,22 @@ class Shifts(Base):
     __table_args__ = (UniqueConstraint('title', 'turnus_set_id'),)
 
 
+class SoknadsskjemaChoice(Base):
+    __tablename__ = "soknadsskjema_choices"
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    user_id         = Column(Integer, nullable=False)
+    turnus_set_id   = Column(Integer, nullable=False)
+    shift_title     = Column(String(255), nullable=False)
+    linje_135       = Column(Integer, default=0)   # 1 = X marked
+    linje_246       = Column(Integer, default=0)   # 1 = X marked
+    linjeprioritering = Column(String(255), nullable=True)  # future: from turnusnøkkel
+    h_dag           = Column(Integer, default=0)   # 1 = J marked
+    __table_args__ = (
+        UniqueConstraint("user_id", "turnus_set_id", "shift_title",
+                         name="uq_soknadsskjema_choices"),
+    )
+
+
 # ── Flask-Login User Wrapper ───────────────────────────────────────────
 
 class User(UserMixin):

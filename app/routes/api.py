@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from app.database import get_db_session
 from app.extensions import favorite_lock
-from app.models import DBUser
+from app.models import DBUser, SoknadsskjemaChoice
 from app.services import user_service
 from app.utils import db_utils, shift_matcher
 from config import AppConfig
@@ -679,6 +679,56 @@ def mark_tour_seen():
         db_session.rollback()
         logger.error("Error marking tour seen: %s", e)
         return jsonify({"status": "error", "message": "Server error"}), 500
+    finally:
+        db_session.close()
+
+
+@api.route("/soknadsskjema-choice", methods=["POST"])
+@login_required
+def soknadsskjema_choice():
+    """Upsert a single Kolonne 2 / 4 cell choice for the søknadsskjema."""
+    data = request.get_json() or {}
+    shift_title = data.get("shift_title", "").strip()
+    field       = data.get("field")
+
+    BOOL_FIELDS = ("linje_135", "linje_246", "h_dag")
+    STR_FIELDS  = ("linjeprioritering",)
+
+    if not shift_title or field not in (*BOOL_FIELDS, *STR_FIELDS):
+        return jsonify(status="error", message="Invalid input"), 400
+
+    user_id = int(current_user.get_id())
+
+    from app.utils.turnus_helpers import get_user_turnus_set
+    user_turnus_set = get_user_turnus_set()
+    turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
+    if turnus_set_id is None:
+        return jsonify(status="error", message="No turnus set"), 400
+
+    db_session = get_db_session()
+    try:
+        row = db_session.query(SoknadsskjemaChoice).filter_by(
+            user_id=user_id, turnus_set_id=turnus_set_id, shift_title=shift_title
+        ).first()
+        if row is None:
+            row = SoknadsskjemaChoice(
+                user_id=user_id, turnus_set_id=turnus_set_id, shift_title=shift_title
+            )
+            db_session.add(row)
+        if field in BOOL_FIELDS:
+            value = bool(data.get("value"))
+            setattr(row, field, int(value))
+            return_value = value
+        else:  # STR_FIELDS
+            value = str(data.get("value") or "").strip()
+            setattr(row, field, value or None)
+            return_value = value
+        db_session.commit()
+        return jsonify(status="success", field=field, value=return_value)
+    except Exception as e:
+        db_session.rollback()
+        logger.error("soknadsskjema_choice error: %s", e)
+        return jsonify(status="error", message="DB error"), 500
     finally:
         db_session.close()
 

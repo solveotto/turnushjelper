@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Søknadsskjema{% endblock %}
+
+{% block extra_css %}
+<style>
+.document-wrap {
+  background: #d8d8d8;
+  padding: 26px 0 40px;
+  min-height: 80vh;
+  margin-top: -120px;
+  padding-top: 110px; /* 120 navbar offset + 26 original top padding */
+}
+.doc-sheet {
+  max-width: 830px;
+  background: #fff;
+  margin: 0 auto;
+  padding: 36px 48px 44px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.22);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  line-height: 1.35;
+}
+.doc-title {
+  font-size: 16pt;
+  font-weight: bold;
+  line-height: 1.2;
+}
+.forening-box {
+  border: 1px solid #555;
+  padding: 6px 12px 10px;
+  min-width: 138px;
+  font-size: 8.5pt;
+  color: #555;
+  line-height: 2.4;
+  flex-shrink: 0;
+  text-align: center; !important
+}
+/* Personal info table */
+.info-table { border-collapse: collapse; }
+.info-table td {
+  border: 1px solid #444;
+  padding: 2px 6px;
+  vertical-align: middle;
+  font-size: 10.5pt;
+}
+.info-table td.lbl { font-weight: bold; white-space: nowrap; width: 160px; }
+.info-table td.val { padding: 0; min-width: 280px; }
+.info-table input[type=text] {
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 3px 6px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5pt;
+  background: transparent;
+}
+/* Alt table */
+.alt-table { border-collapse: collapse; width: 100%; font-size: 9pt; }
+.alt-table th, .alt-table td {
+  border: 1px solid #444;
+  padding: 2px 4px;
+  vertical-align: top;
+  text-align: center;
+}
+.alt-table thead th { background: #f2f2f2; }
+.alt-table td.alt-num { color: #666; white-space: nowrap; width: 38px; }
+.alt-table td.tur-name { min-width: 68px; }
+.alt-table td.tur-name.filled { font-weight: 600; }
+.toggle-cell {
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+  min-width: 38px;
+}
+.toggle-cell:hover { background: #f0f0f0; }
+.toggle-cell.marked { font-weight: bold; }
+/* The page-id row lives in alt-table thead so it repeats on every page the
+   table spans (pages 2+). Hidden on screen, shown only when printing. */
+@media screen {
+  .print-page-row { display: none; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  header, footer { display: none !important; }
+  body, .document-wrap { background: white !important; }
+  .doc-sheet { box-shadow: none !important; padding: 0 !important; max-width: none !important; }
+  .alt-table thead { display: table-header-group; }
+
+  /* Rullenummer og navn: repeats at the top of every page the alt-table
+     spans (page 2 onward) via normal thead repetition — no position:fixed needed. */
+  .print-page-row { display: table-row; }
+  .print-page-cell {
+    text-align: right !important;
+    font-size: 12pt;
+    font-weight: normal;
+    border: none !important;
+    background: white !important;
+    padding: 0 0 4px 0 !important;
+    color: #000;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="document-wrap">
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="max-width:830px; margin:0 auto;" class="no-print">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show mt-2" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Toolbar (hidden when printing) -->
+  <div class="no-print d-flex justify-content-center gap-2 py-2 mb-1">
+    <a href="{{ url_for('shifts.favorites') }}" class="btn btn-sm btn-outline-dark">
+      <i class="bi bi-arrow-left"></i> Tilbake
+    </a>
+    <button type="submit" form="skjema-form" name="format" value="docx" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download me-1"></i> Last ned .docx
+    </button>
+    <button type="submit" form="skjema-form" name="format" value="pdf" class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-file-earmark-pdf me-1"></i> Last ned .pdf
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()">
+      <i class="bi bi-printer"></i> Skriv ut
+    </button>
+  </div>
+
+  <!-- Document sheet -->
+  <form method="POST" id="skjema-form">
+  <div class="doc-sheet">
+
+    <!-- Title + Fylles ut av Forening box -->
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div class="doc-title">
+        Søknad turplassering for<br>Lokomotivpersonalet
+      </div>
+      <div class="forening-box">
+        Fylles ut av Forening<br><br>Ansiennitet:
+      </div>
+    </div>
+
+    <!-- Top instruction -->
+    <div class="mb-3" style="font-size:10.5pt;">
+      Unngå stifter og tape<br>
+      Bruk helst ensidig og merk hver ark med navn og rullenr
+    </div>
+
+    <!-- Personal info table (editable) -->
+    <table class="info-table mb-3">
+      <tbody>
+        <tr>
+          <td class="lbl">Dato</td>
+          <td class="val"><input type="text" name="dato" value="{{ today }}" placeholder="DD.MM.ÅÅÅÅ"></td>
+        </tr>
+        <tr>
+          <td class="lbl">Rullenr. og navn</td>
+          <td class="val"><input type="text" name="rullenr_og_navn" value="{{ default_rullenr_navn }}" placeholder="F.eks. 12345 Ola Nordmann"></td>
+        </tr>
+        <tr>
+          <td class="lbl">Stasjoneringsted</td>
+          <td class="val"><input type="text" name="stasjoneringssted" value="{{ default_stasjoneringssted }}" placeholder="F.eks. Oslo S"></td>
+        </tr>
+        <tr>
+          <td class="lbl">Evt. kommentarer</td>
+          <td class="val"><input type="text" name="kommentarer" value="" placeholder="Valgfritt"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Middle instruction (matches document layout exactly) -->
+    <div class="mb-3" style="font-size:10.5pt; line-height:1.4;">
+      <div><strong>Linje er <u>uten</u> betydning:</strong></div>
+      <div>Fyll kun ut kolonne 1.</div>
+      <div>Du plasseres i vilkårlig valgt linje.</div>
+      <div><strong>Kun <u>helg</u> er av betydning:</strong></div>
+      <div>Fyll ut kolonne 1 og 2</div>
+      <div>Du plasseres i vilkårlig valgt linje innenfor din helg (Linje 1,3,5 eller 2,4,6)</div>
+      <div><strong><u>Linje</u> er av betydning</strong></div>
+      <div>Fyll ut kolonne 1 og 3</div>
+      <div>Skriv linjer i <u>prioritert rekkefølge</u> i kolonne 3. Du søker kun de linjene som er ført opp.</div>
+    </div>
+
+    <!-- Empty favorites warning -->
+    {% if favorites|length == 0 %}
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 no-print" style="font-size:0.9rem;">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>Du har ingen favoritter lagret — Tur nummer-kolonnen vil være tom.
+        <a href="{{ url_for('shifts.turnusliste') }}" class="alert-link">Legg til favoritter</a> på turnuslisten.</span>
+    </div>
+    {% endif %}
+
+    <!-- Alt table -->
+    <table class="alt-table">
+      <thead>
+        <tr class="print-page-row">
+          <th colspan="6" class="print-page-cell">{{ default_rullenr_navn }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th colspan="2">Kolonne 1</th>
+          <th colspan="2">Kolonne 2</th>
+          <th>Kolonne 3</th>
+          <th>Kolonne 4</th>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:left; font-weight:normal;">Tur nummer:</th>
+          <th colspan="2" style="text-align:left; font-weight:normal;">
+            Ønsker en av følgende linjer:<br>(Sett X)<br>(Ingen prioritering blant disse)
+          </th>
+          <th style="text-align:left; font-weight:normal; font-size:8pt;">
+            Linjeprioritering<br>
+            <span style="font-size:7.5pt;">(Skriv inn de linjene du ønsker i prioritert rekkefølge)</span>
+          </th>
+          <th style="text-align:left; font-weight:normal; font-size:8pt;">
+            H-dag<br>
+            <span style="font-size:7.5pt;">(Skriv J for jobb.<br>Blankt felt gir fri)</span>
+          </th>
+        </tr>
+        <tr>
+          <th></th>
+          <th>↓</th>
+          <th>Linje 1,3,5</th>
+          <th>Linje 2,4,6</th>
+          <th></th>
+          <th></th>
+        </tr>
+        {% for i in range(1, 72) %}
+          {% set fav_name = favorites[i-1] if i <= favorites|length else "" %}
+          {% set c = choices.get(fav_name, {}) if fav_name else {} %}
+          <tr{% if fav_name %} class="prefilled"{% endif %}>
+            <td class="alt-num">Alt.{{ i }}</td>
+            <td class="tur-name{{ ' filled' if fav_name }}">{{ fav_name }}</td>
+            {% if fav_name %}
+              <td class="toggle-cell{{ ' marked' if c.linje_135 }}" data-shift="{{ fav_name }}" data-field="linje_135">{{ "X" if c.linje_135 else "" }}</td>
+              <td class="toggle-cell{{ ' marked' if c.linje_246 }}" data-shift="{{ fav_name }}" data-field="linje_246">{{ "X" if c.linje_246 else "" }}</td>
+              <td class="priori-cell">{{ c.linjeprioritering }}</td>
+              <td class="toggle-cell{{ ' marked' if c.h_dag }}" data-shift="{{ fav_name }}" data-field="h_dag">{{ "J" if c.h_dag else "" }}</td>
+            {% else %}
+              <td></td><td></td><td></td><td></td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Download buttons (inside doc so they're visible while scrolling) -->
+    <div class="no-print mt-3 d-flex gap-2 flex-wrap align-items-center">
+      <button type="submit" name="format" value="docx" class="btn btn-success">
+        <i class="bi bi-download me-1"></i> Last ned utfylt søknadsskjema (.docx)
+      </button>
+      <button type="submit" name="format" value="pdf" class="btn btn-danger">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Last ned utfylt søknadsskjema (.pdf)
+      </button>
+      <span class="text-muted small">Klikk i Kolonne 2 og 4 for å merke celler — lagres automatisk</span>
+    </div>
+
+  </div><!-- .doc-sheet -->
+  </form>
+
+
+</div><!-- .document-wrap -->
+
+<script>
+function saveChoice(shiftTitle, field, value) {
+  return fetch('/api/soknadsskjema-choice', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({shift_title: shiftTitle, field: field, value: value})
+  }).then(r => r.json());
+}
+
+document.querySelectorAll('.toggle-cell').forEach(cell => {
+  cell.addEventListener('click', () => {
+    const shift = cell.dataset.shift;
+    const field = cell.dataset.field;
+    const currentlyMarked = cell.textContent.trim() !== '';
+    const newValue = !currentlyMarked;
+    const mark = field === 'h_dag' ? 'J' : 'X';
+
+    // For linje cells: find the sibling to deselect when marking one
+    const isLinjeField = field === 'linje_135' || field === 'linje_246';
+    const siblingField = field === 'linje_135' ? 'linje_246' : 'linje_135';
+    const siblingCell = (isLinjeField && newValue)
+      ? cell.closest('tr').querySelector(`.toggle-cell[data-field="${siblingField}"]`)
+      : null;
+    const siblingMarked = siblingCell && siblingCell.textContent.trim() !== '';
+
+    const saves = [saveChoice(shift, field, newValue)];
+    if (siblingMarked) saves.push(saveChoice(shift, siblingField, false));
+
+    Promise.all(saves)
+      .then(([mainResult, siblingResult]) => {
+        if (mainResult.status === 'success') {
+          cell.textContent = newValue ? mark : '';
+          cell.classList.toggle('marked', newValue);
+        }
+        if (siblingResult && siblingResult.status === 'success') {
+          siblingCell.textContent = '';
+          siblingCell.classList.remove('marked');
+        }
+      })
+      .catch(err => console.error('Choice save failed:', err));
+  });
+});
+</script>
+{% endblock %}

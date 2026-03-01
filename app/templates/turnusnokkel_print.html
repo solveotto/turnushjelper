@@ -112,6 +112,65 @@
             gap: 0.75rem;
             align-items: center;
         }
+        /* Linjeprioritering panel */
+        .linje-prio-panel {
+            margin-bottom: 1rem;
+            padding: 0.6rem 0.8rem;
+            background: #f0f4ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 6px;
+        }
+        .linje-prio-panel label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.4rem;
+            display: block;
+        }
+        .linje-btn-row {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .linje-btn {
+            border: 2px solid #667eea;
+            background: #fff;
+            color: #667eea;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.55rem;
+            cursor: pointer;
+            transition: background 0.12s, color 0.12s;
+            line-height: 1.4;
+        }
+        .linje-btn.selected {
+            background: #667eea;
+            color: #fff;
+        }
+        .linje-btn:hover:not(.selected) {
+            background: #eef0ff;
+        }
+        .linje-prio-preview {
+            font-size: 0.75rem;
+            color: #4b5563;
+            margin-top: 0.35rem;
+        }
+        .linje-prio-preview strong {
+            color: #374151;
+        }
+        .linje-prio-clear {
+            font-size: 0.72rem;
+            color: #6b7280;
+            text-decoration: underline;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-left: 0.25rem;
+        }
+        .linje-prio-clear:hover { color: #dc2626; }
         @media print {
             .no-print { display: none !important; }
             body { background: #fff; padding: 0.3cm 0.5cm; font-size: 6.5pt; }
@@ -132,6 +191,20 @@
         <button class="btn btn-outline-success btn-sm" id="excel-btn">
             <i class="bi bi-file-earmark-excel"></i> Last ned Excel
         </button>
+    </div>
+
+    <div class="no-print linje-prio-panel" id="linje-prio-panel">
+        <label>Linjeprioritering (Kolonne 3 i søknadsskjema)</label>
+        <div class="linje-btn-row" id="linje-btn-row">
+            <button class="linje-btn" data-linje="1">Linje 1</button>
+            <button class="linje-btn" data-linje="2">Linje 2</button>
+            <button class="linje-btn" data-linje="3">Linje 3</button>
+            <button class="linje-btn" data-linje="4">Linje 4</button>
+            <button class="linje-btn" data-linje="5">Linje 5</button>
+            <button class="linje-btn" data-linje="6">Linje 6</button>
+            <button class="linje-prio-clear" id="linje-prio-clear" title="Fjern alle valg">Fjern</button>
+        </div>
+        <div class="linje-prio-preview" id="linje-prio-preview"></div>
     </div>
 
     <h1>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier }}</h1>
@@ -186,6 +259,94 @@
             const cls = classifyCell(td.textContent.trim(), td.dataset.dagsverk || '');
             if (cls) td.classList.add(cls);
         });
+    </script>
+
+    <script>
+    (function () {
+        const SHIFT_TITLE = {{ turnus_name | tojson }};
+        const TURNUS_SET_ID = {{ turnus_set_id }};
+        const ALL_LINJER = [1, 2, 3, 4, 5, 6];
+        const SAVED = {{ linjeprioritering_current | tojson }};
+
+        // Reconstruct selected from stored priority string.
+        // Selected = minimal prefix such that the remaining tail equals natural order of unselected.
+        function parseSelected(s) {
+            if (!s || !s.trim()) return [];
+            const nums = s.trim().split(/\s+/).map(Number).filter(n => ALL_LINJER.includes(n));
+            if (nums.length !== 6) return [];
+            const sel = [];
+            for (let i = 0; i < 6; i++) {
+                const tail = nums.slice(i);
+                const naturalRemaining = ALL_LINJER.filter(l => !nums.slice(0, i).includes(l));
+                if (JSON.stringify(tail) === JSON.stringify(naturalRemaining)) break;
+                sel.push(nums[i]);
+            }
+            return sel;
+        }
+
+        function computePriority(selected) {
+            if (selected.length === 0) return "";
+            const remaining = ALL_LINJER.filter(l => !selected.includes(l));
+            return [...selected, ...remaining].join(" ");
+        }
+
+        let selectedLinjer = parseSelected(SAVED);
+
+        function renderButtons() {
+            document.querySelectorAll('.linje-btn[data-linje]').forEach(btn => {
+                const n = parseInt(btn.dataset.linje, 10);
+                btn.classList.toggle('selected', selectedLinjer.includes(n));
+            });
+        }
+
+        function renderPreview() {
+            const prio = computePriority(selectedLinjer);
+            const el = document.getElementById('linje-prio-preview');
+            el.innerHTML = prio
+                ? '<strong>Prioritet:</strong> ' + prio
+                : '<span style="color:#9ca3af">Ingen prioritering valgt — Kolonne 3 blir blank</span>';
+        }
+
+        function saveToServer(priorityStr) {
+            fetch('/api/soknadsskjema-choice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    shift_title: SHIFT_TITLE,
+                    field: 'linjeprioritering',
+                    value: priorityStr
+                })
+            }).catch(err => console.error('Linjeprioritering save error:', err));
+        }
+
+        // Init
+        renderButtons();
+        renderPreview();
+
+        // Toggle on click
+        document.getElementById('linje-btn-row').addEventListener('click', function (e) {
+            const btn = e.target.closest('.linje-btn[data-linje]');
+            if (!btn) return;
+            const n = parseInt(btn.dataset.linje, 10);
+            const idx = selectedLinjer.indexOf(n);
+            if (idx === -1) {
+                selectedLinjer.push(n);
+            } else {
+                selectedLinjer.splice(idx, 1);
+            }
+            renderButtons();
+            renderPreview();
+            saveToServer(computePriority(selectedLinjer));
+        });
+
+        // Clear all
+        document.getElementById('linje-prio-clear').addEventListener('click', function () {
+            selectedLinjer = [];
+            renderButtons();
+            renderPreview();
+            saveToServer("");
+        });
+    })();
     </script>
 
     <script>
