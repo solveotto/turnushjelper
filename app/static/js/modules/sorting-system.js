@@ -65,22 +65,23 @@ export class SortingSystem {
             
             if (dataRow) {
                 try {
-                    // First row: Dagsverk, Tidlig, Kveld, Natt
-                    const shiftCnt = parseInt(dataRow.querySelector('.row:nth-child(1) .col:nth-child(1) b').textContent) || 0;
-                    const tidlig = parseInt(dataRow.querySelector('.row:nth-child(1) .col:nth-child(2) b').textContent) || 0;
-                    const ettermiddag = parseInt(dataRow.querySelector('.row:nth-child(1) .col:nth-child(3) b').textContent) || 0;
-                    const natt = parseInt(dataRow.querySelector('.row:nth-child(1) .col:nth-child(4) b').textContent) || 0;
-                    
-                    // Second row: Starter før 6, Tidlig 6-8, Tidlig 8-12, Snitt timer
-                    const before6 = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(1) b').textContent) || 0;
-                    const tidlig68 = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(2) b').textContent) || 0;
-                    const tidlig812 = parseInt(dataRow.querySelector('.row:nth-child(2) .col:nth-child(3) b')?.textContent) || 0;
-                    const avgHours = parseFloat(dataRow.querySelector('.row:nth-child(2) .col:nth-child(4) b')?.textContent) || 0;
-
-                    // Third row: Helgetimer, Helgtimer dag, Lengste fri, Lengste rekke
-                    const helgetimer = parseInt(dataRow.querySelector('.row:nth-child(3) .col:nth-child(1) b')?.textContent) || 0;
-                    const longestOff = parseInt(dataRow.querySelector('.row:nth-child(3) .col:nth-child(3) b')?.textContent) || 0;
-                    const longestStreak = parseInt(dataRow.querySelector('.row:nth-child(3) .col:nth-child(4) b')?.textContent) || 0;
+                    // data-felt uses a CSS grid: interleaved <span> label + <b> value pairs.
+                    // Order: Dagsverk, Tidlig, Kveld, Natt, Starter før 6, Tidlig 6-8,
+                    //        Tidlig 8-12, Snitt t/skift, Helgetimer, Helgtimer dag,
+                    //        Lengste fri, Lengste rekke
+                    const bs = dataRow.querySelectorAll('b');
+                    const shiftCnt   = parseInt(bs[0]?.textContent)   || 0;
+                    const tidlig     = parseInt(bs[1]?.textContent)   || 0;
+                    const ettermiddag = parseInt(bs[2]?.textContent)  || 0;
+                    const natt       = parseInt(bs[3]?.textContent)   || 0;
+                    const before6    = parseInt(bs[4]?.textContent)   || 0;
+                    const tidlig68   = parseInt(bs[5]?.textContent)   || 0;
+                    const tidlig812  = parseInt(bs[6]?.textContent)   || 0;
+                    const avgHours   = parseFloat(bs[7]?.textContent) || 0;
+                    const helgetimer = parseInt(bs[8]?.textContent)   || 0;
+                    // bs[9] = helgetimer_dagtid (not used in sorting)
+                    const longestOff    = parseInt(bs[10]?.textContent) || 0;
+                    const longestStreak = parseInt(bs[11]?.textContent) || 0;
 
                     turnusData.push({
                         name: name,
@@ -239,6 +240,13 @@ export class SortingSystem {
         if (sortingInfo) {
             sortingInfo.style.display = 'none';
         }
+
+        // Clear active-criteria badge on the Sorter button
+        const badge = document.getElementById('sorter-active-badge');
+        if (badge) {
+            badge.textContent = '0';
+            badge.classList.add('d-none');
+        }
     }
 
     updateSliderValue(slider) {
@@ -280,6 +288,13 @@ export class SortingSystem {
             sortingInfo.style.display = 'block';
         } else {
             sortingInfo.style.display = 'none';
+        }
+
+        const activeCount = Object.values(weights).filter(v => v !== 0).length;
+        const badge = document.getElementById('sorter-active-badge');
+        if (badge) {
+            badge.textContent = activeCount;
+            badge.classList.toggle('d-none', activeCount === 0);
         }
     }
 

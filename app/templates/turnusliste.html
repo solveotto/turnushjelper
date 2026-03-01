@@ -25,12 +25,12 @@
 {% endblock %} {% block mobile_sorter %}
 <div class="mobile-sorter d-lg-none me-2">
     <button
-        class="btn btn-sm btn-outline-light mobile-sorter-btn"
+        class="btn btn-warning mobile-sorter-btn"
         type="button"
         data-bs-toggle="modal"
         data-bs-target="#mobileSorterModal"
     >
-        <i class="bi bi-funnel"></i>
+        <i class="bi bi-funnel-fill"></i><span class="ms-1">Sorter</span>
     </button>
 </div>
 {% endblock %}
@@ -41,12 +41,13 @@
 <div class="navbar-filtering d-none d-lg-flex align-items-center me-3">
     <div class="filter-dropdown">
         <button
-            class="btn btn-sm btn-outline-light dropdown-toggle sorter-btn"
+            class="btn btn-sm btn-warning dropdown-toggle sorter-btn"
             type="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
         >
-            <i class="bi bi-funnel"></i> Sorter
+            <i class="bi bi-funnel-fill"></i> Sorter
+            <span class="badge bg-dark ms-1 d-none" id="sorter-active-badge">0</span>
         </button>
         <div class="dropdown-menu dropdown-menu-end filter-menu">
             <div class="filter-controls">
@@ -518,7 +519,7 @@
                                 autocomplete="off"
                             />
                             <label
-                                class="btn btn-outline-primary"
+                                class="btn btn-sm btn-outline-secondary"
                                 for="hide-favorites"
                             >
                                 <i class="bi bi-eye-slash me-1"></i>Skjul
@@ -533,7 +534,7 @@
                                 autocomplete="off"
                             />
                             <label
-                                class="btn btn-outline-primary"
+                                class="btn btn-sm btn-outline-secondary"
                                 for="show-all"
                             >
                                 <i class="bi bi-eye me-1"></i>Vis alle

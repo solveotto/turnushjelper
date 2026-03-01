@@ -1,0 +1,219 @@
+/* ── compare.css — page-specific styles for /compare ── */
+
+/* ── Highlight strip ── */
+.highlight-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.record-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  color: var(--bs-body-color);
+  white-space: nowrap;
+}
+
+.record-badge .record-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.record-badge .record-value {
+  font-weight: 700;
+  color: var(--bs-emphasis-color);
+}
+
+/* ── Section headers ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--bs-body-color);
+}
+
+.section-header .section-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.section-header h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.section-header hr {
+  flex: 1;
+  margin: 0;
+  border-color: var(--bs-border-color);
+  opacity: 1;
+}
+
+/* Section accent colours */
+.section-header.section-vakttyper { color: #3b82f6; }
+.section-header.section-helg      { color: #10b981; }
+.section-header.section-rytme     { color: #8b5cf6; }
+.section-header.section-fridager  { color: #f59e0b; }
+
+/* ── Chart cards ── */
+.chart-card {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+}
+
+.chart-card .card-body {
+  padding: 0.75rem 1rem;
+}
+
+.chart-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem !important;
+}
+
+.chart-wrap {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Controls bar ── */
+.compare-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Weekday free-day grid ── */
+.weekday-grid {
+  font-size: 0.82rem;
+}
+
+.weekday-grid thead th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.weekday-grid thead .wd-th {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-bottom: 0.4rem;
+}
+
+.weekday-grid thead .wd-th::after {
+  content: ' ↕';
+  opacity: 0.35;
+  font-size: 0.7rem;
+}
+
+.weekday-grid thead .wd-th.sort-desc::after { content: ' ↓'; opacity: 0.85; }
+.weekday-grid thead .wd-th.sort-asc::after  { content: ' ↑'; opacity: 0.85; }
+
+.weekday-grid td.turnus-name {
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+.wd-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.2rem 0.25rem !important;
+  transition: background-color 0.2s;
+}
+
+.wd-pill {
+  display: inline-block;
+  min-width: 2rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  /* background is set dynamically by JS based on count ratio */
+}
+
+/* ── Heatmap grid ── */
+.heatmap-grid {
+  font-size: 0.8rem;
+}
+
+.heatmap-grid thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.heatmap-grid thead td.turnus-name,
+.heatmap-grid thead th:first-child {
+  text-align: left;
+}
+
+.hm-group-row th {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.1rem !important;
+}
+
+.hm-group-header {
+  font-size: 0.68rem !important;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-bottom: 0.1rem !important;
+}
+
+.hm-th {
+  cursor: pointer;
+  user-select: none;
+  padding-bottom: 0.4rem !important;
+}
+
+.hm-th::after {
+  content: ' ↕';
+  opacity: 0.35;
+  font-size: 0.7rem;
+}
+
+.hm-th.sort-desc::after { content: ' ↓'; opacity: 0.85; }
+.hm-th.sort-asc::after  { content: ' ↑'; opacity: 0.85; }
+
+.hm-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.2rem 0.3rem !important;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: background-color 0.15s;
+  white-space: nowrap;
+}
+
+.hm-border-start {
+  border-left: 2px solid var(--bs-border-color) !important;
+}
+
+.heatmap-grid tbody tr:hover td {
+  filter: brightness(0.92);
+}

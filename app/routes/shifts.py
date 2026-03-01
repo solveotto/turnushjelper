@@ -18,7 +18,7 @@ from app.database import get_db_session
 from app.extensions import cache
 from app.models import DBUser, SoknadsskjemaChoice
 from app.utils import db_utils, df_utils
-from app.utils.turnus_helpers import get_user_turnus_set
+from app.utils.turnus_helpers import get_user_turnus_set, iter_turnus_days
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ shifts = Blueprint("shifts", __name__)
 @shifts.route("/")
 @login_required
 def index():
-    return redirect(url_for("shifts.turnusliste"))
+    return redirect(url_for("shifts.turnusliste", **request.args))
 
 
 @shifts.route("/turnusliste")
@@ -154,23 +154,62 @@ def compare():
     metrics = [
         "natt",
         "tidlig",
+        "ettermiddag",
         "shift_cnt",
         "before_6",
         "helgetimer",
+        "helgedager",
+        "natt_helg",
+        "helgetimer_dagtid",
+        "helgetimer_ettermiddag",
         "tidlig_6_8",
         "tidlig_8_12",
         "longest_off_streak",
         "longest_work_streak",
         "avg_shift_hours",
+        "afternoons_in_row",
     ]
     labels = df["turnus"].tolist() if not df.empty else []
-    data = {m: df[m].tolist() if m in df else [] for m in metrics}
+    data = {m: df[m].tolist() if m in df.columns else [] for m in metrics}
+
+    # Load current user's favorites for the star button in the modal
+    fav_order_lst = db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
+
+    # Compute weekday free-day counts and compact schedule — single pass over turnus_data
+    _day_names = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
+    weekday_free: dict = {}
+    schedule_data: dict = {}   # {turnus_name: {linje_str: {dag_str: {tid, dg}}}}
+    for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(user_df_manager.turnus_data):
+        # weekday free counts
+        weekday_free.setdefault(turnus_name, {d: 0 for d in _day_names})
+        tid = day_data.get("tid", [])
+        if len(tid) != 2:  # not a shift day → free
+            ukedag = day_data.get("ukedag", "")
+            if ukedag in weekday_free[turnus_name]:
+                weekday_free[turnus_name][ukedag] += 1
+
+        # compact schedule for modal (linje 1-6, dag 1-7)
+        try:
+            linje = int(week_nr)
+            dag = int(day_nr)
+        except (ValueError, TypeError):
+            continue
+        schedule_data.setdefault(turnus_name, {})
+        linje_key = str(linje)
+        schedule_data[turnus_name].setdefault(linje_key, {})
+        schedule_data[turnus_name][linje_key][str(dag)] = {
+            "tid": f"{tid[0]}–{tid[1]}" if len(tid) == 2 else "",
+            "dg": day_data.get("dagsverk") or "",  # may be None in JSON
+        }
 
     return render_template(
         "compare.html",
         page_name="Sammenlign Turnuser",
         labels=labels,
         data=data,
+        weekday_free=weekday_free,
+        schedule_data=schedule_data,
+        favoritt=fav_order_lst,
         current_turnus_set=user_turnus_set,
         all_turnus_sets=db_utils.get_all_turnus_sets(),
     )

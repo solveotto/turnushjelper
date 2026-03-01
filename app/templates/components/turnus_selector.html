@@ -7,7 +7,7 @@
     <i class="bi bi-calendar3"></i>
     <span>{{ current_turnus_set.year_identifier if current_turnus_set else 'Year' }}</span>
     </a>
-    <ul class="dropdown-menu" aria-labelledby="turnusDropdown">
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="turnusDropdown">
     {% for ts in all_turnus_sets %}
     <li>
         <a class="dropdown-item {% if current_turnus_set and ts.id == current_turnus_set.id %}active{% endif %}" 

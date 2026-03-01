@@ -55,15 +55,6 @@
                     <i class="bi bi-bar-chart"></i>
                   </a>
                 </li>
-                <li class="nav-item" id="help-icon-btn-mobile" style="display: none;">
-                  <button class="navbar-icon-btn mobile-icon-link btn btn-outline-light"
-                          type="button"
-                          title="Hjelp"
-                          aria-label="Vis hjelp for denne siden">
-                    <i class="bi bi-question-circle"></i>
-                  </button>
-                </li>
-
               </ul>
             </div>
 
@@ -102,22 +93,22 @@
 
                 <!-- Page Title and Navigation -->
 
-                <!-- Turnus Set Switcher (only show if multiple sets available) -->
                 <div class="action-buttons d-none d-lg-flex align-items-center me-3">
-                  {% if current_user.is_authenticated and all_turnus_sets and all_turnus_sets|length > 1 %}
-                      {% include 'components/turnus_selector.html' %}
-                      <div class="me-2"></div>
-                  {% endif %}
-
                 <!-- Filtering Controls -->
                   {% block filtering %}{% endblock %}
 
                 <!-- Print Button -->
                   {% block print %}{% endblock %}
+
+                <!-- Turnus Set Switcher (only show if multiple sets available) -->
+                  {% if current_user.is_authenticated and all_turnus_sets and all_turnus_sets|length > 1 %}
+                      <div class="me-2"></div>
+                      {% include 'components/turnus_selector.html' %}
+                  {% endif %}
                 </div>
 
-                <!-- Icon Actions (shown/hidden per page by JS) -->
-                <div class="navbar-icon-actions d-flex align-items-center me-2">
+                <!-- Help button — desktop only (shown by JS on pages with a help guide) -->
+                <div class="navbar-icon-actions d-none d-lg-flex align-items-center me-2">
                   <button class="navbar-icon-btn btn btn-outline-light"
                           id="help-icon-btn"
                           type="button"
@@ -144,6 +135,13 @@
                       </div>
                     </li>
                     <li><hr class="dropdown-divider"></li>
+
+                    <!-- Contextual help — mobile only, shown by JS when a help guide exists -->
+                    <li id="help-icon-btn-mobile" class="d-lg-none" style="display: none;">
+                      <a class="dropdown-item" href="#">
+                        <i class="bi bi-question-circle"></i> Hjelp
+                      </a>
+                    </li>
 
                     <li>
                       <a class="dropdown-item" href="{{ url_for('downloads.download_pdf') }}">

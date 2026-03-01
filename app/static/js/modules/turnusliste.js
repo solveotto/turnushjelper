@@ -72,8 +72,22 @@ function toggleFavoritesVisibility(hideFavorites) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const highlightedElement = document.querySelector('.highlighted-turnus');
-    
+    // Resolve highlighted element. The server renders the class when the page
+    // is not cached, but the route is cached without the ?turnus= param in the
+    // key — so on cache hits the class is absent. Fall back to a client-side
+    // lookup via the data-turnus attribute, which is always in the DOM.
+    const urlTurnus = new URLSearchParams(location.search).get('turnus');
+    let highlightedElement = document.querySelector('.highlighted-turnus');
+
+    if (urlTurnus && !highlightedElement) {
+        const div = document.querySelector(`[data-turnus="${CSS.escape(urlTurnus)}"]`);
+        const li = div?.closest('li');
+        if (li) {
+            li.classList.add('highlighted-turnus');
+            highlightedElement = li;
+        }
+    }
+
     if (highlightedElement) {
         // Jump to highlighted element
         setTimeout(() => {
@@ -82,10 +96,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const elementHeight = rect.height;
             const windowHeight = window.innerHeight;
             const scrollTo = elementTop - (windowHeight / 2) + (elementHeight / 2);
-            
+
             window.scrollTo(0, scrollTo);
         }, 1000);
-        
+
         // Remove highlight when clicking anywhere else
         document.addEventListener('click', function(event) {
             if (!highlightedElement.contains(event.target)) {
