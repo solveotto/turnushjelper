@@ -725,12 +725,13 @@ def get_user_detail(user_id):
 
 
 def init_default_admin():
-    """Creates a default admin user if database is empty"""
+    """Creates a default admin user if no admin user exists yet"""
     from config import AppConfig
 
     db_session = get_db_session()
     try:
-        if db_session.query(DBUser).count() > 0:
+        target_username = AppConfig.DEFAULT_ADMIN_USERNAME
+        if db_session.query(DBUser).filter_by(username=target_username).first():
             return
 
         if not AppConfig.DEFAULT_ADMIN_PASSWORD:
@@ -749,6 +750,12 @@ def init_default_admin():
         logger.info("Default admin created: %s", AppConfig.DEFAULT_ADMIN_USERNAME)
     except Exception as e:
         db_session.rollback()
-        logger.error("Error creating default admin: %s", e)
+        from sqlalchemy.exc import OperationalError
+        if isinstance(e, OperationalError) and "no such table" in str(e):
+            logger.warning(
+                "Schema not ready yet — run 'alembic upgrade head' before starting the server"
+            )
+        else:
+            logger.error("Error creating default admin: %s", e)
     finally:
         db_session.close()

@@ -83,7 +83,7 @@ class AppConfig:
 
     # Default admin credentials (used on first-time setup)
     DEFAULT_ADMIN_USERNAME = _env("DEFAULT_ADMIN_USERNAME", "admin")
-    DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD")
+    DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD", "admin")
 
     # Paths
     base_dir = os.path.dirname(__file__)
