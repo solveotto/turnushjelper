@@ -36,7 +36,6 @@ body {
     padding-bottom: 56px; /* Adjust based on your lower navbar height */
 }
 
-
 a {
     text-decoration: none;
     transition: color var(--transition-fast);

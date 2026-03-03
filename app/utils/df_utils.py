@@ -71,6 +71,12 @@ class DataframeManager():
                 self.turnus_data = self._normalize_timer_fields(self.turnus_data)
                 # Apply double shift flags from double_shifts JSON file
                 self.turnus_data = self._apply_double_shift_flags(self.turnus_data, turnus_set['year_identifier'])
+                # Runtime integrity check — log warnings, keep running
+                from app.utils.pdf.scraper_validator import validate_turnus_json
+                _valid, _errors = validate_turnus_json(self.turnus_data)
+                if not _valid:
+                    for err in _errors:
+                        logger.warning("Turnus data integrity: %s", err)
             else:
                 logger.warning("Turnus file not found: %s", turnus_path)
                 self.turnus_data = []

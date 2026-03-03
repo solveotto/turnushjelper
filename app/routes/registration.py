@@ -2,8 +2,10 @@ import secrets
 
 from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user
+from flask_login import login_user as flask_login_user
 
 from app.forms import RegisterForm, ResendVerificationForm
+from app.models import User
 from app.services import user_service
 from app.utils import db_utils, email_utils
 
@@ -78,6 +80,14 @@ def verify_email(token):
         # Send welcome email
         if "email" in result:
             email_utils.send_welcome_email(result["email"])
+
+        # Auto-login the user so they don't hit the login page twice
+        user_data = db_utils.get_user_by_email(result["email"])
+        if user_data:
+            user = User(user_data["username"], user_data["id"], user_data["is_auth"])
+            flask_login_user(user)
+            flash("E-post verifisert! Du er nå logget inn.", "success")
+            return redirect(url_for("shifts.index"))
 
         flash("E-post verifisert! Du kan nå logge inn.", "success")
         return redirect(url_for("auth.login"))

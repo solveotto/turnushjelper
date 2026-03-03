@@ -14,6 +14,8 @@
             padding: 1rem 1.5rem;
             background: #f8f9fa;
             font-size: 0.78rem;
+            max-width: 1320px;
+            margin: 0 auto;
         }
         h1 {
             font-size: 1.2rem;
@@ -23,6 +25,10 @@
         .group {
             margin-bottom: 1.4rem;
             page-break-inside: avoid;
+        }
+        .table-scroll {
+            overflow-x: auto;
+            width: 100%;
         }
         table {
             border-collapse: collapse;
@@ -173,7 +179,8 @@
         .linje-prio-clear:hover { color: #dc2626; }
         @media print {
             .no-print { display: none !important; }
-            body { background: #fff; padding: 0.3cm 0.5cm; font-size: 6.5pt; }
+            .table-scroll { overflow: visible; }
+            body { background: #fff; padding: 0.3cm 0.5cm; font-size: 6.5pt; overflow: visible; }
             .group { margin-bottom: 0.5rem; }
             th, td { padding: 0.1rem 0.2rem; }
             th.date-header, td.date-cell { font-size: 6pt; }
@@ -215,6 +222,7 @@
 
     {% for group in groups %}
     <div class="group">
+        <div class="table-scroll no-print-overflow">
         <table>
             <thead>
                 <tr>
@@ -249,6 +257,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
     {% endfor %}
 

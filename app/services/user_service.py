@@ -38,7 +38,9 @@ def get_user_data(username_or_email):
     """Get user data by username or email"""
     db_session = get_db_session()
     try:
-        result = db_session.query(DBUser).filter_by(username=username_or_email).first()
+        result = db_session.query(DBUser).filter(
+            DBUser.username.ilike(username_or_email)
+        ).first()
 
         if not result:
             result = (

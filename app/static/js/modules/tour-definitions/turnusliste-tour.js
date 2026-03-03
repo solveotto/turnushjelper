@@ -2,30 +2,34 @@
 // Each step follows the Driver.js popover config format
 
 export default function () {
-  // Detect mobile vs desktop for the sorter button selector
-  const isMobile = window.innerWidth < 992;
+    // Detect mobile vs desktop for the sorter button selector
+    const isMobile = window.innerWidth < 992;
 
-  return [
-    {
-      // Step 1: Welcome (centered, no element)
-      popover: {
-        title: "Velkommen til Turnuslisten! 👋",
-        description: `
+    return [
+        {
+            // Step 1: Welcome (centered, no element)
+            popover: {
+                title: "Velkommen til Turnushjelper! 👋",
+                description: `
                     <p>Denne guiden viser deg de viktigste funksjonene på denne siden.</p>
                     <p>Her kan du se alle turnuser, sortere dem etter dine preferanser,
                     og lagre favoritter for å sortere den prioriterte rekkefølgen.</p>
-                    <p class="tour-hint">Klikk <strong>Neste</strong> for å starte omvisningen.</p>
+                    <p>Husk at du ALLTID må sjekke at turnusene her stemmer med de
+                    offesielle turnusene før sender inn søknaden. Jeg tar ikke ansvar for eventuelle
+                    feil i turnusene.</p>
+                    <br>
+                    <p class="tour-hint">Når du klikker <strong>Neste</strong> godtar du dette og starter omvisningen.</p>
                 `,
-        side: "over",
-        align: "center",
-      },
-    },
-    {
-      // Step 2: Sort/Filter system
-      element: isMobile ? ".mobile-sorter-btn" : ".sorter-btn",
-      popover: {
-        title: "Sortering og filtrering",
-        description: `
+                side: "over",
+                align: "center",
+            },
+        },
+        {
+            // Step 2: Sort/Filter system
+            element: isMobile ? ".mobile-sorter-btn" : ".sorter-btn",
+            popover: {
+                title: "Sortering og filtrering",
+                description: `
                     <p>Bruk filteret for å sortere turnusene etter det som er viktigst for deg.</p>
                     <p>Du kan justere glidebrytere for:</p>
                     <ul class="tour-list">
@@ -36,44 +40,44 @@ export default function () {
                     </ul>
                     <p class="tour-hint">Dra glideren mot høyre for å prioritere turnuser med <em>mange</em> av den typen.</p>
                 `,
-        side: isMobile ? "bottom" : "bottom",
-        align: "start",
-      },
-    },
-    {
-      // Step 3: Favorites
-      element: ".custom-checkbox",
-      popover: {
-        title: "Favoritter ⭐",
-        description: `
+                side: isMobile ? "bottom" : "bottom",
+                align: "start",
+            },
+        },
+        {
+            // Step 3: Favorites
+            element: ".custom-checkbox",
+            popover: {
+                title: "Favoritter ⭐",
+                description: `
                     <p>Klikk på <strong>stjernen</strong> for å legge til en turnus i favorittlisten din.</p>
                     <p>Favorittene dine vises på en egen side der du sette dem i prioritert rekkefølge.</p>
                     <p class="tour-hint">Du kan endre rekkefølgen på favoritter etter at du har lagt til dem.</p>
                 `,
-        side: "left",
-        align: "start",
-      },
-    },
-    {
-      // Step 4: Dobbelttur (centered, no element — informational)
-      popover: {
-        title: "Dobbelturer",
-        description: `
+                side: "left",
+                align: "start",
+            },
+        },
+        {
+            // Step 4: Dobbelttur (centered, no element — informational)
+            popover: {
+                title: "Dobbelturer",
+                description: `
                     <p>Noen turnuser har <strong>dobbelturer</strong> — to skift rett etter hverandre.</p>
                     <img src="/static/img/tour/dobbelttur.png"
                                style="max-width:100%; border-radius:6px; margin:8px 0;">
                     <p>Cellen med <strong>pil/markering</strong> viser at neste skift starter rett etter.</p>
                     <p class="tour-hint">Hvis du holder musen over pilen, vil du komme en pop-up.</p>
                 `,
-        side: "over",
-        align: "center",
-      },
-    },
-    {
-      // Step 5: Delt dagsverk (centered, no element — informational)
-      popover: {
-        title: "Delte dagsverk",
-        description: `
+                side: "over",
+                align: "center",
+            },
+        },
+        {
+            // Step 5: Delt dagsverk (centered, no element — informational)
+            popover: {
+                title: "Delte dagsverk",
+                description: `
                     <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause i dagsverket.</p>
                     <div class="tour-visual-example">
                         <div class="tour-example-cell tour-delt-dagsverk">
@@ -84,23 +88,23 @@ export default function () {
                     <p>Disse cellene er markert med <strong>**</strong> i tabellen.</p>
                     <p class="tour-hint">Det vil også her komme en pop-up som indikerer et delt dagsverk.</p>
                 `,
-        side: "over",
-        align: "center",
-      },
-    },
-    {
-      // Step 6: Strekliste link
-      element: ".dagsverk-link",
-      popover: {
-        title: "Streklister",
-        description: `
+                side: "over",
+                align: "center",
+            },
+        },
+        {
+            // Step 6: Strekliste link
+            element: ".dagsverk-link",
+            popover: {
+                title: "Streklister",
+                description: `
                     <p>Klikk på <strong>dagsverk-nummeret</strong> (f.eks. 3007) for å se en visuell tidslinje for det skiftet.</p>
                     <p>Tidslinjen viser hele skiftet grafisk, slik at du raskt kan se start- og sluttider.</p>
                     <p class="tour-hint">Prøv å klikke på et dagsverk-nummer etter omvisningen!</p>
                 `,
-        side: "bottom",
-        align: "start",
-      },
-    },
-  ];
+                side: "bottom",
+                align: "start",
+            },
+        },
+    ];
 }

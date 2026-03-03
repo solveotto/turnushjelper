@@ -7,9 +7,15 @@
 }
 
 @keyframes highlightPulse {
-    0% { box-shadow: 0 0 20px rgba(255, 193, 7, 0.8); }
-    50% { box-shadow: 0 0 30px rgba(255, 193, 7, 0.6); }
-    100% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.3); }
+    0% {
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 193, 7, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+    }
 }
 
 /* Consecutive Shift Visual Indicators - More prominent options */
@@ -107,14 +113,12 @@ tbody tr:first-child .delt-dagsverk::before {
     position: relative;
 }
 
-
 /* Option 2: Thicker border around both shifts */
 .consecutive-shift-border {
-    border: 2px solid #000000 !important;
-    box-shadow: 0 0 8px rgba(22, 22, 22, 0.4) !important;
+    border: 2.5px solid #000000 !important;
+    box-shadow: 0 0 16px rgba(22, 22, 22, 0.4) !important;
     /* background: linear-gradient(135deg, #fff5f0 0%, #ffe8e0 100%) !important; */
 }
-
 
 /* Option 4: Connection line with arrow head */
 /* .consecutive-shift-line-arrow {
@@ -190,4 +194,3 @@ tbody tr:first-child .delt-dagsverk::before {
     opacity: 1;
     transform: translateX(-50%) scale(1);
 }
-
