@@ -201,6 +201,26 @@ def create_turnus_set():
                     page_name="Opprett turnussett",
                     form=form,
                 )
+
+            # Validate existing JSON before creating the DB record
+            from app.utils.pdf.scraper_validator import validate_turnus_json
+
+            with open(turnus_json_path, "r") as _f:
+                import json as _json
+                _existing_data = _json.load(_f)
+            _valid, _errors = validate_turnus_json(_existing_data)
+            if not _valid:
+                for err in _errors:
+                    flash(f"Valideringsfeil: {err}", "danger")
+                return render_template(
+                    "admin_create_turnus_set.html",
+                    page_name="Opprett turnussett",
+                    form=form,
+                )
+            flash(
+                f"Validering OK: {len(_existing_data)} av {len(_existing_data)} turnuser godkjent.",
+                "info",
+            )
         else:
             # Handle PDF upload
             if not form.pdf_file.data:
@@ -277,6 +297,7 @@ def create_turnus_set():
 def handle_pdf_upload(pdf_file, year_id):
     """Handle PDF upload and scraping"""
     try:
+        from app.utils.pdf.scraper_validator import validate_turnus_json
         from app.utils.pdf.shiftscraper import ShiftScraper
         from config import AppConfig
 
@@ -290,13 +311,25 @@ def handle_pdf_upload(pdf_file, year_id):
         pdf_path = os.path.join(turnusfiler_dir, f"turnuser_{year_id}.pdf")
         pdf_file.save(pdf_path)
 
-        # Scrape PDF
+        # Scrape PDF into memory
         scraper = ShiftScraper()
         scraper.scrape_pdf(pdf_path, year_id)
 
-        # Generate JSON files
+        # Validate before writing anything to disk
+        valid, errors = validate_turnus_json(scraper.turnuser)
+        if not valid:
+            os.remove(pdf_path)
+            for err in errors:
+                flash(f"Valideringsfeil: {err}", "danger")
+            return None, None
+
+        # Write JSON only after successful validation
         turnus_json_path = scraper.create_json(year_id=year_id)
 
+        flash(
+            f"Validering OK: {len(scraper.turnuser)} av {len(scraper.turnuser)} turnuser godkjent.",
+            "info",
+        )
         flash("PDF skrapet! JSON-filer opprettet.", "success")
         return turnus_json_path, None  # df_json_path will be generated later
 
@@ -349,9 +382,24 @@ def refresh_turnus_set(turnus_set_id):
             flash(f"PDF ikke funnet: {pdf_path}", "danger")
             return redirect(url_for("admin.manage_turnus_sets"))
 
-        # Re-scrape the PDF
+        # Re-scrape the PDF into memory
+        from app.utils.pdf.scraper_validator import validate_turnus_json
+
         scraper = ShiftScraper()
         scraper.scrape_pdf(pdf_path, year_id)
+
+        # Validate before overwriting the existing JSON on disk
+        valid, errors = validate_turnus_json(scraper.turnuser)
+        if not valid:
+            for err in errors:
+                flash(f"Valideringsfeil: {err}", "danger")
+            flash("Eksisterende turnusdata er ikke endret.", "warning")
+            return redirect(url_for("admin.manage_turnus_sets"))
+
+        flash(
+            f"Validering OK: {len(scraper.turnuser)} av {len(scraper.turnuser)} turnuser godkjent.",
+            "info",
+        )
         turnus_json_path = scraper.create_json(year_id=year_id)
 
         # Regenerate statistics JSON
