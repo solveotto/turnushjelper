@@ -24,28 +24,44 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("""
-        CREATE TABLE shifts_new (
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-            title VARCHAR(255) NOT NULL,
-            turnus_set_id INTEGER NOT NULL DEFAULT 1,
-            CONSTRAINT uq_shifts_title_turnus_set UNIQUE (title, turnus_set_id)
-        )
-    """)
-    op.execute("INSERT INTO shifts_new (id, title, turnus_set_id) SELECT id, title, turnus_set_id FROM shifts")
-    op.execute("DROP TABLE shifts")
-    op.execute("ALTER TABLE shifts_new RENAME TO shifts")
+    # Drop the anonymous single-column UNIQUE(title) index if it exists.
+    # On MySQL we can't use AUTOINCREMENT (SQLite syntax) so we drop the index directly.
+    bind = op.get_bind()
+    if bind.dialect.name == "mysql":
+        # Inspect existing indexes and drop any single-column unique index on title
+        result = bind.execute(sa.text("SHOW INDEX FROM shifts WHERE Column_name='title' AND Non_unique=0"))
+        indexes = {row[2] for row in result}  # Key_name is column 2
+        for index_name in indexes:
+            if index_name != "uq_shifts_title_turnus_set":
+                bind.execute(sa.text(f"DROP INDEX `{index_name}` ON shifts"))
+    else:
+        # SQLite path: recreate table
+        op.execute("""
+            CREATE TABLE shifts_new (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                title VARCHAR(255) NOT NULL,
+                turnus_set_id INTEGER NOT NULL DEFAULT 1,
+                CONSTRAINT uq_shifts_title_turnus_set UNIQUE (title, turnus_set_id)
+            )
+        """)
+        op.execute("INSERT INTO shifts_new (id, title, turnus_set_id) SELECT id, title, turnus_set_id FROM shifts")
+        op.execute("DROP TABLE shifts")
+        op.execute("ALTER TABLE shifts_new RENAME TO shifts")
 
 
 def downgrade() -> None:
-    op.execute("""
-        CREATE TABLE shifts_old (
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-            title VARCHAR(255) NOT NULL UNIQUE,
-            turnus_set_id INTEGER NOT NULL DEFAULT 1,
-            CONSTRAINT uq_shifts_title_turnus_set UNIQUE (title, turnus_set_id)
-        )
-    """)
-    op.execute("INSERT INTO shifts_old (id, title, turnus_set_id) SELECT id, title, turnus_set_id FROM shifts")
-    op.execute("DROP TABLE shifts")
-    op.execute("ALTER TABLE shifts_old RENAME TO shifts")
+    bind = op.get_bind()
+    if bind.dialect.name == "mysql":
+        bind.execute(sa.text("CREATE UNIQUE INDEX title ON shifts (title)"))
+    else:
+        op.execute("""
+            CREATE TABLE shifts_old (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                title VARCHAR(255) NOT NULL UNIQUE,
+                turnus_set_id INTEGER NOT NULL DEFAULT 1,
+                CONSTRAINT uq_shifts_title_turnus_set UNIQUE (title, turnus_set_id)
+            )
+        """)
+        op.execute("INSERT INTO shifts_old (id, title, turnus_set_id) SELECT id, title, turnus_set_id FROM shifts")
+        op.execute("DROP TABLE shifts")
+        op.execute("ALTER TABLE shifts_old RENAME TO shifts")
