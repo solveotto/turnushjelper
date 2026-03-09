@@ -51,6 +51,7 @@
                                     <th>Navn</th>
                                     <th>Status</th>
                                     <th>Strekliste</th>
+                                    <th>Innplassering</th>
                                     <th>Opprettet</th>
                                     <th>Handlinger</th>
                                 </tr>
@@ -108,6 +109,32 @@
                                         <div id="double-shift-status-{{ turnus_set.id }}" class="text-muted small mt-1" style="display: none;">
                                         </div>
                                     </td>
+                                    <td>
+                                        <!-- Innplassering Status and Upload -->
+                                        <div class="innplassering-controls" data-turnus-set-id="{{ turnus_set.id }}">
+                                            <span class="innplassering-status badge bg-secondary" id="innplassering-status-{{ turnus_set.id }}">
+                                                <i class="bi bi-hourglass-split"></i> Laster...
+                                            </span>
+
+                                            <!-- Upload form (hidden file input, auto-submits) -->
+                                            <form method="POST"
+                                                  action="{{ url_for('admin.import_innplassering_route', turnus_set_id=turnus_set.id) }}"
+                                                  enctype="multipart/form-data"
+                                                  class="d-inline"
+                                                  id="innplassering-form-{{ turnus_set.id }}">
+                                                {{ upload_form.hidden_tag() }}
+                                                <input type="file" name="pdf_file" accept=".pdf" class="d-none"
+                                                       id="innplassering-input-{{ turnus_set.id }}"
+                                                       onchange="this.form.submit()">
+                                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                                        onclick="document.getElementById('innplassering-input-{{ turnus_set.id }}').click()"
+                                                        title="Last opp innplassering PDF">
+                                                    <i class="bi bi-upload"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+
                                     <td>{{ turnus_set.created_at.strftime('%Y-%m-%d') if turnus_set.created_at else 'Ukjent' }}</td>
                                     <td>
                                         {% if not turnus_set.is_active %}
@@ -186,6 +213,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.strekliste-controls').forEach(function(el) {
         const turnusSetId = el.dataset.turnusSetId;
         loadStreklisteStatus(turnusSetId);
+    });
+
+    // Load innplassering status for all turnus sets
+    document.querySelectorAll('.innplassering-controls').forEach(function(el) {
+        const turnusSetId = el.dataset.turnusSetId;
+        loadInnplasseringStatus(turnusSetId);
     });
 });
 
@@ -301,6 +334,34 @@ function generateStrekliste(turnusSetId) {
         progressBar.classList.add('bg-danger');
         progressText.textContent = 'En feil oppstod under generering.';
     });
+}
+
+function loadInnplasseringStatus(turnusSetId) {
+    fetch(`/admin/innplassering-status/${turnusSetId}`)
+        .then(response => response.json())
+        .then(data => {
+            const statusEl = document.getElementById(`innplassering-status-${turnusSetId}`);
+            if (data.status === 'success') {
+                if (data.record_count > 0) {
+                    statusEl.className = 'innplassering-status badge bg-success';
+                    statusEl.innerHTML = `<i class="bi bi-person-check"></i> ${data.record_count} poster`;
+                } else if (data.has_pdf) {
+                    statusEl.className = 'innplassering-status badge bg-warning text-dark';
+                    statusEl.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> PDF klar';
+                } else {
+                    statusEl.className = 'innplassering-status badge bg-secondary';
+                    statusEl.innerHTML = '<i class="bi bi-x-circle"></i> Ingen data';
+                }
+            } else {
+                statusEl.className = 'innplassering-status badge bg-danger';
+                statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Feil';
+            }
+        })
+        .catch(() => {
+            const statusEl = document.getElementById(`innplassering-status-${turnusSetId}`);
+            statusEl.className = 'innplassering-status badge bg-danger';
+            statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Feil';
+        });
 }
 
 function deleteStreklisteImages(turnusSetId) {

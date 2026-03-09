@@ -445,6 +445,73 @@ def refresh_turnus_set(turnus_set_id):
     return redirect(url_for("admin.manage_turnus_sets"))
 
 
+@admin.route("/innplassering-status/<int:turnus_set_id>")
+@admin_required
+def innplassering_status(turnus_set_id):
+    """AJAX endpoint: return innplassering record count for a turnus set."""
+    from app.models import Innplassering
+
+    db_session = get_db_session()
+    try:
+        count = db_session.query(Innplassering).filter_by(turnus_set_id=turnus_set_id).count()
+    finally:
+        db_session.close()
+
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        return jsonify({"status": "error", "message": "Turnus set not found"}), 404
+
+    version = turnus_set["year_identifier"].lower()
+    pdf_path = os.path.join(
+        AppConfig.static_dir, "turnusfiler", version,
+        f"innplassering_{turnus_set['year_identifier']}.pdf"
+    )
+    return jsonify({
+        "status": "success",
+        "record_count": count,
+        "has_pdf": os.path.exists(pdf_path),
+    })
+
+
+@admin.route("/import-innplassering/<int:turnus_set_id>", methods=["POST"])
+@admin_required
+def import_innplassering_route(turnus_set_id):
+    """Upload an Innplassering PDF and import its shift assignments into the DB."""
+    from app.services.innplassering_service import import_innplassering
+
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        flash("Turnussett ikke funnet.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    year_id = turnus_set["year_identifier"]
+    version = year_id.lower()
+    turnusfiler_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version)
+    os.makedirs(turnusfiler_dir, exist_ok=True)
+
+    pdf_save_path = os.path.join(turnusfiler_dir, f"innplassering_{year_id}.pdf")
+
+    # Accept an uploaded file, or fall back to the previously-saved PDF
+    uploaded = request.files.get("pdf_file")
+    if uploaded and uploaded.filename:
+        if not uploaded.filename.lower().endswith(".pdf"):
+            flash("Kun PDF-filer er tillatt.", "danger")
+            return redirect(url_for("admin.manage_turnus_sets"))
+        uploaded.save(pdf_save_path)
+    elif not os.path.exists(pdf_save_path):
+        flash(f"Ingen innplassering PDF funnet. Last opp en PDF-fil.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    json_path = turnus_set.get("turnus_file_path")
+    if not json_path or not os.path.exists(json_path):
+        flash("Turnus JSON-fil ikke funnet for dette turnussettet.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    success, message = import_innplassering(pdf_save_path, turnus_set_id, json_path)
+    flash(message, "success" if success else "danger")
+    return redirect(url_for("admin.manage_turnus_sets"))
+
+
 @admin.route("/delete-turnus-set/<int:turnus_set_id>", methods=["POST"])
 @admin_required
 def delete_turnus_set(turnus_set_id):

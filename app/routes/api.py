@@ -368,7 +368,63 @@ def import_favorites_preview():
     data = request.get_json() or {}
     source_turnus_set_id = data.get("source_turnus_set_id")
     source_turnus_set_ids = data.get("source_turnus_set_ids")
+    innplassering_source_ids = data.get("innplassering_source_ids")
     top_n = data.get("top_n", 5)
+
+    # Handle top_n early so innplassering branch can use it
+    try:
+        top_n = int(top_n)
+        if top_n == 0:
+            top_n = 999
+        elif top_n < 0:
+            top_n = 5
+    except (ValueError, TypeError):
+        top_n = 5
+
+    # Innplassering mode — must be checked before favorites mode
+    if innplassering_source_ids is not None:
+        try:
+            inn_ids = [int(i) for i in innplassering_source_ids]
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "Invalid innplassering source IDs"})
+
+        from app.utils.turnus_helpers import get_user_turnus_set
+        user_turnus_set = get_user_turnus_set()
+        target_turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
+
+        if not target_turnus_set_id:
+            return jsonify({"status": "error", "message": "No active turnus set selected"})
+
+        inn_ids = [i for i in inn_ids if i != target_turnus_set_id]
+        if not inn_ids:
+            return jsonify({"status": "error", "message": "Source and target turnus sets are the same"})
+
+        user_id = current_user.get_id()
+        result = shift_matcher.find_matches_from_innplassering(
+            user_id=user_id,
+            innplassering_source_ids=inn_ids,
+            target_turnus_set_id=target_turnus_set_id,
+            top_n=top_n,
+        )
+
+        if not result["all_favorites"]:
+            return jsonify({"status": "error", "message": "Ingen innplasseringsdata funnet eller statistikk mangler."})
+
+        target_set = db_utils.get_turnus_set_by_id(target_turnus_set_id)
+        if not target_set:
+            return jsonify({"status": "error", "message": "Target turnus set not found"}), 404
+
+        return jsonify({
+            "status": "success",
+            "mode": "innplassering",
+            "target_set": {
+                "id": target_set["id"],
+                "name": target_set["name"],
+                "year_identifier": target_set["year_identifier"],
+            },
+            "by_source": result["by_source"],
+            "matches": result["all_favorites"],
+        })
 
     # Handle both single and multiple sources
     if source_turnus_set_ids:
@@ -389,16 +445,6 @@ def import_favorites_preview():
             )
     else:
         return jsonify({"status": "error", "message": "No source turnus set provided"})
-
-    # Handle top_n: 0 means all matches
-    try:
-        top_n = int(top_n)
-        if top_n == 0:
-            top_n = 999  # Effectively all matches
-        elif top_n < 0:
-            top_n = 5
-    except (ValueError, TypeError):
-        top_n = 5
 
     # Get current turnus set
     from app.utils.turnus_helpers import get_user_turnus_set

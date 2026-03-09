@@ -38,9 +38,11 @@ def get_user_data(username_or_email):
     """Get user data by username or email"""
     db_session = get_db_session()
     try:
-        result = db_session.query(DBUser).filter(
-            DBUser.username.ilike(username_or_email)
-        ).first()
+        result = (
+            db_session.query(DBUser)
+            .filter(DBUser.username.ilike(username_or_email))
+            .first()
+        )
 
         if not result:
             result = (
@@ -58,6 +60,8 @@ def get_user_data(username_or_email):
                 "email": result.email,
                 "email_verified": result.email_verified,
                 "is_stub": result.is_stub or 0,
+                "seniority_nr": result.seniority_nr,
+                "ansatt_data": result.ans_dato,
             }
             return data
         else:
@@ -411,7 +415,10 @@ def sync_employees_from_scrape(employees: list) -> dict:
         db_session.commit()
         logger.info(
             "sync_employees: added=%d updated=%d unchanged=%d removed_from_list=%d",
-            added, updated, unchanged, removed_from_list,
+            added,
+            updated,
+            unchanged,
+            removed_from_list,
         )
         return {
             "added": added,
@@ -466,7 +473,9 @@ def create_stub_user(
     """
     db_session = get_db_session()
     try:
-        existing = db_session.query(DBUser).filter_by(rullenummer=str(rullenummer)).first()
+        existing = (
+            db_session.query(DBUser).filter_by(rullenummer=str(rullenummer)).first()
+        )
         if existing:
             return False, "Rullenummer finnes allerede"
 
@@ -510,7 +519,9 @@ def activate_stub_user(user_id, username, email, password):
             return False, "Bruker er ikke en stub-bruker", None
 
         # Uniqueness checks
-        existing_username = db_session.query(DBUser).filter_by(username=username).first()
+        existing_username = (
+            db_session.query(DBUser).filter_by(username=username).first()
+        )
         if existing_username and existing_username.id != user_id:
             return False, "Brukernavnet er allerede tatt", None
 
@@ -542,10 +553,14 @@ def get_all_stub_users():
     """
     db_session = get_db_session()
     try:
-        users = db_session.query(DBUser).order_by(
-            func.coalesce(DBUser.seniority_nr, 999999).asc(),
-            DBUser.id.asc(),
-        ).all()
+        users = (
+            db_session.query(DBUser)
+            .order_by(
+                func.coalesce(DBUser.seniority_nr, 999999).asc(),
+                DBUser.id.asc(),
+            )
+            .all()
+        )
         result = []
         for u in users:
             is_registered = (u.is_stub or 0) == 0 and u.email is not None
@@ -557,22 +572,24 @@ def get_all_stub_users():
             else:
                 etternavn = u.name or ""
                 fornavn = ""
-            result.append({
-                "id": u.id,
-                "rullenummer": u.rullenummer,
-                "name": u.name,
-                "etternavn": etternavn,
-                "fornavn": fornavn,
-                "stasjoneringssted": u.stasjoneringssted,
-                "ans_dato": u.ans_dato,
-                "fodt_dato": u.fodt_dato,
-                "seniority_nr": u.seniority_nr,
-                "is_stub": u.is_stub or 0,
-                "is_auth": u.is_auth or 0,
-                "email": u.email,
-                "username": u.username,
-                "is_registered": is_registered,
-            })
+            result.append(
+                {
+                    "id": u.id,
+                    "rullenummer": u.rullenummer,
+                    "name": u.name,
+                    "etternavn": etternavn,
+                    "fornavn": fornavn,
+                    "stasjoneringssted": u.stasjoneringssted,
+                    "ans_dato": u.ans_dato,
+                    "fodt_dato": u.fodt_dato,
+                    "seniority_nr": u.seniority_nr,
+                    "is_stub": u.is_stub or 0,
+                    "is_auth": u.is_auth or 0,
+                    "email": u.email,
+                    "username": u.username,
+                    "is_registered": is_registered,
+                }
+            )
         return result
     finally:
         db_session.close()
@@ -662,7 +679,8 @@ def get_user_detail(user_id):
       is_registered     — bool
     Returns None if user not found.
     """
-    from app.models import TurnusSet, Favorites as FavModel
+    from app.models import Favorites as FavModel
+    from app.models import TurnusSet
 
     db_session = get_db_session()
     try:
@@ -753,6 +771,7 @@ def init_default_admin():
     except Exception as e:
         db_session.rollback()
         from sqlalchemy.exc import OperationalError
+
         if isinstance(e, OperationalError) and "no such table" in str(e):
             logger.warning(
                 "Schema not ready yet — run 'alembic upgrade head' before starting the server"

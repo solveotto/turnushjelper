@@ -30,6 +30,16 @@ STAT_WEIGHTS = {
     'longest_off_streak': 1.0, # Longest consecutive days off
     'longest_work_streak': 1.0, # Longest consecutive work days
     'avg_shift_hours': 1.0,  # Average shift duration
+    # Day-of-week off-rate profile — captures the weekly rhythm
+    'mon_off_rate': 0.7,
+    'tue_off_rate': 0.7,
+    'wed_off_rate': 0.7,
+    'thu_off_rate': 0.7,
+    'fri_off_rate': 0.7,
+    'sat_off_rate': 0.7,
+    'sun_off_rate': 0.7,
+    # Schedule consistency — low std dev means similar start time every day
+    'start_time_std': 1.0,
 }
 
 
@@ -352,6 +362,88 @@ def find_matches_from_multiple_sources(user_id: int,
         'by_source': by_source,
         'all_favorites': all_favorites
     }
+
+
+def find_matches_from_innplassering(
+    user_id: int,
+    innplassering_source_ids: List[int],
+    target_turnus_set_id: int,
+    top_n: int = 3,
+) -> Dict:
+    """Like find_matches_from_multiple_sources but uses innplassering assignments instead of favorites.
+
+    Returns same structure as find_matches_from_multiple_sources:
+    {
+      "by_source": {ts_id: {"turnus_set": {...}, "matches": [...]}},
+      "all_favorites": [...]  # combined best match per shift across sources
+    }
+    """
+    from app.services.innplassering_service import get_innplassering_for_user
+
+    all_records = get_innplassering_for_user(user_id)
+    records_by_ts = {sid: [] for sid in innplassering_source_ids}
+    for rec in all_records:
+        if rec["turnus_set_id"] in records_by_ts:
+            records_by_ts[rec["turnus_set_id"]].append(rec)
+
+    by_source = {}
+    # best_matches: source shift title -> best entry seen across sources
+    best_matches: Dict = {}
+
+    for ts_id, records in records_by_ts.items():
+        if not records:
+            continue
+        ts_info = db_utils.get_turnus_set_by_id(ts_id)
+        if not ts_info:
+            continue
+
+        source_df = load_stats_for_turnus_set(ts_id)
+        if source_df is None:
+            continue
+
+        ts_results = []
+        for rec in records:
+            shift_title = rec["shift_title"]
+            source_stats = get_shift_stats(source_df, shift_title)
+            if source_stats is None:
+                continue
+
+            matches = find_similar_shifts(ts_id, target_turnus_set_id, shift_title, top_n, user_id)
+            entry = {
+                "source_shift": shift_title,
+                "source_stats": {k: source_stats.get(k) for k in STAT_WEIGHTS},
+                "matches": matches,
+                "from_source": {
+                    "id": ts_info["id"],
+                    "year_identifier": ts_info["year_identifier"],
+                },
+            }
+            ts_results.append(entry)
+
+            # Keep the best entry per source shift across all source turnus sets
+            existing = best_matches.get(shift_title)
+            best_sim = matches[0]["similarity"] if matches else 0
+            existing_sim = existing["matches"][0]["similarity"] if (existing and existing["matches"]) else -1
+            if existing is None or best_sim > existing_sim:
+                best_matches[shift_title] = entry
+
+        if ts_results:
+            by_source[ts_id] = {
+                "turnus_set": {
+                    "id": ts_info["id"],
+                    "name": ts_info["name"],
+                    "year_identifier": ts_info["year_identifier"],
+                },
+                "matches": ts_results,
+            }
+
+    all_favorites = list(best_matches.values())
+    all_favorites.sort(
+        key=lambda x: x["matches"][0]["similarity"] if x["matches"] else 0,
+        reverse=True,
+    )
+
+    return {"by_source": by_source, "all_favorites": all_favorites}
 
 
 def get_all_turnus_sets_with_stats() -> List[Dict]:

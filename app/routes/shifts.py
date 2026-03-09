@@ -17,6 +17,7 @@ from flask_login import current_user, login_required
 from app.database import get_db_session
 from app.extensions import cache
 from app.models import DBUser, SoknadsskjemaChoice
+from app.services.innplassering_service import get_innplassering_for_user
 from app.utils import db_utils, df_utils
 from app.utils.turnus_helpers import get_user_turnus_set, iter_turnus_days
 
@@ -202,6 +203,28 @@ def compare():
             "dg": day_data.get("dagsverk") or "",  # may be None in JSON
         }
 
+    # Load user's innplassering and schedule data for each referenced turnus set
+    innplassering = get_innplassering_for_user(current_user.id)
+    innplassering_schedules: dict = {}  # {turnus_set_id: {shift_title: {linje: {dag: {tid, dg}}}}}
+    for row in innplassering:
+        ts_id = row["turnus_set_id"]
+        if ts_id in innplassering_schedules:
+            continue
+        ts_dm = df_utils.DataframeManager(ts_id)
+        ts_sched: dict = {}
+        for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(ts_dm.turnus_data):
+            try:
+                linje = int(week_nr)
+                dag = int(day_nr)
+            except (ValueError, TypeError):
+                continue
+            tid = day_data.get("tid", [])
+            ts_sched.setdefault(turnus_name, {}).setdefault(str(linje), {})[str(dag)] = {
+                "tid": f"{tid[0]}–{tid[1]}" if len(tid) == 2 else "",
+                "dg": day_data.get("dagsverk") or "",
+            }
+        innplassering_schedules[ts_id] = ts_sched
+
     return render_template(
         "compare.html",
         page_name="Sammenlign Turnuser",
@@ -212,6 +235,8 @@ def compare():
         favoritt=fav_order_lst,
         current_turnus_set=user_turnus_set,
         all_turnus_sets=db_utils.get_all_turnus_sets(),
+        innplassering=innplassering,
+        innplassering_schedules=innplassering_schedules,
     )
 
 
@@ -1056,6 +1081,7 @@ def soknadsskjema():
 @login_required
 def import_favorites():
     """Page for importing favorites from previous turnus years based on shift statistics."""
+    from app.services.innplassering_service import get_innplassering_for_user
     from app.utils import shift_matcher
 
     # Get user's current turnus set
@@ -1075,10 +1101,25 @@ def import_favorites():
             ts["favorite_count"] = len(favorites)
             available_sources.append(ts)
 
+    # When no previous-year favorites exist, fall back to innplassering data
+    innplassering_sources = []
+    if not available_sources:
+        user_records = get_innplassering_for_user(user_id)
+        seen_ts_ids = set()
+        for rec in user_records:
+            ts_id = rec["turnus_set_id"]
+            if ts_id == turnus_set_id or ts_id in seen_ts_ids:
+                continue
+            ts_stats = shift_matcher.load_stats_for_turnus_set(ts_id)
+            if ts_stats is not None:
+                seen_ts_ids.add(ts_id)
+                innplassering_sources.append(rec)
+
     return render_template(
         "import_favorites.html",
         page_name="Importer Favoritter",
         current_turnus_set=user_turnus_set,
         available_sources=available_sources,
+        innplassering_sources=innplassering_sources,
         all_turnus_sets=db_utils.get_all_turnus_sets(),
     )

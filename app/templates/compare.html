@@ -9,6 +9,50 @@
 {% block content %}
 <div class="container-xl py-3" data-tour-page="compare">
 
+  {# ── Min innplassering ── #}
+  {% if innplassering %}
+  <div class="card mb-4" id="innplassering-section">
+    <div class="card-header py-2 px-3 d-flex align-items-center gap-2">
+      <i class="bi bi-calendar-check"></i>
+      <strong>Min innplassering</strong>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th style="width:2rem"></th>
+            <th>Turnussett</th>
+            <th>Turnus</th>
+            <th>Linje</th>
+            <th>Ans.nr</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in innplassering %}
+          <tr class="inn-row" style="cursor:pointer"
+              data-turnus-set-id="{{ row.turnus_set_id }}"
+              data-shift-title="{{ row.shift_title }}"
+              data-target="inn-schedule-{{ loop.index }}">
+            <td class="text-center align-middle">
+              <i class="bi bi-chevron-right inn-chevron" style="font-size:.75rem;transition:transform .15s"></i>
+            </td>
+            <td>{{ row.turnus_set_name }}</td>
+            <td><strong>{{ row.shift_title }}</strong></td>
+            <td>{{ row.linjenummer or '—' }}</td>
+            <td>{{ row.ans_nr or '—' }}</td>
+          </tr>
+          <tr id="inn-schedule-{{ loop.index }}" class="inn-schedule-row" style="display:none">
+            <td colspan="5" class="p-2 bg-body-secondary">
+              <div class="inn-schedule-body"></div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
   {# ── Controls bar ── #}
   <div class="compare-controls mb-3">
     <div class="d-flex align-items-center gap-2">
@@ -224,10 +268,12 @@
 </div>
 
 {# ── JSON data for JS ── #}
-<script id="compare-labels"   type="application/json">{{ labels|tojson }}</script>
-<script id="compare-data"     type="application/json">{{ data|tojson }}</script>
-<script id="compare-schedule" type="application/json">{{ schedule_data|tojson }}</script>
-<script id="compare-favoritt" type="application/json">{{ favoritt|tojson }}</script>
+<script id="compare-labels"              type="application/json">{{ labels|tojson }}</script>
+<script id="compare-data"                type="application/json">{{ data|tojson }}</script>
+<script id="compare-schedule"            type="application/json">{{ schedule_data|tojson }}</script>
+<script id="compare-favoritt"            type="application/json">{{ favoritt|tojson }}</script>
+<script id="compare-innplassering"       type="application/json">{{ innplassering|tojson }}</script>
+<script id="compare-inn-schedules"       type="application/json">{{ innplassering_schedules|tojson }}</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -865,6 +911,60 @@
   document.addEventListener('click', e => {
     const link = e.target.closest('.modal-turnus-link');
     if (link) { e.preventDefault(); showTurnusModal(link.dataset.turnus); }
+  });
+
+  // ── Innplassering schedule tables ────────────────────────────────────────
+  const innSchedules = JSON.parse(document.getElementById('compare-inn-schedules').textContent);
+  const DAY_LABELS_INN = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+
+  function buildScheduleTable(tsId, shiftTitle) {
+    const sched = (innSchedules[String(tsId)] || {})[shiftTitle] || {};
+    let html = '<div style="overflow-x:auto"><table class="table table-sm table-bordered mb-0" style="table-layout:fixed;width:100%">';
+    html += '<thead class="table-light"><tr><th style="width:2.4rem"></th>';
+    DAY_LABELS_INN.forEach(d => { html += `<th class="text-center" style="font-size:.75rem">${d}</th>`; });
+    html += '</tr></thead><tbody>';
+    for (let linje = 1; linje <= 6; linje++) {
+      const row = sched[String(linje)] || {};
+      html += `<tr><td class="fw-semibold text-secondary align-middle text-center" style="font-size:.72rem;border:1px solid #555">L${linje}</td>`;
+      for (let dag = 1; dag <= 7; dag++) {
+        const cell = row[String(dag)] || {};
+        const tid  = cell.tid || '';
+        const dg   = cell.dg  || '';
+        const cls  = shiftClass(tid);
+        const bgVar   = CLASS_TO_VAR[cls];
+        const bgStyle = bgVar ? `background-color:var(${bgVar});` : '';
+        const fgStyle = WHITE_TEXT_CLASSES.has(cls) ? 'color:#fff;' : '';
+        html += `<td class="${cls} text-center align-middle" style="${bgStyle}${fgStyle}padding:.15rem .2rem;border:1px solid #555;overflow:hidden">`;
+        if (dg)  html += `<div style="font-size:.62rem;line-height:1.1;opacity:.85">${dg}</div>`;
+        html += `<div style="font-size:.72rem;line-height:1.2">${tid || '<span style="opacity:.3">·</span>'}</div>`;
+        html += '</td>';
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  document.querySelectorAll('.inn-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const targetId  = row.dataset.target;
+      const schedRow  = document.getElementById(targetId);
+      const chevron   = row.querySelector('.inn-chevron');
+      const isOpen    = schedRow.style.display !== 'none';
+
+      if (isOpen) {
+        schedRow.style.display = 'none';
+        if (chevron) chevron.style.transform = '';
+      } else {
+        const body = schedRow.querySelector('.inn-schedule-body');
+        if (body && !body.dataset.rendered) {
+          body.innerHTML = buildScheduleTable(row.dataset.turnusSetId, row.dataset.shiftTitle);
+          body.dataset.rendered = '1';
+        }
+        schedRow.style.display = '';
+        if (chevron) chevron.style.transform = 'rotate(90deg)';
+      }
+    });
   });
 
   // ── Init ─────────────────────────────────────────────────────────────────
