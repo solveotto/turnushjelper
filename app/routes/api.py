@@ -7,10 +7,11 @@ from flask import Blueprint, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
 
 from app.database import get_db_session
-from app.extensions import favorite_lock
+from app.extensions import cache, favorite_lock
 from app.models import DBUser, SoknadsskjemaChoice
 from app.services import user_service
 from app.utils import db_utils, shift_matcher
+from app.utils.turnus_helpers import get_user_turnus_set
 from config import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -719,6 +720,11 @@ def mark_tour_seen():
         if user:
             setattr(user, tour_columns[tour_name], 1)
             db_session.commit()
+            # Invalidate the cached turnusliste page so the next load renders
+            # with the updated has_seen_tour value instead of the stale cached one.
+            ts = get_user_turnus_set()
+            ts_id = ts["id"] if ts else "none"
+            cache.delete(f"view/turnusliste/{current_user.get_id()}/{ts_id}")
             return jsonify({"status": "success", "message": "Tour marked as seen"})
         return jsonify({"status": "error", "message": "User not found"}), 404
     except Exception as e:

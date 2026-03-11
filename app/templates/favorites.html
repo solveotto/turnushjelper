@@ -46,7 +46,7 @@
             {% if favorites|length != 0 %}
                 <div class="mb-3 no-print d-flex gap-2 flex-wrap">
                     <a href="{{ url_for('shifts.import_favorites') }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-box-arrow-in-down"></i> Finn lignende turnuser
+                        <i class="bi bi-box-arrow-in-down"></i> Generer favorittliste automatisk
                     </a>
                     <a href="{{ url_for('shifts.soknadsskjema') }}" class="btn btn-sm btn-outline-success">
                         <i class="bi bi-file-earmark-word"></i> Last ned søknadsskjema
@@ -70,7 +70,7 @@
                                             <h6 class="mb-1">
                                                 <a href="{{ url_for('shifts.import_favorites') }}">
                                                     <i class="bi bi-box-arrow-in-down text-primary"></i>
-                                                        Finn lignende turnuser
+                                                        Generer favorittliste automatisk
                                                 </a>
                                             </h6>
                                             <small class="text-muted">Finner turnuser som er mest like dine favoritter fra tidligere år.</small>

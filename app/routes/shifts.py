@@ -28,6 +28,12 @@ def _turnusliste_cache_key():
     """Per-user, per-turnus-set cache key for the /turnusliste response."""
     ts = get_user_turnus_set()
     ts_id = ts["id"] if ts else "none"
+    # Bypass cache when there are pending flash messages so they are never
+    # baked into the stored HTML and re-shown on subsequent visits.
+    if session.get("_flashes"):
+        import uuid
+
+        return f"view/turnusliste/{current_user.get_id()}/{ts_id}/flash/{uuid.uuid4()}"
     return f"view/turnusliste/{current_user.get_id()}/{ts_id}"
 
 
@@ -177,10 +183,20 @@ def compare():
     fav_order_lst = db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
 
     # Compute weekday free-day counts and compact schedule — single pass over turnus_data
-    _day_names = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
+    _day_names = [
+        "Mandag",
+        "Tirsdag",
+        "Onsdag",
+        "Torsdag",
+        "Fredag",
+        "Lørdag",
+        "Søndag",
+    ]
     weekday_free: dict = {}
-    schedule_data: dict = {}   # {turnus_name: {linje_str: {dag_str: {tid, dg}}}}
-    for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(user_df_manager.turnus_data):
+    schedule_data: dict = {}  # {turnus_name: {linje_str: {dag_str: {tid, dg}}}}
+    for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(
+        user_df_manager.turnus_data
+    ):
         # weekday free counts
         weekday_free.setdefault(turnus_name, {d: 0 for d in _day_names})
         tid = day_data.get("tid", [])
@@ -212,14 +228,18 @@ def compare():
             continue
         ts_dm = df_utils.DataframeManager(ts_id)
         ts_sched: dict = {}
-        for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(ts_dm.turnus_data):
+        for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(
+            ts_dm.turnus_data
+        ):
             try:
                 linje = int(week_nr)
                 dag = int(day_nr)
             except (ValueError, TypeError):
                 continue
             tid = day_data.get("tid", [])
-            ts_sched.setdefault(turnus_name, {}).setdefault(str(linje), {})[str(dag)] = {
+            ts_sched.setdefault(turnus_name, {}).setdefault(str(linje), {})[
+                str(dag)
+            ] = {
                 "tid": f"{tid[0]}–{tid[1]}" if len(tid) == 2 else "",
                 "dg": day_data.get("dagsverk") or "",
             }
@@ -718,7 +738,7 @@ def _build_soknadsskjema_doc(
         _cell(3 + i, 0, f"Alt.{i + 1}")
         if i < len(favorites):
             name = favorites[i]
-            _cell(3 + i, 1, name)
+            _cell(3 + i, 1, name.replace("_", " "))
             if choices:
                 c = choices.get(name, {})
                 if c.get("linje_135"):
@@ -924,7 +944,7 @@ def _build_soknadsskjema_pdf(
         alt_rows.append(
             [
                 Paragraph(f"Alt.{i + 1}", alt_n),
-                fav,
+                fav.replace("_", " "),
                 "X" if c.get("linje_135") else "",
                 "X" if c.get("linje_246") else "",
                 c.get("linjeprioritering", ""),
@@ -1063,7 +1083,7 @@ def soknadsskjema():
     if "," in user_name:
         parts = user_name.split(",", 1)
         user_name = f"{parts[1].strip()} {parts[0].strip()}"
-    default_rullenr_navn = f"Rullenr.:{user_rullenummer} - {user_name}".strip()
+    default_rullenr_navn = f"Rullenr.: {user_rullenummer} - {user_name}".strip()
     return render_template(
         "søknadsskjema.html",
         page_name="Søknadsskjema",
