@@ -4,6 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user
 from flask_login import login_user as flask_login_user
 
+from app.extensions import cache, limiter
 from app.forms import RegisterForm, ResendVerificationForm
 from app.models import User
 from app.services import user_service
@@ -13,6 +14,7 @@ registration = Blueprint("registration", __name__)
 
 
 @registration.route("/register", methods=["GET", "POST"])
+@limiter.limit("10 per hour", methods=["POST"])
 def register():
     """Self-registration for users with a pre-seeded stub account."""
     if current_user.is_authenticated:
@@ -60,11 +62,7 @@ def register():
             db_utils.create_verification_token(user_id, token)
             email_utils.send_verification_email(email, token)
 
-            flash(
-                "Registrering vellykket! Sjekk e-posten din for å verifisere kontoen.",
-                "success",
-            )
-            return redirect(url_for("auth.login"))
+            return render_template("register.html", form=form, show_success_modal=True)
         else:
             flash(message, "danger")
 
@@ -86,6 +84,7 @@ def verify_email(token):
         if user_data:
             user = User(user_data["username"], user_data["id"], user_data["is_auth"])
             flask_login_user(user)
+            cache.clear()  # evict any stale cached pages from a previous user with the same ID
             flash("E-post verifisert! Du er nå logget inn.", "success")
             return redirect(url_for("shifts.index"))
 

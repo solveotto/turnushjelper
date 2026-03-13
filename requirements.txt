@@ -39,3 +39,4 @@ requests
 alembic
 python-docx
 reportlab
+flask-limiter

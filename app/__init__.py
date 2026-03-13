@@ -5,7 +5,7 @@ from flask_login import current_user
 from flask_session import Session
 
 from app.database import get_db_session
-from app.extensions import cache, login_manager, mail
+from app.extensions import cache, limiter, login_manager, mail
 from app.models import DBUser, User
 from app.services.user_service import init_default_admin
 from config import AppConfig
@@ -30,6 +30,7 @@ def create_app():
     # Initialize Flask extensions
     mail.init_app(app)
     cache.init_app(app)
+    limiter.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
@@ -60,7 +61,7 @@ def create_app():
             db_session = get_db_session()
             try:
                 db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
-                return {"has_seen_tour": db_user.has_seen_turnusliste_tour if db_user else 0}
+                return {"has_seen_tour": db_user.has_seen_turnusliste_tour or 0 if db_user else 0}
             finally:
                 db_session.close()
         return {"has_seen_tour": 0}

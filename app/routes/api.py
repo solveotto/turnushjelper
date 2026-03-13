@@ -7,7 +7,7 @@ from flask import Blueprint, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
 
 from app.database import get_db_session
-from app.extensions import cache, favorite_lock
+from app.extensions import cache, favorite_lock, limiter
 from app.models import DBUser, SoknadsskjemaChoice
 from app.services import user_service
 from app.utils import db_utils, shift_matcher
@@ -786,11 +786,12 @@ def soknadsskjema_choice():
 
 
 @api.route("/check-rullenummer")
+@limiter.limit("30 per hour")
 def check_rullenummer():
-    """Return stub-user info for the registration name-preview widget.
+    """Return whether a rullenummer is a valid unactivated stub.
 
     Response shape:
-        {found: true,  name: "Etternavn, Fornavn", stasjoneringssted: "OSLO"}
+        {found: true}
         {found: false, reason: "already_registered"}
         {found: false, reason: "not_authorized"}
     """
@@ -804,8 +805,4 @@ def check_rullenummer():
     if stub["is_stub"] != 1:
         return jsonify({"found": False, "reason": "already_registered"})
 
-    return jsonify({
-        "found": True,
-        "name": stub["name"] or "",
-        "stasjoneringssted": stub["stasjoneringssted"] or "",
-    })
+    return jsonify({"found": True})

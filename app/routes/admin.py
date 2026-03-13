@@ -6,6 +6,7 @@ from flask_login import current_user
 
 from app.database import get_db_session
 from app.decorators import admin_required
+from app.extensions import cache
 from app.forms import (
     CreateTurnusSetForm,
     CreateUserForm,
@@ -55,6 +56,7 @@ def reset_tour():
     try:
         db_session.query(DBUser).update({DBUser.has_seen_turnusliste_tour: 0})
         db_session.commit()
+        cache.clear()  # evict all cached pages so data-tour-seen is re-rendered fresh
         flash("Omvisningen er tilbakestilt for alle brukere.", "success")
     except Exception as e:
         db_session.rollback()
@@ -442,6 +444,54 @@ def refresh_turnus_set(turnus_set_id):
     except Exception as e:
         flash(f"Feil ved oppdatering av turnussett: {e}", "danger")
 
+    return redirect(url_for("admin.manage_turnus_sets"))
+
+
+@admin.route("/turnusnokkel-status/<int:turnus_set_id>")
+@admin_required
+def turnusnokkel_status(turnus_set_id):
+    """AJAX endpoint: check if turnusnøkkel template exists for a turnus set."""
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        return jsonify({"status": "error", "message": "Turnus set not found"}), 404
+
+    version = turnus_set["year_identifier"].lower()
+    year_id = turnus_set["year_identifier"]
+    template_path = os.path.join(
+        AppConfig.turnusfiler_dir, version, f"turnusnøkkel_{year_id}_org.xlsx"
+    )
+    return jsonify({
+        "status": "success",
+        "has_template": os.path.exists(template_path),
+    })
+
+
+@admin.route("/upload-turnusnokkel/<int:turnus_set_id>", methods=["POST"])
+@admin_required
+def upload_turnusnokkel(turnus_set_id):
+    """Upload a turnusnøkkel template Excel file for a turnus set."""
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        flash("Turnussett ikke funnet.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    uploaded = request.files.get("xlsx_file")
+    if not uploaded or not uploaded.filename:
+        flash("Ingen fil valgt.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    if not uploaded.filename.lower().endswith((".xlsx", ".xlsm")):
+        flash("Kun Excel-filer (.xlsx) er tillatt.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    version = turnus_set["year_identifier"].lower()
+    year_id = turnus_set["year_identifier"]
+    turnusfiler_dir = os.path.join(AppConfig.turnusfiler_dir, version)
+    os.makedirs(turnusfiler_dir, exist_ok=True)
+
+    save_path = os.path.join(turnusfiler_dir, f"turnusnøkkel_{year_id}_org.xlsx")
+    uploaded.save(save_path)
+    flash(f"Turnusnøkkel mal lastet opp for {year_id}.", "success")
     return redirect(url_for("admin.manage_turnus_sets"))
 
 
@@ -1000,6 +1050,8 @@ def reset_to_stub(user_id):
         flash("Du kan ikke tilbakestille din egen konto.", "danger")
         return redirect(url_for("admin.manage_employees"))
     success, message = user_service.reset_user_to_stub(user_id)
+    if success:
+        cache.clear()  # evict stale data-tour-seen from this user's cached pages
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.manage_employees"))
 

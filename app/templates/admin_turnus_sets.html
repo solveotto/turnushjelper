@@ -51,6 +51,7 @@
                                     <th>Navn</th>
                                     <th>Status</th>
                                     <th>Strekliste</th>
+                                    <th>Turnusnøkkel mal</th>
                                     <th>Innplassering</th>
                                     <th>Opprettet</th>
                                     <th>Handlinger</th>
@@ -107,6 +108,31 @@
                                             </button>
                                         </div>
                                         <div id="double-shift-status-{{ turnus_set.id }}" class="text-muted small mt-1" style="display: none;">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <!-- Turnusnøkkel Template Status and Upload -->
+                                        <div class="turnusnokkel-controls" data-turnus-set-id="{{ turnus_set.id }}">
+                                            <span class="turnusnokkel-status badge bg-secondary" id="turnusnokkel-status-{{ turnus_set.id }}">
+                                                <i class="bi bi-hourglass-split"></i> Laster...
+                                            </span>
+
+                                            <!-- Upload form (hidden file input, auto-submits) -->
+                                            <form method="POST"
+                                                  action="{{ url_for('admin.upload_turnusnokkel', turnus_set_id=turnus_set.id) }}"
+                                                  enctype="multipart/form-data"
+                                                  class="d-inline"
+                                                  id="turnusnokkel-form-{{ turnus_set.id }}">
+                                                {{ upload_form.hidden_tag() }}
+                                                <input type="file" name="xlsx_file" accept=".xlsx,.xlsm" class="d-none"
+                                                       id="turnusnokkel-input-{{ turnus_set.id }}"
+                                                       onchange="this.form.submit()">
+                                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                                        onclick="document.getElementById('turnusnokkel-input-{{ turnus_set.id }}').click()"
+                                                        title="Last opp turnusnøkkel mal (.xlsx)">
+                                                    <i class="bi bi-upload"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                     <td>
@@ -213,6 +239,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.strekliste-controls').forEach(function(el) {
         const turnusSetId = el.dataset.turnusSetId;
         loadStreklisteStatus(turnusSetId);
+    });
+
+    // Load turnusnøkkel status for all turnus sets
+    document.querySelectorAll('.turnusnokkel-controls').forEach(function(el) {
+        const turnusSetId = el.dataset.turnusSetId;
+        loadTurnusnokkelStatus(turnusSetId);
     });
 
     // Load innplassering status for all turnus sets
@@ -334,6 +366,31 @@ function generateStrekliste(turnusSetId) {
         progressBar.classList.add('bg-danger');
         progressText.textContent = 'En feil oppstod under generering.';
     });
+}
+
+function loadTurnusnokkelStatus(turnusSetId) {
+    fetch(`/admin/turnusnokkel-status/${turnusSetId}`)
+        .then(response => response.json())
+        .then(data => {
+            const statusEl = document.getElementById(`turnusnokkel-status-${turnusSetId}`);
+            if (data.status === 'success') {
+                if (data.has_template) {
+                    statusEl.className = 'turnusnokkel-status badge bg-success';
+                    statusEl.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Mal klar';
+                } else {
+                    statusEl.className = 'turnusnokkel-status badge bg-secondary';
+                    statusEl.innerHTML = '<i class="bi bi-x-circle"></i> Ingen mal';
+                }
+            } else {
+                statusEl.className = 'turnusnokkel-status badge bg-danger';
+                statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Feil';
+            }
+        })
+        .catch(() => {
+            const statusEl = document.getElementById(`turnusnokkel-status-${turnusSetId}`);
+            statusEl.className = 'turnusnokkel-status badge bg-danger';
+            statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Feil';
+        });
 }
 
 function loadInnplasseringStatus(turnusSetId) {
