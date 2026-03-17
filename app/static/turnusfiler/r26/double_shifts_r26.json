@@ -1,0 +1,102 @@
+{
+  "dobbelt_tur": [
+    {
+      "first_shift": "3006",
+      "second_shift": "3007"
+    },
+    {
+      "first_shift": "3116",
+      "second_shift": "3117"
+    },
+    {
+      "first_shift": "3139",
+      "second_shift": "3140"
+    },
+    {
+      "first_shift": "3141",
+      "second_shift": "3142"
+    },
+    {
+      "first_shift": "5019",
+      "second_shift": "5020"
+    },
+    {
+      "first_shift": "5021-",
+      "second_shift": "5022"
+    },
+    {
+      "first_shift": "5037",
+      "second_shift": "5038"
+    },
+    {
+      "first_shift": "5055",
+      "second_shift": "5056"
+    },
+    {
+      "first_shift": "5403",
+      "second_shift": "5404"
+    },
+    {
+      "first_shift": "5407",
+      "second_shift": "5408"
+    },
+    {
+      "first_shift": "5411-F",
+      "second_shift": "5412"
+    },
+    {
+      "first_shift": "5413",
+      "second_shift": "5414"
+    },
+    {
+      "first_shift": "5425",
+      "second_shift": "5426"
+    },
+    {
+      "first_shift": "5433",
+      "second_shift": "5434"
+    },
+    {
+      "first_shift": "5437",
+      "second_shift": "5438"
+    },
+    {
+      "first_shift": "5450",
+      "second_shift": "5451"
+    },
+    {
+      "first_shift": "5454",
+      "second_shift": "5455"
+    }
+  ],
+  "delt_dagsverk": [
+    "5423",
+    "39219",
+    "1234",
+    "1632",
+    "21205",
+    "3044",
+    "5436",
+    "3030",
+    "5424",
+    "1635",
+    "7466",
+    "3160",
+    "1320",
+    "5406-F",
+    "5040",
+    "5406",
+    "5415",
+    "5435",
+    "21033",
+    "3122",
+    "1353",
+    "3144",
+    "1351",
+    "39221",
+    "1266",
+    "39219-",
+    "39247",
+    "1633"
+  ]
+}

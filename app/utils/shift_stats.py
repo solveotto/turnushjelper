@@ -156,9 +156,9 @@ class Turnus():
                         total_shift_hours += (end - start).total_seconds() / 3600
 
                         # Classify night shifts — aligned with shift-classifier.js
-                        # Nattevakt: crosses midnight AND ends 02:00+ next day
+                        # Nattevakt: crosses midnight AND ends 04:00+ next day
                         crosses_midnight = end.date() > start.date()
-                        is_night = crosses_midnight and end.time() >= time(2, 0)
+                        is_night = crosses_midnight and end.time() >= time(4, 0)
 
                         if is_night:
                             night_count += 1
@@ -234,7 +234,7 @@ class Turnus():
 
                         ### KVELDSVAKT — aligned with shift-classifier.js
                         # Starts 12:00+ and either ends same day, or crosses
-                        # midnight but ends before 02:00 (not a true nattevakt)
+                        # midnight but ends before 04:00 (not a true nattevakt)
                         is_kveldsvakt = (
                             start.time() >= time(12, 0)
                             and not is_night

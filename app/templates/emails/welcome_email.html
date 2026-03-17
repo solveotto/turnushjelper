@@ -1,84 +1,102 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velkommen!</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .container {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 30px;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            color: #198754;
-            margin: 0;
-        }
-        .content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 5px;
-        }
-        .button {
-            display: inline-block;
-            padding: 12px 30px;
-            background-color: #198754;
-            color: white !important;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Velkommen!</h1>
-            <p>Kontoen din er klar</p>
-        </div>
-
-        <div class="content">
-            <p>Hei,</p>
-
-            <p>E-posten din er nå verifisert! Du kan nå få tilgang til Turnushjelper.</p>
-
-            <p><strong>Hva nå?</strong></p>
-            <ul>
-                <li>Logg inn på kontoen din</li>
-                <li>Sett opp vaktpreferansene dine</li>
-                <li>Se og administrer turnusplanen din</li>
-            </ul>
-
-            <div style="text-align: center;">
-                <a href="{{ url_for('auth.login', _external=True) }}" class="button">Logg inn nå</a>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Velkommen!</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .container {
+                background-color: #f9f9f9;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 30px;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .header h1 {
+                color: #1e3a8a;
+                margin: 0;
+            }
+            .content {
+                background-color: white;
+                padding: 20px;
+                border-radius: 5px;
+            }
+            .button {
+                display: inline-block;
+                padding: 12px 30px;
+                background-color: #1e3a8a;
+                color: white !important;
+                text-decoration: none;
+                border-radius: 5px;
+                margin: 20px 0;
+                font-weight: bold;
+            }
+            .footer {
+                margin-top: 30px;
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Velkommen!</h1>
+                <p>Kontoen din er klar</p>
             </div>
 
-            <p style="margin-top: 20px;">Hvis du har spørsmål, vennligst kontakt administratoren din.</p>
-        </div>
+            <div class="content">
+                <p>Hei,</p>
 
-        <div class="footer">
-            <p>&copy; 2026 Turnushjelper</p>
+                <p>
+                    E-posten din er nå verifisert! Du kan nå få tilgang til
+                    Turnushjelper.
+                </p>
+
+                <p><strong>Hva nå?</strong></p>
+                <ul>
+                    <li>Logg inn på kontoen din</li>
+                    <li>Sorter turnusener etter dine ønsker</li>
+                    <li>
+                        Lag en liste med favoritter basert på tidligere turnuser
+                    </li>
+                    <li>Se streklister til turnsene</li>
+                    <li>Velg dine favoritter</li>
+                    <li>
+                        Skriv ut eller lagre søknadskjema med ferdigutfylte
+                        turnuser
+                    </li>
+                </ul>
+
+                <div style="text-align: center">
+                    <a
+                        href="{{ url_for('auth.login', _external=True) }}"
+                        class="button"
+                        >Logg inn nå</a
+                    >
+                </div>
+
+                <p style="margin-top: 20px">
+                    Hvis du har spørsmål, vennligst kontakt meg på epost
+                    solveottooren@gmail.com.
+                </p>
+            </div>
+
+            <div class="footer">
+                <p>&copy; 2026 Turnushjelper</p>
+            </div>
         </div>
-    </div>
-</body>
+    </body>
 </html>

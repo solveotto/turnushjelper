@@ -2,10 +2,10 @@ env/
 venv/
 .venv/
 instance/
-app/static/turnusfiler
+#app/static/turnusfiler
 # Bytt tunrusfiler med denne hvis du vil ha med .json filer
-#app/static/turnusfiler/**/*.pdf
-#app/static/turnusfiler/**/*.png
+app/static/turnusfiler/**/*.pdf
+app/static/turnusfiler/**/*.png
 nul
 General/
 .metadata
@@ -36,3 +36,4 @@ backups/
 tmpclaude-*
 .claude/
 CLAUDE.md
+*:Zone.Identifier

@@ -104,6 +104,32 @@
     font-weight: bold;
 }
 
+.tour-color-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: var(--spacing-sm) 0;
+    padding: var(--spacing-sm);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.tour-color-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.tour-color-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
 /* ── Navigation Buttons ────────────────────── */
 .driver-popover.guided-tour-popover .driver-popover-navigation-btns {
     padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
