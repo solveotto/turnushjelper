@@ -37,7 +37,7 @@
   text-align: center; !important
 }
 /* Personal info table */
-.info-table { border-collapse: collapse; }
+.info-table { border-collapse: collapse; width: 100%; }
 .info-table td {
   border: 1px solid #444;
   padding: 2px 6px;
@@ -45,7 +45,7 @@
   font-size: 10.5pt;
 }
 .info-table td.lbl { font-weight: bold; white-space: nowrap; width: 160px; }
-.info-table td.val { padding: 0; min-width: 280px; }
+.info-table td.val { padding: 0; min-width: 280px; word-break: break-word; text-align: left; }
 .info-table input[type=text] {
   border: none;
   outline: none;
@@ -65,7 +65,7 @@
 }
 .alt-table thead th { background: #f2f2f2; }
 .alt-table td.alt-num { color: #666; white-space: nowrap; width: 38px; }
-.alt-table td.tur-name { min-width: 68px; }
+.alt-table td.tur-name { min-width: 68px; text-align: left;}
 .alt-table td.tur-name.filled { font-weight: 600; }
 .toggle-cell {
   cursor: pointer;
@@ -81,10 +81,19 @@
   .print-page-row { display: none; }
 }
 
+.print-val {
+  display: none;
+  word-break: break-word;
+  padding: 3px 6px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5pt;
+  text-align: left;
+}
 @media print {
   .no-print { display: none !important; }
   header, footer { display: none !important; }
   body, .document-wrap { background: white !important; }
+  .document-wrap { margin-top: 0 !important; padding-top: 0 !important; }
   .doc-sheet { box-shadow: none !important; padding: 0 !important; max-width: none !important; }
   .alt-table thead { display: table-header-group; }
 
@@ -100,6 +109,8 @@
     padding: 0 0 4px 0 !important;
     color: #000;
   }
+  .info-table input[type=text] { display: none; }
+  .print-val { display: inline; }
 }
 </style>
 {% endblock %}
@@ -162,19 +173,19 @@
       <tbody>
         <tr>
           <td class="lbl">Dato</td>
-          <td class="val"><input type="text" name="dato" value="{{ today }}" placeholder="DD.MM.ÅÅÅÅ"></td>
+          <td class="val"><input type="text" name="dato" value="{{ today }}" placeholder="DD.MM.ÅÅÅÅ"><span class="print-val"></span></td>
         </tr>
         <tr>
           <td class="lbl">Rullenr. og navn</td>
-          <td class="val"><input type="text" name="rullenr_og_navn" value="{{ default_rullenr_navn }}" placeholder="F.eks. 12345 Ola Nordmann"></td>
+          <td class="val"><input type="text" name="rullenr_og_navn" value="{{ default_rullenr_navn }}" placeholder="F.eks. 12345 Ola Nordmann"><span class="print-val"></span></td>
         </tr>
         <tr>
           <td class="lbl">Stasjoneringsted</td>
-          <td class="val"><input type="text" name="stasjoneringssted" value="{{ default_stasjoneringssted }}" placeholder="F.eks. Oslo S"></td>
+          <td class="val"><input type="text" name="stasjoneringssted" value="{{ default_stasjoneringssted }}" placeholder="F.eks. Oslo S"><span class="print-val"></span></td>
         </tr>
         <tr>
           <td class="lbl">Evt. kommentarer</td>
-          <td class="val"><input type="text" name="kommentarer" value="" placeholder="Valgfritt"></td>
+          <td class="val"><input type="text" name="kommentarer" value=""><span class="print-val"></span></td>
         </tr>
       </tbody>
     </table>
@@ -242,7 +253,7 @@
           {% set c = choices.get(fav_name, {}) if fav_name else {} %}
           <tr{% if fav_name %} class="prefilled"{% endif %}>
             <td class="alt-num">Alt.{{ i }}</td>
-            <td class="tur-name{{ ' filled' if fav_name }}">{{ fav_name }}</td>
+            <td class="tur-name{{ ' filled' if fav_name }}">{{ fav_name | replace('_', ' ') }}</td>
             {% if fav_name %}
               <td class="toggle-cell{{ ' marked' if c.linje_135 }}" data-shift="{{ fav_name }}" data-field="linje_135">{{ "X" if c.linje_135 else "" }}</td>
               <td class="toggle-cell{{ ' marked' if c.linje_246 }}" data-shift="{{ fav_name }}" data-field="linje_246">{{ "X" if c.linje_246 else "" }}</td>
@@ -314,6 +325,12 @@ document.querySelectorAll('.toggle-cell').forEach(cell => {
       })
       .catch(err => console.error('Choice save failed:', err));
   });
+});
+
+document.querySelectorAll('.info-table input[type=text]').forEach(input => {
+  const span = input.nextElementSibling;
+  span.textContent = input.value;
+  input.addEventListener('input', () => span.textContent = input.value);
 });
 </script>
 {% endblock %}

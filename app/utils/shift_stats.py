@@ -105,9 +105,26 @@ class Turnus():
             longest_off_streak = 0
             prev_was_night = False
 
+            # Day-of-week off-rate tracking
+            weekday_map = {
+                'Mandag': 'mon', 'Tirsdag': 'tue', 'Onsdag': 'wed',
+                'Torsdag': 'thu', 'Fredag': 'fri', 'Lørdag': 'sat', 'Søndag': 'sun',
+            }
+            weekday_total = {k: 0 for k in weekday_map.values()}
+            weekday_off = {k: 0 for k in weekday_map.values()}
+            start_times_minutes = []
+
 
             for _index, _dagsverk in turuns_df_reset.iterrows():
                 is_work_day = _dagsverk['start'] != _dagsverk['slutt'] and _index + 1 < len(turuns_df_reset)
+
+                # Track day-of-week off rates (skip the summary row at the end)
+                if _index + 1 < len(turuns_df_reset):
+                    day_key = weekday_map.get(_dagsverk['ukedag'])
+                    if day_key:
+                        weekday_total[day_key] += 1
+                        if not is_work_day:
+                            weekday_off[day_key] += 1
 
                 if is_work_day:
                     current_work_streak += 1
@@ -129,6 +146,7 @@ class Turnus():
                         start = pd.to_datetime(_dagsverk['start'], format='%H:%M')
                         end = pd.to_datetime(_dagsverk['slutt'], format='%H:%M')
                         ukedag = _dagsverk['ukedag']
+                        start_times_minutes.append(start.hour * 60 + start.minute)
                         weekend_days = ['Fredag', 'Lørdag', 'Søndag']
 
                         # Adjust end time if it's on the next day
@@ -138,9 +156,9 @@ class Turnus():
                         total_shift_hours += (end - start).total_seconds() / 3600
 
                         # Classify night shifts — aligned with shift-classifier.js
-                        # Nattevakt: crosses midnight AND ends 02:00+ next day
+                        # Nattevakt: crosses midnight AND ends 04:00+ next day
                         crosses_midnight = end.date() > start.date()
-                        is_night = crosses_midnight and end.time() >= time(2, 0)
+                        is_night = crosses_midnight and end.time() >= time(4, 0)
 
                         if is_night:
                             night_count += 1
@@ -216,7 +234,7 @@ class Turnus():
 
                         ### KVELDSVAKT — aligned with shift-classifier.js
                         # Starts 12:00+ and either ends same day, or crosses
-                        # midnight but ends before 02:00 (not a true nattevakt)
+                        # midnight but ends before 04:00 (not a true nattevakt)
                         is_kveldsvakt = (
                             start.time() >= time(12, 0)
                             and not is_night
@@ -236,15 +254,27 @@ class Turnus():
 
             avg_shift_hours = round(total_shift_hours / shift_cnt, 1) if shift_cnt > 0 else 0
 
+            # Day-of-week off rates (fraction of each weekday that is a day off)
+            mon_off_rate = round(weekday_off['mon'] / weekday_total['mon'], 3) if weekday_total['mon'] else 0
+            tue_off_rate = round(weekday_off['tue'] / weekday_total['tue'], 3) if weekday_total['tue'] else 0
+            wed_off_rate = round(weekday_off['wed'] / weekday_total['wed'], 3) if weekday_total['wed'] else 0
+            thu_off_rate = round(weekday_off['thu'] / weekday_total['thu'], 3) if weekday_total['thu'] else 0
+            fri_off_rate = round(weekday_off['fri'] / weekday_total['fri'], 3) if weekday_total['fri'] else 0
+            sat_off_rate = round(weekday_off['sat'] / weekday_total['sat'], 3) if weekday_total['sat'] else 0
+            sun_off_rate = round(weekday_off['sun'] / weekday_total['sun'], 3) if weekday_total['sun'] else 0
+
+            # Start time standard deviation (minutes from midnight) — measures schedule consistency
+            start_time_std = round(float(np.std(start_times_minutes)), 1) if start_times_minutes else 0
+
             # Adds shift as new row to dataframe
             new_row = pd.DataFrame({
-                'turnus': [turnus_navn], 
+                'turnus': [turnus_navn],
                 'shift_cnt': [shift_cnt],
                 'tidlig': [tidlig],
                 'ettermiddag' : [afternoon_count],
                 'natt': [night_count],
                 'natt_helg': [round(natt_helg,1)],
-                'helgetimer': [round(helgetimer,1)], 
+                'helgetimer': [round(helgetimer,1)],
                 'helgedager': [helgedager],
                 'helgetimer_dagtid': [round(helgetimer_dagtid,1)],
                 'helgetimer_ettermiddag': [round(helgetimer_ettermiddag)],
@@ -256,6 +286,14 @@ class Turnus():
                 'longest_off_streak': [longest_off_streak],
                 'longest_work_streak': [longest_work_streak],
                 'avg_shift_hours': [avg_shift_hours],
+                'mon_off_rate': [mon_off_rate],
+                'tue_off_rate': [tue_off_rate],
+                'wed_off_rate': [wed_off_rate],
+                'thu_off_rate': [thu_off_rate],
+                'fri_off_rate': [fri_off_rate],
+                'sat_off_rate': [sat_off_rate],
+                'sun_off_rate': [sun_off_rate],
+                'start_time_std': [start_time_std],
                 })
             
             self.stats_df = pd.concat([self.stats_df, new_row], ignore_index=True)

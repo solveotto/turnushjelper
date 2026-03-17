@@ -98,6 +98,20 @@ class SoknadsskjemaChoice(Base):
     )
 
 
+class Innplassering(Base):
+    __tablename__ = "innplassering"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    turnus_set_id = Column(Integer, ForeignKey("turnus_sets.id"), nullable=False)
+    rullenummer = Column(String(20), nullable=False)
+    shift_title = Column(String(255), nullable=False)
+    linjenummer = Column(Integer, nullable=True)   # position 1–6 within the shift
+    ans_nr = Column(Integer, nullable=True)        # seniority/"Ans" column
+    is_7th_driver = Column(Integer, default=0)
+    __table_args__ = (
+        UniqueConstraint("turnus_set_id", "rullenummer", name="uq_innplassering_turnus_rullenr"),
+    )
+
+
 # ── Flask-Login User Wrapper ───────────────────────────────────────────
 
 class User(UserMixin):

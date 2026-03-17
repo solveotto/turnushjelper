@@ -1,17 +1,22 @@
-{% extends "base.html" %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/minside.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block extra_css %}
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/minside.css') }}"
+/>
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/forms.css') }}"
+/>
+{% endblock %} {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <!-- Page Header -->
             <div class="d-flex align-items-center mb-4">
-                <i class="bi bi-person-circle me-3" style="font-size: 2rem; color: var(--primary-color);"></i>
+                <i
+                    class="bi bi-person-circle me-3"
+                    style="font-size: 2rem; color: var(--primary-color)"
+                ></i>
                 <div>
                     <h1 class="h3 mb-0">{{ page_name }}</h1>
                     <p class="text-muted mb-0">Administrer din brukerkonto</p>
@@ -19,16 +24,21 @@
             </div>
 
             <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            {% with messages = get_flashed_messages(with_categories=true) %} {%
+            if messages %} {% for category, message in messages %}
+            <div
+                class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                role="alert"
+            >
+                {{ message }}
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"
+                ></button>
+            </div>
+            {% endfor %} {% endif %} {% endwith %}
 
             <!-- User Information Card -->
             <div class="card mb-4">
@@ -43,10 +53,14 @@
                         <div class="col-md-6">
                             <dl class="row">
                                 <dt class="col-sm-4">Brukernavn:</dt>
-                                <dd class="col-sm-8">{{ user_data.username | capitalize }}</dd>
-                                
-                                <dt class="col-sm-4">Bruker ID:</dt>
-                                <dd class="col-sm-8">{{ user_data.id }}</dd>
+                                <dd class="col-sm-8">
+                                    {{ user_data.username | capitalize }}
+                                </dd>
+
+                                <dt class="col-sm-4">Ansiennitetsnr.:</dt>
+                                <dd class="col-sm-8">
+                                    {{ user_data.seniority_nr or '—' }}
+                                </dd>
                             </dl>
                         </div>
                         <div class="col-md-6">
@@ -54,16 +68,59 @@
                                 <dt class="col-sm-4">Status:</dt>
                                 <dd class="col-sm-8">
                                     {% if user_data.is_auth %}
-                                        <span class="badge bg-primary">Administrator</span>
+                                    <span class="badge bg-primary"
+                                        >Administrator</span
+                                    >
                                     {% else %}
-                                        <span class="badge bg-secondary">Bruker</span>
+                                    <span class="badge bg-secondary"
+                                        >Bruker</span
+                                    >
                                     {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-4">Ansatt Dato:</dt>
+                                <dd class="col-sm-8">
+                                    {{ user_data.ansatt_data or '—' }}
                                 </dd>
                             </dl>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Innplassering Card -->
+            {% if innplassering %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-calendar-check me-2"></i>
+                        Min innplassering
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Turnussett</th>
+                                <th>Turnus</th>
+                                <th>Linje</th>
+                                <th>Ans.nr</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in innplassering %}
+                            <tr>
+                                <td>{{ row.turnus_set_name }}</td>
+                                <td>{{ row.shift_title }}</td>
+                                <td>{{ row.linjenummer or '—' }}</td>
+                                <td>{{ row.ans_nr or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Change Password Card -->
             <div class="card">
@@ -74,43 +131,48 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('minside.change_password') }}">
+                    <form
+                        method="POST"
+                        action="{{ url_for('minside.change_password') }}"
+                    >
                         {{ form.hidden_tag() }}
-                        
+
                         <div class="mb-3">
-                            {{ form.current_password.label(class="form-label") }}
-                            {{ form.current_password(class="form-control") }}
+                            {{ form.current_password.label(class="form-label")
+                            }} {{ form.current_password(class="form-control") }}
                             {% if form.current_password.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.current_password.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger">
+                                {% for error in form.current_password.errors %}
+                                <small>{{ error }}</small><br />
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
 
                         <div class="mb-3">
-                            {{ form.new_password.label(class="form-label") }}
-                            {{ form.new_password(class="form-control") }}
-                            {% if form.new_password.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.new_password.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
+                            {{ form.new_password.label(class="form-label") }} {{
+                            form.new_password(class="form-control") }} {% if
+                            form.new_password.errors %}
+                            <div class="text-danger">
+                                {% for error in form.new_password.errors %}
+                                <small>{{ error }}</small><br />
+                                {% endfor %}
+                            </div>
                             {% endif %}
-                            <div class="form-text">Passordet må være minst 6 tegn langt.</div>
+                            <div class="form-text">
+                                Passordet må være minst 6 tegn langt.
+                            </div>
                         </div>
 
                         <div class="mb-3">
-                            {{ form.confirm_password.label(class="form-label") }}
-                            {{ form.confirm_password(class="form-control") }}
+                            {{ form.confirm_password.label(class="form-label")
+                            }} {{ form.confirm_password(class="form-control") }}
                             {% if form.confirm_password.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.confirm_password.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger">
+                                {% for error in form.confirm_password.errors %}
+                                <small>{{ error }}</small><br />
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
 
@@ -132,7 +194,8 @@
                 <div class="card-body">
                     <p class="text-muted mb-0">
                         <i class="bi bi-info-circle me-2"></i>
-                        Flere brukerinnstillinger vil bli lagt til her i fremtiden.
+                        Flere brukerinnstillinger vil bli lagt til her i
+                        fremtiden.
                     </p>
                 </div>
             </div>

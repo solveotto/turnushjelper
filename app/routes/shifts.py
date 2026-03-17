@@ -17,6 +17,7 @@ from flask_login import current_user, login_required
 from app.database import get_db_session
 from app.extensions import cache
 from app.models import DBUser, SoknadsskjemaChoice
+from app.services.innplassering_service import get_innplassering_for_user
 from app.utils import db_utils, df_utils
 from app.utils.turnus_helpers import get_user_turnus_set, iter_turnus_days
 
@@ -27,6 +28,12 @@ def _turnusliste_cache_key():
     """Per-user, per-turnus-set cache key for the /turnusliste response."""
     ts = get_user_turnus_set()
     ts_id = ts["id"] if ts else "none"
+    # Bypass cache when there are pending flash messages so they are never
+    # baked into the stored HTML and re-shown on subsequent visits.
+    if session.get("_flashes"):
+        import uuid
+
+        return f"view/turnusliste/{current_user.get_id()}/{ts_id}/flash/{uuid.uuid4()}"
     return f"view/turnusliste/{current_user.get_id()}/{ts_id}"
 
 
@@ -176,10 +183,20 @@ def compare():
     fav_order_lst = db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
 
     # Compute weekday free-day counts and compact schedule — single pass over turnus_data
-    _day_names = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
+    _day_names = [
+        "Mandag",
+        "Tirsdag",
+        "Onsdag",
+        "Torsdag",
+        "Fredag",
+        "Lørdag",
+        "Søndag",
+    ]
     weekday_free: dict = {}
-    schedule_data: dict = {}   # {turnus_name: {linje_str: {dag_str: {tid, dg}}}}
-    for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(user_df_manager.turnus_data):
+    schedule_data: dict = {}  # {turnus_name: {linje_str: {dag_str: {tid, dg}}}}
+    for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(
+        user_df_manager.turnus_data
+    ):
         # weekday free counts
         weekday_free.setdefault(turnus_name, {d: 0 for d in _day_names})
         tid = day_data.get("tid", [])
@@ -202,6 +219,32 @@ def compare():
             "dg": day_data.get("dagsverk") or "",  # may be None in JSON
         }
 
+    # Load user's innplassering and schedule data for each referenced turnus set
+    innplassering = get_innplassering_for_user(current_user.id)
+    innplassering_schedules: dict = {}  # {turnus_set_id: {shift_title: {linje: {dag: {tid, dg}}}}}
+    for row in innplassering:
+        ts_id = row["turnus_set_id"]
+        if ts_id in innplassering_schedules:
+            continue
+        ts_dm = df_utils.DataframeManager(ts_id)
+        ts_sched: dict = {}
+        for turnus_name, week_nr, day_nr, day_data in iter_turnus_days(
+            ts_dm.turnus_data
+        ):
+            try:
+                linje = int(week_nr)
+                dag = int(day_nr)
+            except (ValueError, TypeError):
+                continue
+            tid = day_data.get("tid", [])
+            ts_sched.setdefault(turnus_name, {}).setdefault(str(linje), {})[
+                str(dag)
+            ] = {
+                "tid": f"{tid[0]}–{tid[1]}" if len(tid) == 2 else "",
+                "dg": day_data.get("dagsverk") or "",
+            }
+        innplassering_schedules[ts_id] = ts_sched
+
     return render_template(
         "compare.html",
         page_name="Sammenlign Turnuser",
@@ -212,6 +255,8 @@ def compare():
         favoritt=fav_order_lst,
         current_turnus_set=user_turnus_set,
         all_turnus_sets=db_utils.get_all_turnus_sets(),
+        innplassering=innplassering,
+        innplassering_schedules=innplassering_schedules,
     )
 
 
@@ -693,7 +738,7 @@ def _build_soknadsskjema_doc(
         _cell(3 + i, 0, f"Alt.{i + 1}")
         if i < len(favorites):
             name = favorites[i]
-            _cell(3 + i, 1, name)
+            _cell(3 + i, 1, name.replace("_", " "))
             if choices:
                 c = choices.get(name, {})
                 if c.get("linje_135"):
@@ -899,7 +944,7 @@ def _build_soknadsskjema_pdf(
         alt_rows.append(
             [
                 Paragraph(f"Alt.{i + 1}", alt_n),
-                fav,
+                fav.replace("_", " "),
                 "X" if c.get("linje_135") else "",
                 "X" if c.get("linje_246") else "",
                 c.get("linjeprioritering", ""),
@@ -1038,7 +1083,7 @@ def soknadsskjema():
     if "," in user_name:
         parts = user_name.split(",", 1)
         user_name = f"{parts[1].strip()} {parts[0].strip()}"
-    default_rullenr_navn = f"Rullenr.:{user_rullenummer} - {user_name}".strip()
+    default_rullenr_navn = f"Rullenr.: {user_rullenummer} - {user_name}".strip()
     return render_template(
         "søknadsskjema.html",
         page_name="Søknadsskjema",
@@ -1056,6 +1101,7 @@ def soknadsskjema():
 @login_required
 def import_favorites():
     """Page for importing favorites from previous turnus years based on shift statistics."""
+    from app.services.innplassering_service import get_innplassering_for_user
     from app.utils import shift_matcher
 
     # Get user's current turnus set
@@ -1075,10 +1121,25 @@ def import_favorites():
             ts["favorite_count"] = len(favorites)
             available_sources.append(ts)
 
+    # When no previous-year favorites exist, fall back to innplassering data
+    innplassering_sources = []
+    if not available_sources:
+        user_records = get_innplassering_for_user(user_id)
+        seen_ts_ids = set()
+        for rec in user_records:
+            ts_id = rec["turnus_set_id"]
+            if ts_id == turnus_set_id or ts_id in seen_ts_ids:
+                continue
+            ts_stats = shift_matcher.load_stats_for_turnus_set(ts_id)
+            if ts_stats is not None:
+                seen_ts_ids.add(ts_id)
+                innplassering_sources.append(rec)
+
     return render_template(
         "import_favorites.html",
         page_name="Importer Favoritter",
         current_turnus_set=user_turnus_set,
         available_sources=available_sources,
+        innplassering_sources=innplassering_sources,
         all_turnus_sets=db_utils.get_all_turnus_sets(),
     )

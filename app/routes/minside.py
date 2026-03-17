@@ -2,6 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app.forms import ChangePasswordForm
+from app.services.innplassering_service import get_innplassering_for_user
 from app.utils import db_utils
 
 minside = Blueprint("minside", __name__, url_prefix="/minside")
@@ -15,9 +16,10 @@ def user_minside():
 
     # Get user data for display
     user_data = db_utils.get_user_data(current_user.username)
+    innplassering = get_innplassering_for_user(current_user.id)
 
     return render_template(
-        "minside.html", form=form, user_data=user_data, page_name="Min Side"
+        "minside.html", form=form, user_data=user_data, innplassering=innplassering, page_name="Min Side"
     )
 
 

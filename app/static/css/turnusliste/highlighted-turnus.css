@@ -1,3 +1,10 @@
+/* Hide table content for favorite items when "hide favorites" is active.
+   Using a CSS rule means it applies automatically to lazy-rendered tables too. */
+.favorite-item.favorites-hidden .table-scroll-wrapper,
+.favorite-item.favorites-hidden .data-felt {
+    display: none;
+}
+
 .highlighted-turnus {
     background-color: #fff3cd !important;
     border: 2px solid #ffc107 !important;

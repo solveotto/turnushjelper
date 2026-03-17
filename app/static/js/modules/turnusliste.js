@@ -52,22 +52,10 @@ function getCurrentTurnusSetId() {
 }
 
 // Toggle favorites visibility
+// Uses a CSS class so the rule applies automatically to lazy-rendered tables too.
 function toggleFavoritesVisibility(hideFavorites) {
-    const favoriteItems = document.querySelectorAll('.favorite-item');
-    
-    favoriteItems.forEach(item => {
-        const tableWrapper = item.querySelector('.table-scroll-wrapper');
-        const dataFelt = item.querySelector('.data-felt');
-        
-        if (hideFavorites) {
-            // Hide the table content but keep the header visible
-            if (tableWrapper) tableWrapper.style.display = 'none';
-            if (dataFelt) dataFelt.style.display = 'none';
-        } else {
-            // Show the full table content
-            if (tableWrapper) tableWrapper.style.display = 'block';
-            if (dataFelt) dataFelt.style.display = 'block';
-        }
+    document.querySelectorAll('.favorite-item').forEach(item => {
+        item.classList.toggle('favorites-hidden', hideFavorites);
     });
 }
 

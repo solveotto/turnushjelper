@@ -1,9 +1,37 @@
 // Tour step definitions for the Turnusliste page
 // Each step follows the Driver.js popover config format
 
+// Creates a temporary absolutely-positioned div spanning both dobbeltur cells
+// so Driver.js can highlight them as a single unit. Caller must remove it via onDeselected.
+function createDobbelturHighlight() {
+    const arrow = document.querySelector('.consecutive-shift-arrow');
+    if (!arrow) return null;
+    const receiver = arrow.nextElementSibling;
+    if (!receiver?.classList.contains('consecutive-shift-receiver')) return null;
+
+    const ar = arrow.getBoundingClientRect();
+    const rr = receiver.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.id = 'tour-dobbeltur-highlight';
+    el.style.cssText = [
+        'position:absolute',
+        `top:${ar.top + window.scrollY}px`,
+        `left:${ar.left + window.scrollX}px`,
+        `width:${rr.right - ar.left}px`,
+        `height:${ar.height}px`,
+        'pointer-events:none',
+        'z-index:0',
+    ].join(';');
+    document.body.appendChild(el);
+    return el;
+}
+
 export default function () {
     // Detect mobile vs desktop for the sorter button selector
     const isMobile = window.innerWidth < 992;
+    const dobbelturEl = createDobbelturHighlight();
+    const firstDobbeltur = dobbelturEl ?? document.querySelector('.consecutive-shift-arrow');
+    const firstDeltDagsverk = document.querySelector('.delt-dagsverk');
 
     return [
         {
@@ -25,7 +53,28 @@ export default function () {
             },
         },
         {
-            // Step 2: Sort/Filter system
+            // Step 2: Shift color legend (centered, no element — informational)
+            popover: {
+                title: "Fargekoder i tabellen",
+                description: `
+                    <p>Cellefargene viser når på dagen skiftet <strong>starter</strong>:</p>
+                    <div class="tour-color-legend">
+                        <div class="tour-color-row"><span class="tour-color-swatch" style="background:#87ceeb;"></span><span>Tidligvakt — starter før 06:00</span></div>
+                        <div class="tour-color-row"><span class="tour-color-swatch" style="background:#4a90d9;"></span><span>Morgenvakt — starter mellom 06:00–07:59</span></div>
+                        <div class="tour-color-row"><span class="tour-color-swatch" style="background:#637abf;"></span><span>Dagvakt — starter mellom 08:00–11:59</span></div>
+                        <div class="tour-color-row"><span class="tour-color-swatch" style="background:#ff9999;"></span><span>Kveldsvakt — starter etter 12:00</span></div>
+                        <div class="tour-color-row"><span class="tour-color-swatch" style="background:#af57eb;"></span><span>Nattevakt</span></div>
+                        <div class="tour-color-row"><span class="tour-color-swatch" style="background:#4ade80;"></span><span>Fridag</span></div>
+                        <div class="tour-color-row"><span class="tour-color-swatch" style="background:#fcd34d;"></span><span>H - Dag</span></div>
+                    </div>
+                    <p class="tour-hint">Fargene kan tilpasses under innstillinger.</p>
+                `,
+                side: "over",
+                align: "center",
+            },
+        },
+        {
+            // Step 3: Sort/Filter system
             element: isMobile ? ".mobile-sorter-btn" : ".sorter-btn",
             popover: {
                 title: "Sortering og filtrering",
@@ -59,37 +108,33 @@ export default function () {
             },
         },
         {
-            // Step 4: Dobbelttur (centered, no element — informational)
+            // Step 4: Dobbelttur — highlights both cells via temp wrapper, or single cell, or centered fallback
+            ...(dobbelturEl ? { element: '#tour-dobbeltur-highlight' } : firstDobbeltur ? { element: '.consecutive-shift-arrow' } : {}),
             popover: {
                 title: "Dobbelturer",
                 description: `
                     <p>Noen turnuser har <strong>dobbelturer</strong> — to skift rett etter hverandre.</p>
-                    <img src="/static/img/tour/dobbelttur.png"
-                               style="max-width:100%; border-radius:6px; margin:8px 0;">
+                    ${firstDobbeltur ? '' : '<img src="/static/img/tour/dobbeltur.png" style="max-width:100%; border-radius:6px; margin:8px 0;">'}
                     <p>Cellen med <strong>pil/markering</strong> viser at neste skift starter rett etter.</p>
                     <p class="tour-hint">Hvis du holder musen over pilen, vil du komme en pop-up.</p>
                 `,
-                side: "over",
-                align: "center",
+                side: firstDobbeltur ? "bottom" : "over",
+                align: "start",
             },
         },
         {
-            // Step 5: Delt dagsverk (centered, no element — informational)
+            // Step 5: Delt dagsverk — highlights real cell if present, else centered fallback
+            ...(firstDeltDagsverk ? { element: '.delt-dagsverk' } : {}),
             popover: {
                 title: "Delte dagsverk",
                 description: `
                     <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause i dagsverket.</p>
-                    <div class="tour-visual-example">
-                        <div class="tour-example-cell tour-delt-dagsverk">
-                            <span class="tour-example-label">3144 **</span>
-                            <span class="tour-example-time">20:23 - 08:28</span>
-                        </div>
-                    </div>
+                    ${firstDeltDagsverk ? '' : '<img src="static/img/tour/deltdagsverk.png" style="display:block; margin:8px auto; max-width:25%; border-radius:2px;">'}
                     <p>Disse cellene er markert med <strong>**</strong> i tabellen.</p>
                     <p class="tour-hint">Det vil også her komme en pop-up som indikerer et delt dagsverk.</p>
                 `,
-                side: "over",
-                align: "center",
+                side: firstDeltDagsverk ? "bottom" : "over",
+                align: "start",
             },
         },
         {

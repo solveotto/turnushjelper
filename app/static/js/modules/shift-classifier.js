@@ -32,7 +32,7 @@ const START_TIME_BOUNDARIES = [
 ];
 
 // Threshold for distinguishing kveldsvakt from nattevakt (in minutes past midnight)
-const NIGHT_END_THRESHOLD = 2 * 60; // 02:00
+const NIGHT_END_THRESHOLD = 4 * 60; // 04:00
 
 /**
  * Classify a shift based on start and end time strings.

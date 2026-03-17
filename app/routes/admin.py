@@ -6,6 +6,7 @@ from flask_login import current_user
 
 from app.database import get_db_session
 from app.decorators import admin_required
+from app.extensions import cache
 from app.forms import (
     CreateTurnusSetForm,
     CreateUserForm,
@@ -55,6 +56,7 @@ def reset_tour():
     try:
         db_session.query(DBUser).update({DBUser.has_seen_turnusliste_tour: 0})
         db_session.commit()
+        cache.clear()  # evict all cached pages so data-tour-seen is re-rendered fresh
         flash("Omvisningen er tilbakestilt for alle brukere.", "success")
     except Exception as e:
         db_session.rollback()
@@ -442,6 +444,121 @@ def refresh_turnus_set(turnus_set_id):
     except Exception as e:
         flash(f"Feil ved oppdatering av turnussett: {e}", "danger")
 
+    return redirect(url_for("admin.manage_turnus_sets"))
+
+
+@admin.route("/turnusnokkel-status/<int:turnus_set_id>")
+@admin_required
+def turnusnokkel_status(turnus_set_id):
+    """AJAX endpoint: check if turnusnøkkel template exists for a turnus set."""
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        return jsonify({"status": "error", "message": "Turnus set not found"}), 404
+
+    version = turnus_set["year_identifier"].lower()
+    year_id = turnus_set["year_identifier"]
+    template_path = os.path.join(
+        AppConfig.turnusfiler_dir, version, f"turnusnøkkel_{year_id}_org.xlsx"
+    )
+    return jsonify({
+        "status": "success",
+        "has_template": os.path.exists(template_path),
+    })
+
+
+@admin.route("/upload-turnusnokkel/<int:turnus_set_id>", methods=["POST"])
+@admin_required
+def upload_turnusnokkel(turnus_set_id):
+    """Upload a turnusnøkkel template Excel file for a turnus set."""
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        flash("Turnussett ikke funnet.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    uploaded = request.files.get("xlsx_file")
+    if not uploaded or not uploaded.filename:
+        flash("Ingen fil valgt.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    if not uploaded.filename.lower().endswith((".xlsx", ".xlsm")):
+        flash("Kun Excel-filer (.xlsx) er tillatt.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    version = turnus_set["year_identifier"].lower()
+    year_id = turnus_set["year_identifier"]
+    turnusfiler_dir = os.path.join(AppConfig.turnusfiler_dir, version)
+    os.makedirs(turnusfiler_dir, exist_ok=True)
+
+    save_path = os.path.join(turnusfiler_dir, f"turnusnøkkel_{year_id}_org.xlsx")
+    uploaded.save(save_path)
+    flash(f"Turnusnøkkel mal lastet opp for {year_id}.", "success")
+    return redirect(url_for("admin.manage_turnus_sets"))
+
+
+@admin.route("/innplassering-status/<int:turnus_set_id>")
+@admin_required
+def innplassering_status(turnus_set_id):
+    """AJAX endpoint: return innplassering record count for a turnus set."""
+    from app.models import Innplassering
+
+    db_session = get_db_session()
+    try:
+        count = db_session.query(Innplassering).filter_by(turnus_set_id=turnus_set_id).count()
+    finally:
+        db_session.close()
+
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        return jsonify({"status": "error", "message": "Turnus set not found"}), 404
+
+    version = turnus_set["year_identifier"].lower()
+    pdf_path = os.path.join(
+        AppConfig.static_dir, "turnusfiler", version,
+        f"innplassering_{turnus_set['year_identifier']}.pdf"
+    )
+    return jsonify({
+        "status": "success",
+        "record_count": count,
+        "has_pdf": os.path.exists(pdf_path),
+    })
+
+
+@admin.route("/import-innplassering/<int:turnus_set_id>", methods=["POST"])
+@admin_required
+def import_innplassering_route(turnus_set_id):
+    """Upload an Innplassering PDF and import its shift assignments into the DB."""
+    from app.services.innplassering_service import import_innplassering
+
+    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        flash("Turnussett ikke funnet.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    year_id = turnus_set["year_identifier"]
+    version = year_id.lower()
+    turnusfiler_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version)
+    os.makedirs(turnusfiler_dir, exist_ok=True)
+
+    pdf_save_path = os.path.join(turnusfiler_dir, f"innplassering_{year_id}.pdf")
+
+    # Accept an uploaded file, or fall back to the previously-saved PDF
+    uploaded = request.files.get("pdf_file")
+    if uploaded and uploaded.filename:
+        if not uploaded.filename.lower().endswith(".pdf"):
+            flash("Kun PDF-filer er tillatt.", "danger")
+            return redirect(url_for("admin.manage_turnus_sets"))
+        uploaded.save(pdf_save_path)
+    elif not os.path.exists(pdf_save_path):
+        flash(f"Ingen innplassering PDF funnet. Last opp en PDF-fil.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    json_path = turnus_set.get("turnus_file_path")
+    if not json_path or not os.path.exists(json_path):
+        flash("Turnus JSON-fil ikke funnet for dette turnussettet.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    success, message = import_innplassering(pdf_save_path, turnus_set_id, json_path)
+    flash(message, "success" if success else "danger")
     return redirect(url_for("admin.manage_turnus_sets"))
 
 
@@ -933,6 +1050,8 @@ def reset_to_stub(user_id):
         flash("Du kan ikke tilbakestille din egen konto.", "danger")
         return redirect(url_for("admin.manage_employees"))
     success, message = user_service.reset_user_to_stub(user_id)
+    if success:
+        cache.clear()  # evict stale data-tour-seen from this user's cached pages
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.manage_employees"))
 

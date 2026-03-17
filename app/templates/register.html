@@ -1,179 +1,327 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="no">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <title>Registrer - Turnushjelper</title>
-</head>
-<body class="auth-page-body">
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6 col-xl-5">
-                <div class="modern-card">
-                    <div class="card-header-modern">
-                        <div class="header-content">
-                            <div class="icon-wrapper">
-                                <i class="bi bi-person-plus-fill"></i>
-                            </div>
-                            <h2 class="card-title-modern">Opprett konto</h2>
-                            <p class="card-subtitle">Registrer deg for tilgang til Turnushjelper</p>
-                        </div>
-                    </div>
-                    <div class="card-body-modern">
-                        {% with messages = get_flashed_messages(with_categories=true) %}
-                            {% if messages %}
-                                {% for category, message in messages %}
-                                    <div class="alert-modern alert-{{ category }} alert-dismissible fade show" role="alert">
-                                        <div class="alert-content">
-                                            <i class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-triangle-fill' if category == 'warning' else 'x-circle-fill' if category == 'danger' else 'info-circle-fill' }}"></i>
-                                            <span>{{ message }}</span>
-                                        </div>
-                                        <button type="button" class="btn-close-modern" data-bs-dismiss="alert">
-                                            <i class="bi bi-x"></i>
-                                        </button>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        {% endwith %}
-
-                        <div class="alert-modern alert-info mb-4">
-                            <div class="alert-content">
-                                <i class="bi bi-info-circle-fill"></i>
-                                <span><strong>Merk:</strong> Kun autoriserte rullenummer kan registrere seg. Kontakt en administrator hvis du trenger tilgang.</span>
-                            </div>
-                        </div>
-
-                        <form action="{{ url_for('registration.register') }}" method="POST" class="modern-form">
-                            {{ form.hidden_tag() }}
-
-                            <div class="form-group-modern">
-                                <div class="input-wrapper">
-                                    <i class="bi bi-person input-icon"></i>
-                                    {{ form.username(class="form-control-modern" + (" is-invalid" if form.username.errors else ""), placeholder=" ") }}
-                                    <label class="floating-label">{{ form.username.label.text }}</label>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            crossorigin="anonymous"
+        />
+        <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
+            rel="stylesheet"
+        />
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"
+        ></script>
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/auth.css') }}"
+        />
+        <title>Registrer - Turnushjelper</title>
+    </head>
+    <body class="auth-page-body">
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6 col-xl-5">
+                    <div class="modern-card">
+                        <div class="card-header-modern">
+                            <div class="header-content">
+                                <div class="icon-wrapper">
+                                    <i class="bi bi-person-plus-fill"></i>
                                 </div>
-                                <small class="form-hint">Dette vil være visningsnavnet ditt som vises for andre</small>
-                                {% if form.username.errors %}
+                                <h2 class="card-title-modern">Opprett konto</h2>
+                                <p class="card-subtitle">
+                                    Registrer deg for tilgang til Turnushjelper
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card-body-modern">
+                            {% with messages =
+                            get_flashed_messages(with_categories=true) %} {% if
+                            messages %} {% for category, message in messages %}
+                            <div
+                                class="alert-modern alert-{{ category }} alert-dismissible fade show"
+                                role="alert"
+                            >
+                                <div class="alert-content">
+                                    <i
+                                        class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-triangle-fill' if category == 'warning' else 'x-circle-fill' if category == 'danger' else 'info-circle-fill' }}"
+                                    ></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn-close-modern"
+                                    data-bs-dismiss="alert"
+                                >
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                            {% endfor %} {% endif %} {% endwith %}
+
+                            <div class="alert-modern alert-info mb-4">
+                                <div class="alert-content">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                    <span
+                                        ><strong>Merk:</strong> Kun autoriserte
+                                        rullenummer kan registrere seg. Kontakt
+                                        en administrator hvis du trenger
+                                        tilgang.</span
+                                    >
+                                </div>
+                            </div>
+
+                            <form
+                                action="{{ url_for('registration.register') }}"
+                                method="POST"
+                                class="modern-form"
+                            >
+                                {{ form.hidden_tag() }}
+
+                                <div class="form-group-modern">
+                                    <div class="input-wrapper">
+                                        <i class="bi bi-person input-icon"></i>
+                                        {{
+                                        form.username(class="form-control-modern"
+                                        + (" is-invalid" if form.username.errors
+                                        else ""), placeholder=" ") }}
+                                        <label class="floating-label"
+                                            >{{ form.username.label.text
+                                            }}</label
+                                        >
+                                    </div>
+                                    <small class="form-hint"
+                                        >Dette vil være visningsnavnet ditt som
+                                        vises for andre</small
+                                    >
+                                    {% if form.username.errors %}
                                     <div class="error-message">
                                         {% for error in form.username.errors %}
-                                            <i class="bi bi-exclamation-circle"></i>
-                                            {{ error }}
-                                        {% endfor %}
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ error }} {% endfor %}
                                     </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="form-group-modern">
-                                <div class="input-wrapper">
-                                    <i class="bi bi-hash input-icon"></i>
-                                    {{ form.rullenummer(class="form-control-modern" + (" is-invalid" if form.rullenummer.errors else ""), placeholder=" ", id="rullenummer") }}
-                                    <label class="floating-label">{{ form.rullenummer.label.text }}</label>
+                                    {% endif %}
                                 </div>
-                                <div id="rullenummer-preview" class="mt-1 small"></div>
-                                {% if form.rullenummer.errors %}
+
+                                <div class="form-group-modern">
+                                    <div class="input-wrapper">
+                                        <i class="bi bi-hash input-icon"></i>
+                                        {{
+                                        form.rullenummer(class="form-control-modern"
+                                        + (" is-invalid" if
+                                        form.rullenummer.errors else ""),
+                                        placeholder=" ", id="rullenummer") }}
+                                        <label class="floating-label"
+                                            >{{ form.rullenummer.label.text
+                                            }}</label
+                                        >
+                                    </div>
+                                    <div
+                                        id="rullenummer-preview"
+                                        class="mt-1 small"
+                                    ></div>
+                                    {% if form.rullenummer.errors %}
                                     <div class="error-message">
-                                        {% for error in form.rullenummer.errors %}
-                                            <i class="bi bi-exclamation-circle"></i>
-                                            {{ error }}
-                                        {% endfor %}
+                                        {% for error in form.rullenummer.errors
+                                        %}
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ error }} {% endfor %}
                                     </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="form-group-modern">
-                                <div class="input-wrapper">
-                                    <i class="bi bi-envelope input-icon"></i>
-                                    {{ form.email(class="form-control-modern" + (" is-invalid" if form.email.errors else ""), placeholder=" ") }}
-                                    <label class="floating-label">{{ form.email.label.text }}</label>
+                                    {% endif %}
                                 </div>
-                                <small class="form-hint">E-posten din brukes kun til innlogging</small>
-                                {% if form.email.errors %}
+
+                                <div class="form-group-modern">
+                                    <div class="input-wrapper">
+                                        <i
+                                            class="bi bi-envelope input-icon"
+                                        ></i>
+                                        {{
+                                        form.email(class="form-control-modern" +
+                                        (" is-invalid" if form.email.errors else
+                                        ""), placeholder=" ") }}
+                                        <label class="floating-label"
+                                            >{{ form.email.label.text }}</label
+                                        >
+                                    </div>
+                                    <small class="form-hint"
+                                        >E-posten din brukes kun til
+                                        innlogging</small
+                                    >
+                                    {% if form.email.errors %}
                                     <div class="error-message">
                                         {% for error in form.email.errors %}
-                                            <i class="bi bi-exclamation-circle"></i>
-                                            {{ error }}
-                                        {% endfor %}
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ error }} {% endfor %}
                                     </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="form-group-modern">
-                                <div class="input-wrapper">
-                                    <i class="bi bi-lock input-icon"></i>
-                                    {{ form.password(class="form-control-modern" + (" is-invalid" if form.password.errors else ""), placeholder=" ") }}
-                                    <label class="floating-label">{{ form.password.label.text }}</label>
+                                    {% endif %}
                                 </div>
-                                <small class="form-hint">Minimum 8 tegn</small>
-                                {% if form.password.errors %}
+
+                                <div class="form-group-modern">
+                                    <div class="input-wrapper">
+                                        <i class="bi bi-lock input-icon"></i>
+                                        {{
+                                        form.password(class="form-control-modern"
+                                        + (" is-invalid" if form.password.errors
+                                        else ""), placeholder=" ") }}
+                                        <label class="floating-label"
+                                            >{{ form.password.label.text
+                                            }}</label
+                                        >
+                                    </div>
+                                    <small class="form-hint"
+                                        >Minimum 8 tegn</small
+                                    >
+                                    {% if form.password.errors %}
                                     <div class="error-message">
                                         {% for error in form.password.errors %}
-                                            <i class="bi bi-exclamation-circle"></i>
-                                            {{ error }}
-                                        {% endfor %}
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ error }} {% endfor %}
                                     </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="form-group-modern">
-                                <div class="input-wrapper">
-                                    <i class="bi bi-shield-lock input-icon"></i>
-                                    {{ form.confirm_password(class="form-control-modern" + (" is-invalid" if form.confirm_password.errors else ""), placeholder=" ") }}
-                                    <label class="floating-label">{{ form.confirm_password.label.text }}</label>
+                                    {% endif %}
                                 </div>
-                                {% if form.confirm_password.errors %}
-                                    <div class="error-message">
-                                        {% for error in form.confirm_password.errors %}
-                                            <i class="bi bi-exclamation-circle"></i>
-                                            {{ error }}
-                                        {% endfor %}
+
+                                <div class="form-group-modern">
+                                    <div class="input-wrapper">
+                                        <i
+                                            class="bi bi-shield-lock input-icon"
+                                        ></i>
+                                        {{
+                                        form.confirm_password(class="form-control-modern"
+                                        + (" is-invalid" if
+                                        form.confirm_password.errors else ""),
+                                        placeholder=" ") }}
+                                        <label class="floating-label"
+                                            >{{ form.confirm_password.label.text
+                                            }}</label
+                                        >
                                     </div>
-                                {% endif %}
-                            </div>
+                                    {% if form.confirm_password.errors %}
+                                    <div class="error-message">
+                                        {% for error in
+                                        form.confirm_password.errors %}
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ error }} {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
 
-                            <div class="button-group">
-                                {{ form.submit(class="btn-modern btn-primary-modern w-100") }}
-                            </div>
-                        </form>
+                                <div class="button-group">
+                                    {{ form.submit(class="btn-modern
+                                    btn-primary-modern w-100") }}
+                                </div>
+                            </form>
 
-                        <div class="auth-links">
-                            <p>
-                                Har du allerede en konto?
-                                <a href="{{ url_for('auth.login') }}" class="auth-link">Logg inn her</a>
-                            </p>
-                            <p>
-                                <a href="{{ url_for('registration.resend_verification') }}" class="auth-link-secondary">
-                                    Send verifiserings-e-post på nytt
-                                </a>
-                            </p>
+                            <div class="auth-links">
+                                <p>
+                                    Har du allerede en konto?
+                                    <a
+                                        href="{{ url_for('auth.login') }}"
+                                        class="auth-link"
+                                        >Logg inn her</a
+                                    >
+                                </p>
+                                <p>
+                                    <a
+                                        href="{{ url_for('registration.resend_verification') }}"
+                                        class="auth-link-secondary"
+                                    >
+                                        Send verifiserings-e-post på nytt
+                                    </a>
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-<script>
-document.getElementById('rullenummer').addEventListener('blur', async function () {
-    const val = this.value.trim();
-    const preview = document.getElementById('rullenummer-preview');
-    if (!val) { preview.innerHTML = ''; return; }
-    try {
-        const res = await fetch(`/api/check-rullenummer?rullenummer=${encodeURIComponent(val)}`);
-        const data = await res.json();
-        if (data.found) {
-            preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> ${data.name}${data.stasjoneringssted ? ' — ' + data.stasjoneringssted : ''}</span>`;
-        } else if (data.reason === 'already_registered') {
-            preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette rullenummeret er allerede registrert.</span>`;
-        } else {
-            preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Rullenummeret ble ikke funnet.</span>`;
-        }
-    } catch (e) {
-        preview.innerHTML = '';
-    }
-});
-</script>
-</body>
+        <div
+            class="modal fade modal-modern"
+            id="registrationSuccessModal"
+            tabindex="-1"
+            aria-labelledby="registrationSuccessModalLabel"
+            aria-hidden="true"
+            data-bs-backdrop="static"
+            data-bs-keyboard="false"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5
+                            class="modal-title"
+                            id="registrationSuccessModalLabel"
+                        >
+                            <i class="bi bi-envelope-check me-2"></i>Sjekk
+                            e-posten din
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-3">
+                            <i
+                                class="bi bi-envelope-check"
+                                style="font-size: 4rem; color: #667eea"
+                            ></i>
+                        </div>
+                        <h5>Registrering vellykket!</h5>
+                        <p class="text-muted mb-1">
+                            Vi har sendt deg en verifiserings-e-post.<br />
+                            Klikk på lenken i e-posten for å aktivere kontoen
+                            din.
+                            <span style="color: red"
+                                >Sjekk også søppelpost-mappen</span
+                            >
+                        </p>
+                        <p class="text-muted">
+                            <small>Lenken utløper om 48 timer.</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if show_success_modal %}
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var modal = new bootstrap.Modal(
+                    document.getElementById("registrationSuccessModal"),
+                );
+                modal.show();
+            });
+        </script>
+        {% endif %}
+
+        <script>
+            document
+                .getElementById("rullenummer")
+                .addEventListener("blur", async function () {
+                    const val = this.value.trim();
+                    const preview = document.getElementById(
+                        "rullenummer-preview",
+                    );
+                    if (!val) {
+                        preview.innerHTML = "";
+                        return;
+                    }
+                    try {
+                        const res = await fetch(
+                            `/api/check-rullenummer?rullenummer=${encodeURIComponent(val)}`,
+                        );
+                        const data = await res.json();
+                        if (data.found) {
+                            preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> Rullenummeret er gyldig.</span>`;
+                        } else if (data.reason === "already_registered") {
+                            preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette rullenummeret er allerede registrert.</span>`;
+                        } else {
+                            preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Rullenummeret ble ikke funnet.</span>`;
+                        }
+                    } catch (e) {
+                        preview.innerHTML = "";
+                    }
+                });
+        </script>
+    </body>
 </html>

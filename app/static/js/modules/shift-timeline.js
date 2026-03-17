@@ -49,6 +49,8 @@ export class ShiftTimelineModal {
         this.modalTitle = document.getElementById('shiftTimelineTitle');
         this.modalSpinner = document.getElementById('shiftTimelineSpinner');
         this.modalError = document.getElementById('shiftTimelineError');
+        this.modalErrorText = document.getElementById('shiftTimelineErrorText');
+        this.modalErrorIcon = document.getElementById('shiftTimelineErrorIcon');
         this.imageContainer = document.getElementById('shiftTimelineContainer');
         this.imageWrapper = document.getElementById('shiftTimelineWrapper');
 
@@ -176,6 +178,9 @@ export class ShiftTimelineModal {
                         this.showError('Kunne ikke vise bildet');
                     };
                 }
+            } else if (response.status === 404) {
+                this.setLoading(false);
+                this.showNotFound(shiftNr);
             } else {
                 const data = await response.json();
                 this.setLoading(false);
@@ -230,7 +235,29 @@ export class ShiftTimelineModal {
 
     showError(message) {
         if (this.modalError) {
-            this.modalError.textContent = message;
+            this.modalError.className = 'alert alert-warning m-3';
+            if (this.modalErrorIcon) {
+                this.modalErrorIcon.className = 'bi bi-exclamation-triangle me-2';
+            }
+            if (this.modalErrorText) {
+                this.modalErrorText.textContent = message;
+            }
+            this.modalError.style.display = 'block';
+        }
+        if (this.modalImage) {
+            this.modalImage.style.display = 'none';
+        }
+    }
+
+    showNotFound(shiftNr) {
+        if (this.modalError) {
+            this.modalError.className = 'alert alert-info m-3';
+            if (this.modalErrorIcon) {
+                this.modalErrorIcon.className = 'bi bi-info-circle me-2';
+            }
+            if (this.modalErrorText) {
+                this.modalErrorText.textContent = `Ingen strekliste er tilgjengelig for turnus ${shiftNr}.`;
+            }
             this.modalError.style.display = 'block';
         }
         if (this.modalImage) {

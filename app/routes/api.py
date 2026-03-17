@@ -7,10 +7,11 @@ from flask import Blueprint, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
 
 from app.database import get_db_session
-from app.extensions import favorite_lock
+from app.extensions import cache, favorite_lock, limiter
 from app.models import DBUser, SoknadsskjemaChoice
 from app.services import user_service
 from app.utils import db_utils, shift_matcher
+from app.utils.turnus_helpers import get_user_turnus_set
 from config import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -368,7 +369,63 @@ def import_favorites_preview():
     data = request.get_json() or {}
     source_turnus_set_id = data.get("source_turnus_set_id")
     source_turnus_set_ids = data.get("source_turnus_set_ids")
+    innplassering_source_ids = data.get("innplassering_source_ids")
     top_n = data.get("top_n", 5)
+
+    # Handle top_n early so innplassering branch can use it
+    try:
+        top_n = int(top_n)
+        if top_n == 0:
+            top_n = 999
+        elif top_n < 0:
+            top_n = 5
+    except (ValueError, TypeError):
+        top_n = 5
+
+    # Innplassering mode — must be checked before favorites mode
+    if innplassering_source_ids is not None:
+        try:
+            inn_ids = [int(i) for i in innplassering_source_ids]
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "Invalid innplassering source IDs"})
+
+        from app.utils.turnus_helpers import get_user_turnus_set
+        user_turnus_set = get_user_turnus_set()
+        target_turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
+
+        if not target_turnus_set_id:
+            return jsonify({"status": "error", "message": "No active turnus set selected"})
+
+        inn_ids = [i for i in inn_ids if i != target_turnus_set_id]
+        if not inn_ids:
+            return jsonify({"status": "error", "message": "Source and target turnus sets are the same"})
+
+        user_id = current_user.get_id()
+        result = shift_matcher.find_matches_from_innplassering(
+            user_id=user_id,
+            innplassering_source_ids=inn_ids,
+            target_turnus_set_id=target_turnus_set_id,
+            top_n=top_n,
+        )
+
+        if not result["all_favorites"]:
+            return jsonify({"status": "error", "message": "Ingen innplasseringsdata funnet eller statistikk mangler."})
+
+        target_set = db_utils.get_turnus_set_by_id(target_turnus_set_id)
+        if not target_set:
+            return jsonify({"status": "error", "message": "Target turnus set not found"}), 404
+
+        return jsonify({
+            "status": "success",
+            "mode": "innplassering",
+            "target_set": {
+                "id": target_set["id"],
+                "name": target_set["name"],
+                "year_identifier": target_set["year_identifier"],
+            },
+            "by_source": result["by_source"],
+            "matches": result["all_favorites"],
+        })
 
     # Handle both single and multiple sources
     if source_turnus_set_ids:
@@ -389,16 +446,6 @@ def import_favorites_preview():
             )
     else:
         return jsonify({"status": "error", "message": "No source turnus set provided"})
-
-    # Handle top_n: 0 means all matches
-    try:
-        top_n = int(top_n)
-        if top_n == 0:
-            top_n = 999  # Effectively all matches
-        elif top_n < 0:
-            top_n = 5
-    except (ValueError, TypeError):
-        top_n = 5
 
     # Get current turnus set
     from app.utils.turnus_helpers import get_user_turnus_set
@@ -673,6 +720,11 @@ def mark_tour_seen():
         if user:
             setattr(user, tour_columns[tour_name], 1)
             db_session.commit()
+            # Invalidate the cached turnusliste page so the next load renders
+            # with the updated has_seen_tour value instead of the stale cached one.
+            ts = get_user_turnus_set()
+            ts_id = ts["id"] if ts else "none"
+            cache.delete(f"view/turnusliste/{current_user.get_id()}/{ts_id}")
             return jsonify({"status": "success", "message": "Tour marked as seen"})
         return jsonify({"status": "error", "message": "User not found"}), 404
     except Exception as e:
@@ -734,11 +786,12 @@ def soknadsskjema_choice():
 
 
 @api.route("/check-rullenummer")
+@limiter.limit("30 per hour")
 def check_rullenummer():
-    """Return stub-user info for the registration name-preview widget.
+    """Return whether a rullenummer is a valid unactivated stub.
 
     Response shape:
-        {found: true,  name: "Etternavn, Fornavn", stasjoneringssted: "OSLO"}
+        {found: true}
         {found: false, reason: "already_registered"}
         {found: false, reason: "not_authorized"}
     """
@@ -752,8 +805,4 @@ def check_rullenummer():
     if stub["is_stub"] != 1:
         return jsonify({"found": False, "reason": "already_registered"})
 
-    return jsonify({
-        "found": True,
-        "name": stub["name"] or "",
-        "stasjoneringssted": stub["stasjoneringssted"] or "",
-    })
+    return jsonify({"found": True})

@@ -47,7 +47,9 @@
             aria-expanded="false"
         >
             <i class="bi bi-funnel-fill"></i> Sorter
-            <span class="badge bg-dark ms-1 d-none" id="sorter-active-badge">0</span>
+            <span class="badge bg-dark ms-1 d-none" id="sorter-active-badge"
+                >0</span
+            >
         </button>
         <div class="dropdown-menu dropdown-menu-end filter-menu">
             <div class="filter-controls">
@@ -665,175 +667,198 @@
                                 </div>
 
                                 <!-- Lazy placeholder — replaced by JS when this item scrolls into view -->
-                                <div class="turnus-table-placeholder" style="height:3rem"></div>
+                                <div
+                                    class="turnus-table-placeholder"
+                                    style="height: 3rem"
+                                ></div>
                                 <template data-lazy-table>
-                                <div class="table-scroll-wrapper">
-                                    <table>
-                                        <thead class="text-center">
-                                            <tr>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Uke
-                                                </th>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Mandag
-                                                </th>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Tirsdag
-                                                </th>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Onsdag
-                                                </th>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Tordag
-                                                </th>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Fredag
-                                                </th>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Lørdag
-                                                </th>
-                                                <th
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    Søndag
-                                                </th>
-                                            </tr>
-                                        </thead>
-
-                                        <tbody class="text-center">
-                                            {% for week_nr, week_data in
-                                            data.items() if week_data is mapping
-                                            and week_nr|string|int(-1) >= 0 %}
-                                            <tr
-                                                class="align-middle text-nowrap"
-                                            >
-                                                <td
-                                                    style="
-                                                        border: 1px solid black;
-                                                        font-size: small;
-                                                    "
-                                                >
-                                                    {{ week_nr }}
-                                                </td>
-
-                                                {% for day_nr, day_data in
-                                                week_data.items() if day_data is
-                                                mapping %}
-                                                <td
-                                                    id="cell"
-                                                    class="min-width-td {% if day_data.is_consecutive_shift %}consecutive-shift-arrow consecutive-shift-border{% elif day_data.is_consecutive_receiver %}consecutive-shift-receiver consecutive-shift-border{% endif %}{% if day_data.is_delt_dagsverk %}delt-dagsverk{% endif %}{% if loop.last %} last-day{% endif %}{% if loop.first %} first-day{% endif %}"
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                >
-                                                    <div
-                                                        class="custom-text dagsverk-link"
+                                    <div class="table-scroll-wrapper">
+                                        <table>
+                                            <thead class="text-center">
+                                                <tr>
+                                                    <th
                                                         style="
-                                                            font-size: xx-small;
+                                                            border: 1px solid
+                                                                black;
                                                         "
-                                                        data-shift-nr="{{day_data.dagsverk}}"
                                                     >
-                                                        {{day_data.dagsverk}}
-                                                    </div>
-                                                    <div
-                                                        class="time-text"
-                                                        style="font-size: small"
+                                                        Uke
+                                                    </th>
+                                                    <th
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
                                                     >
-                                                        {% for time in
-                                                        day_data.tid %} {% if
-                                                        day_data.tid|length == 2
-                                                        %} {% if loop.first %}
-                                                        {{ time }} - {% else %}
-                                                        {{ time }} {% endif %}
-                                                        {% else %} {{ time }} {%
-                                                        endif %} {% endfor %}
-                                                    </div>
-                                                </td>
+                                                        Mandag
+                                                    </th>
+                                                    <th
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    >
+                                                        Tirsdag
+                                                    </th>
+                                                    <th
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    >
+                                                        Onsdag
+                                                    </th>
+                                                    <th
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    >
+                                                        Tordag
+                                                    </th>
+                                                    <th
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    >
+                                                        Fredag
+                                                    </th>
+                                                    <th
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    >
+                                                        Lørdag
+                                                    </th>
+                                                    <th
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    >
+                                                        Søndag
+                                                    </th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody class="text-center">
+                                                {% for week_nr, week_data in
+                                                data.items() if week_data is
+                                                mapping and
+                                                week_nr|string|int(-1) >= 0 %}
+                                                <tr
+                                                    class="align-middle text-nowrap"
+                                                >
+                                                    <td
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                            font-size: small;
+                                                        "
+                                                    >
+                                                        {{ week_nr }}
+                                                    </td>
+
+                                                    {% for day_nr, day_data in
+                                                    week_data.items() if
+                                                    day_data is mapping %}
+                                                    <td
+                                                        id="cell"
+                                                        class="min-width-td {% if day_data.is_consecutive_shift %}consecutive-shift-arrow consecutive-shift-border{% elif day_data.is_consecutive_receiver %}consecutive-shift-receiver consecutive-shift-border{% endif %}{% if day_data.is_delt_dagsverk %}delt-dagsverk{% endif %}{% if loop.last %} last-day{% endif %}{% if loop.first %} first-day{% endif %}"
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    >
+                                                        <div
+                                                            class="custom-text dagsverk-link"
+                                                            style="
+                                                                font-size: xx-small;
+                                                            "
+                                                            data-shift-nr="{{day_data.dagsverk}}"
+                                                        >
+                                                            {{day_data.dagsverk}}
+                                                        </div>
+                                                        <div
+                                                            class="time-text"
+                                                            style="
+                                                                font-size: small;
+                                                            "
+                                                        >
+                                                            {% for time in
+                                                            day_data.tid %} {%
+                                                            if
+                                                            day_data.tid|length
+                                                            == 2 %} {% if
+                                                            loop.first %} {{
+                                                            time }} - {% else %}
+                                                            {{ time }} {% endif
+                                                            %} {% else %} {{
+                                                            time }} {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                    </td>
+                                                    {% endfor %}
+                                                </tr>
                                                 {% endfor %}
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <td
-                                                    colspan="6"
-                                                    style="
-                                                        border: 1px solid black;
-                                                    "
-                                                ></td>
-                                                <td
-                                                    style="
-                                                        border: 1px solid black;
-                                                        font-size: small;
-                                                        text-align: right;
-                                                        white-space: nowrap;
-                                                        padding: 2px 4px;
-                                                    "
-                                                >
-                                                    <span class="text-muted"
-                                                        >KL.timer:</span
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td
+                                                        colspan="6"
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                        "
+                                                    ></td>
+                                                    <td
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                            font-size: small;
+                                                            text-align: right;
+                                                            white-space: nowrap;
+                                                            padding: 2px 4px;
+                                                        "
                                                     >
-                                                    <b
-                                                        >{{ data.kl_timer or '—'
-                                                        }}</b
+                                                        <span class="text-muted"
+                                                            >KL.timer:</span
+                                                        >
+                                                        <b
+                                                            >{{ data.kl_timer or
+                                                            '—' }}</b
+                                                        >
+                                                    </td>
+                                                    <td
+                                                        style="
+                                                            border: 1px solid
+                                                                black;
+                                                            font-size: small;
+                                                            text-align: right;
+                                                            white-space: nowrap;
+                                                            padding: 2px 4px;
+                                                        "
                                                     >
-                                                </td>
-                                                <td
-                                                    style="
-                                                        border: 1px solid black;
-                                                        font-size: small;
-                                                        text-align: right;
-                                                        white-space: nowrap;
-                                                        padding: 2px 4px;
-                                                    "
-                                                >
-                                                    <span class="text-muted"
-                                                        >Tj.timer:</span
-                                                    >
-                                                    <b
-                                                        >{{ data.tj_timer or '—'
-                                                        }}</b
-                                                    >
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
+                                                        <span class="text-muted"
+                                                            >Tj.timer:</span
+                                                        >
+                                                        <b
+                                                            >{{ data.tj_timer or
+                                                            '—' }}</b
+                                                        >
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
                                 </template>
                                 {% for row in df %} {% if row.turnus == name %}
                                 <div
                                     class="container-fluid data-felt text-center"
                                 >
+                                    <div style="overflow-x: auto;">
                                     <div
                                         class="small-text text-start"
                                         style="
@@ -868,7 +893,7 @@
                                             >Tidlig 8-12</span
                                         ><b>{{row.tidlig_8_12}}</b>
                                         <span class="text-muted text-nowrap"
-                                            >Snitt t/skift</span
+                                            >Snitt timer</span
                                         ><b>{{row.avg_shift_hours}}</b>
                                         <span class="text-muted text-nowrap"
                                             >Helgetimer</span
@@ -877,11 +902,12 @@
                                             >Helgtimer dag</span
                                         ><b>{{row.helgetimer_dagtid}}</b>
                                         <span class="text-muted text-nowrap"
-                                            >Lengste fri</span
+                                            >Lengste fri periode(r)</span
                                         ><b>{{row.longest_off_streak}}</b>
                                         <span class="text-muted text-nowrap"
-                                            >Lengste rekke</span
+                                            >Lengste arb. periode(r)</span
                                         ><b>{{row.longest_work_streak}}</b>
+                                    </div>
                                     </div>
                                 </div>
                                 {%endif%} {% endfor %}

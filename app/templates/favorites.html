@@ -46,7 +46,7 @@
             {% if favorites|length != 0 %}
                 <div class="mb-3 no-print d-flex gap-2 flex-wrap">
                     <a href="{{ url_for('shifts.import_favorites') }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-box-arrow-in-down"></i> Finn lignende turnuser
+                        <i class="bi bi-box-arrow-in-down"></i> Generer favorittliste automatisk
                     </a>
                     <a href="{{ url_for('shifts.soknadsskjema') }}" class="btn btn-sm btn-outline-success">
                         <i class="bi bi-file-earmark-word"></i> Last ned søknadsskjema
@@ -70,7 +70,7 @@
                                             <h6 class="mb-1">
                                                 <a href="{{ url_for('shifts.import_favorites') }}">
                                                     <i class="bi bi-box-arrow-in-down text-primary"></i>
-                                                        Finn lignende turnuser
+                                                        Generer favorittliste automatisk
                                                 </a>
                                             </h6>
                                             <small class="text-muted">Finner turnuser som er mest like dine favoritter fra tidligere år.</small>
@@ -202,6 +202,7 @@
                             {% for row in df %}
                                 {% if row.turnus == name %}
                                     <div class="container-fluid data-felt text-center">
+                                        <div style="overflow-x: auto;">
                                         <div class="small-text text-start" style="display:grid; grid-template-columns:repeat(8, auto); column-gap:0.6rem; row-gap:0;">
                                             <span class="text-muted text-nowrap">Dagsverk</span><b>{{row.shift_cnt}}</b>
                                             <span class="text-muted text-nowrap">Tidlig</span><b>{{row.tidlig}}</b>
@@ -215,6 +216,7 @@
                                             <span class="text-muted text-nowrap">Helgtimer dag</span><b>{{row.helgetimer_dagtid}}</b>
                                             <span class="text-muted text-nowrap">Lengste fri</span><b>{{row.longest_off_streak}}</b>
                                             <span class="text-muted text-nowrap">Lengste rekke</span><b>{{row.longest_work_streak}}</b>
+                                        </div>
                                         </div>
                                     </div>
                                 {% endif %}

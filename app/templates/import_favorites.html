@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Finn lignende turnuser{% endblock %}
+{% block title %}Generer favorittliste automatisk{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -10,7 +10,7 @@
                 <div class="card-header">
                     <h6 class="mb-0">
                         <i class="bi bi-box-arrow-in-down"></i>
-                            Finn lignende turnuser
+                            Generer favorittliste automatisk
                     </h6>
                 </div>
                 <div class="card-body">
@@ -20,19 +20,127 @@
                     </p>
 
                     {% if not available_sources %}
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            Du har ingen favoritter i tidligere turnuser som kan importeres.
-                            <br><br>
-                            For å bruke denne funksjonen må du:
-                            <ul class="mb-0 mt-2">
-                                <li>Ha favoritter lagret i en annen turnus (f.eks. {{ current_turnus_set.year_identifier if current_turnus_set else 'R25' }} -> R25)</li>
-                                <li>Statistikkfiler må finnes for begge turnusene</li>
-                            </ul>
-                        </div>
-                        <a href="{{ url_for('shifts.favorites') }}" class="btn btn-primary">
-                            <i class="bi bi-arrow-left"></i> Tilbake til favoritter
-                        </a>
+                        {% if innplassering_sources %}
+                            <!-- Innplassering fallback: user has no favorites but has past assignments -->
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle"></i>
+                                Du har ingen favoritter fra tidligere år.
+                                Vi fant din turnusplassering i tidligere turnuser:
+                            </div>
+
+                            <div class="selection-panel mb-3 p-2">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <label class="form-label d-flex align-items-center small">
+                                            <span class="step-number">1</span>
+                                            <span>Velg år å bruke som grunnlag</span>
+                                        </label>
+                                        <div id="innplasseringContainer" class="multi-select-box" style="display: block;">
+                                            <div class="multi-select-header">
+                                                <small class="text-muted" style="font-size: 0.7rem;">
+                                                    <i class="bi bi-info-circle" style="font-size: 0.75rem;"></i>
+                                                    Alle er forhåndsvalgt — fjern haken for å ekskludere et år
+                                                </small>
+                                            </div>
+                                            {% for rec in innplassering_sources %}
+                                                <div class="multi-select-option">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input form-check-input-sm inn-checkbox" type="checkbox"
+                                                               value="{{ rec.turnus_set_id }}" id="inn_{{ rec.turnus_set_id }}" checked>
+                                                        <label class="form-check-label" for="inn_{{ rec.turnus_set_id }}">
+                                                            <span class="year-badge">{{ rec.year_identifier }}</span>
+                                                            <span class="turnus-name">{{ rec.turnus_set_name }}</span>
+                                                            <span class="favorite-count">{{ rec.shift_title }}</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="innMatchCount" class="form-label d-flex align-items-center small">
+                                            <i class="bi bi-sliders me-1"></i>
+                                            <span>Treff per turnus</span>
+                                        </label>
+                                        <select class="form-select" id="innMatchCount">
+                                            <option value="3">Topp 3</option>
+                                            <option value="5" selected>Topp 5</option>
+                                            <option value="10">Topp 10</option>
+                                            <option value="0">Alle treff</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <button class="btn btn-primary" id="innFinnBtn" onclick="loadInnplasseringPreview()">
+                                        <i class="bi bi-search"></i> Generer favorittliste automatisk
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Preview section (shared with favorites flow) -->
+                            <div id="previewSection" class="preview-section" style="display: none;">
+                                <div class="preview-header mb-2">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="small">
+                                            <span class="step-number">2</span>
+                                            <span class="fw-bold">Forhåndsvisning av matchende turnuser</span>
+                                        </div>
+                                        <div class="match-info-badge" id="matchInfo"></div>
+                                    </div>
+                                </div>
+
+                                <div id="loadingSpinner" class="text-center py-4" style="display: none;">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Laster...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Analyserer turnuser...</p>
+                                </div>
+
+                                <div id="matchesContainer"></div>
+
+                                <div id="importActions" class="mt-4" style="display: none;">
+                                    <hr>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span id="selectedCount" class="text-muted">0 turnuser valgt</span>
+                                        <div>
+                                            <button class="btn btn-outline-secondary me-2" onclick="selectAll()">
+                                                Velg alle beste treff
+                                            </button>
+                                            <button class="btn btn-outline-secondary me-2" onclick="deselectAll()">
+                                                Fjern alle valg
+                                            </button>
+                                            <button class="btn btn-primary" onclick="importSelected()" id="importBtn">
+                                                <i class="bi bi-plus-circle"></i> Legg til valgte favoritter
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <a href="{{ url_for('shifts.favorites') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Tilbake til favoritter
+                                </a>
+                            </div>
+
+                        {% else %}
+                            <!-- No favorites and no innplassering data -->
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                Du har ingen favoritter i tidligere turnuser som kan importeres.
+                                <br><br>
+                                For å bruke denne funksjonen må du:
+                                <ul class="mb-0 mt-2">
+                                    <li>Ha favoritter lagret i en annen turnus (f.eks. {{ current_turnus_set.year_identifier if current_turnus_set else 'R25' }} -> R25)</li>
+                                    <li>Statistikkfiler må finnes for begge turnusene</li>
+                                </ul>
+                            </div>
+                            <a href="{{ url_for('shifts.favorites') }}" class="btn btn-primary">
+                                <i class="bi bi-arrow-left"></i> Tilbake til favoritter
+                            </a>
+                        {% endif %}
                     {% else %}
                         <!-- Step 1: Select source turnus set(s) and match count -->
                         <div class="selection-panel mb-3 p-2">
@@ -625,7 +733,7 @@ function loadPreview(sourceIds) {
         }
 
         // Update info text based on mode
-        if (data.mode === 'multi_source') {
+        if (data.mode === 'multi_source' || data.mode === 'innplassering') {
             const sourceYears = Object.values(data.by_source)
                 .map(s => s.turnus_set.year_identifier)
                 .join(', ');
@@ -685,6 +793,8 @@ function renderMatches(matches, mode) {
 
         if (mode === 'multi_source' && match.from_source) {
             sourceLabel = `(favoritt fra ${match.from_source.year_identifier})`;
+        } else if (mode === 'innplassering' && match.from_source) {
+            sourceLabel = `(innplassering fra ${match.from_source.year_identifier})`;
         }
 
         const cardHtml = `
@@ -769,6 +879,64 @@ function updateSelectedCount() {
     const count = checked.length;
     document.getElementById('selectedCount').textContent = `${count} turnus${count !== 1 ? 'er' : ''} valgt`;
     document.getElementById('importBtn').disabled = count === 0;
+}
+
+function loadInnplasseringPreview() {
+    const checkedBoxes = document.querySelectorAll('.inn-checkbox:checked');
+    const sourceIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+    if (sourceIds.length === 0) {
+        alert('Velg minst ett år å bruke som grunnlag');
+        return;
+    }
+
+    const previewSection = document.getElementById('previewSection');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const matchesContainer = document.getElementById('matchesContainer');
+    const importActions = document.getElementById('importActions');
+    const topN = parseInt(document.getElementById('innMatchCount').value);
+
+    previewSection.style.display = 'block';
+    loadingSpinner.style.display = 'block';
+    matchesContainer.innerHTML = '';
+    importActions.style.display = 'none';
+
+    fetch('/api/import-favorites-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ innplassering_source_ids: sourceIds, top_n: topN })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingSpinner.style.display = 'none';
+
+        if (data.status === 'error') {
+            matchesContainer.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> ${data.message}
+                </div>
+            `;
+            return;
+        }
+
+        const sourceYears = Object.values(data.by_source)
+            .map(s => s.turnus_set.year_identifier)
+            .join(', ');
+        document.getElementById('matchInfo').textContent =
+            `Fra ${sourceYears} til ${data.target_set.year_identifier}`;
+
+        renderMatches(data.matches, data.mode);
+        importActions.style.display = 'block';
+        updateSelectedCount();
+    })
+    .catch(error => {
+        loadingSpinner.style.display = 'none';
+        matchesContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle"></i> Feil ved lasting av data: ${error.message}
+            </div>
+        `;
+    });
 }
 
 function importSelected() {

@@ -1,880 +1,1359 @@
-{% extends "base.html" %}
-
-{% block title %}Sammenlign Turnuser{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/layout/compare.css') }}">
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Sammenlign Turnuser{% endblock %} {%
+block extra_css %}
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/layout/compare.css') }}"
+/>
+{% endblock %} {% block content %}
 <div class="container-xl py-3" data-tour-page="compare">
-
-  {# ── Controls bar ── #}
-  <div class="compare-controls mb-3">
-    <div class="d-flex align-items-center gap-2">
-      <label for="global-sort" class="form-label m-0 text-secondary" style="font-size:0.85rem; white-space:nowrap;">Sorter:</label>
-      <select id="global-sort" class="form-select form-select-sm" style="width:auto;">
-        <option value="desc">Størst → Minst</option>
-        <option value="asc">Minst → Størst</option>
-        <option value="alpha">A → Å</option>
-      </select>
-    </div>
-  </div>
-
-  {# ── Highlight strip ── #}
-  <div class="card mb-4" style="border-color: var(--bs-border-color);">
-    <div class="card-body py-2 px-3">
-      <div class="highlight-strip" id="highlight-strip"></div>
-    </div>
-  </div>
-
-  {# ── Fridager per ukedag (always visible, at top) ── #}
-  <div class="section-header section-fridager mb-3">
-    <span class="section-icon"><i class="bi bi-calendar-week"></i></span>
-    <h5>Fridager per ukedag</h5>
-    <hr>
-  </div>
-  <div class="card chart-card mb-4">
-    <div class="card-body p-2">
-      <div style="overflow-x:auto; max-height:260px; overflow-y:auto;">
-        <table class="table table-sm table-borderless weekday-grid mb-0">
-          <thead style="position:sticky;top:0;z-index:1;background:var(--bs-body-bg)">
-            <tr>
-              <th class="text-start">Turnus</th>
-              <th class="wd-th" data-col="0">Man</th>
-              <th class="wd-th" data-col="1">Tir</th>
-              <th class="wd-th" data-col="2">Ons</th>
-              <th class="wd-th" data-col="3">Tor</th>
-              <th class="wd-th" data-col="4">Fre</th>
-              <th class="wd-th" data-col="5">Lør</th>
-              <th class="wd-th" data-col="6">Søn</th>
-            </tr>
-          </thead>
-          <tbody id="weekday-tbody">
-            {% for label in labels %}
-            <tr data-turnus="{{ label }}">
-              <td class="turnus-name">
-                <a href="#" class="text-decoration-none text-body modal-turnus-link"
-                   data-turnus="{{ label }}">{{ label }}</a>
-              </td>
-              {% for day in ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'] %}
-              {% set count = weekday_free.get(label, {}).get(day, 0) %}
-              <td class="wd-cell" data-col="{{ loop.index0 }}" data-count="{{ count }}">
-                <span class="wd-pill">{{ count }}</span>
-              </td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  {# ── Vakttype & Helg — heatmap (always visible) ── #}
-  <div class="section-header section-vakttyper mb-3">
-    <span class="section-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span>
-    <h5>Vakttype &amp; Helg — oversikt</h5>
-    <hr>
-  </div>
-  <div class="card chart-card mb-4">
-    <div class="card-body p-2">
-      <div style="overflow-x:auto; max-height:320px; overflow-y:auto;">
-        <table class="table table-sm table-borderless heatmap-grid mb-0">
-          <thead style="position:sticky;top:0;z-index:1;background:var(--bs-body-bg)">
-            <tr class="hm-group-row">
-              <th></th>
-              <th colspan="6" class="hm-group-header text-center" style="color:#3b82f6">Vakttyper</th>
-              <th colspan="3" class="hm-group-header text-center hm-border-start" style="color:#10b981">Helg</th>
-            </tr>
-            <tr>
-              <th class="text-start" style="min-width:7rem">Turnus</th>
-              <th class="hm-th" data-key="natt">Natt</th>
-              <th class="hm-th" data-key="tidlig">Tidlig</th>
-              <th class="hm-th" data-key="ettermiddag">Ettm</th>
-              <th class="hm-th" data-key="before_6">Bef.6</th>
-              <th class="hm-th" data-key="tidlig_6_8">T.6-8</th>
-              <th class="hm-th" data-key="tidlig_8_12">T.8-12</th>
-              <th class="hm-th hm-border-start" data-key="helgetimer">Helg-t</th>
-              <th class="hm-th" data-key="helgedager">Helg-d</th>
-              <th class="hm-th" data-key="natt_helg">N-helg</th>
-            </tr>
-          </thead>
-          <tbody id="heatmap-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  {# ── Chart sections ── #}
-  <div>
-
-    {# ─ Vaktprofil — 100% stacked ─ #}
-    <div class="section-header section-vakttyper mb-3">
-      <span class="section-icon"><i class="bi bi-bar-chart-steps"></i></span>
-      <h5>Vaktprofil — fordeling natt / tidlig / ettermiddag</h5>
-      <hr>
-    </div>
-    <div class="row g-3 mb-4">
-      <div class="col-12">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Andel av total (100 %)</p>
-          <div class="chart-wrap" id="wrap-vaktprofil"><canvas id="chart-vaktprofil"></canvas></div>
-        </div></div>
-      </div>
-    </div>
-
-    {# ─ Helgeprofil — dagtid vs kveld/natt ─ #}
-    <div class="section-header section-helg mb-3">
-      <span class="section-icon"><i class="bi bi-sunset-fill"></i></span>
-      <h5>Helgeprofil — dag vs kveld/natt</h5>
-      <hr>
-    </div>
-    <div class="row g-3 mb-4">
-      <div class="col-12">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Helgetimer: dagtid (lør/søn før 14:00) vs kveld/natt (fre 17+, lør/søn etter 14)</p>
-          <div class="chart-wrap" id="wrap-helgeprofil"><canvas id="chart-helgeprofil"></canvas></div>
-        </div></div>
-      </div>
-    </div>
-
-    {# ─ Rytmescore (derived) ─ #}
-    <div class="section-header section-rytme mb-3">
-      <span class="section-icon"><i class="bi bi-activity"></i></span>
-      <h5>Rytmescore</h5>
-      <hr>
-    </div>
-    <div class="row g-3 mb-4">
-      <div class="col-12 col-lg-6">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Lengste fri ÷ lengste arbeidsrekke <span class="text-secondary" style="font-weight:400">(høyere = mer balansert)</span></p>
-          <div class="chart-wrap" id="wrap-rytmescore"><canvas id="chart-rytmescore"></canvas></div>
-        </div></div>
-      </div>
-    </div>
-
-    {# ─ Rytme ─ #}
-    <div class="section-header section-rytme mb-3">
-      <span class="section-icon"><i class="bi bi-arrow-repeat"></i></span>
-      <h5>Rytme</h5>
-      <hr>
-    </div>
-    <div class="row g-3 mb-4">
-      <div class="col-12 col-lg-6">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Dagsverk</p>
-          <div class="chart-wrap" id="wrap-shift_cnt"><canvas id="chart-shift_cnt"></canvas></div>
-        </div></div>
-      </div>
-      <div class="col-12 col-lg-6">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Snitt timer per vakt</p>
-          <div class="chart-wrap" id="wrap-avg_shift_hours"><canvas id="chart-avg_shift_hours"></canvas></div>
-        </div></div>
-      </div>
-      <div class="col-12 col-lg-6">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Lengste arbeidsrekke</p>
-          <div class="chart-wrap" id="wrap-longest_work_streak"><canvas id="chart-longest_work_streak"></canvas></div>
-        </div></div>
-      </div>
-      <div class="col-12 col-lg-6">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Lengste fri</p>
-          <div class="chart-wrap" id="wrap-longest_off_streak"><canvas id="chart-longest_off_streak"></canvas></div>
-        </div></div>
-      </div>
-      <div class="col-12 col-lg-6">
-        <div class="card chart-card"><div class="card-body">
-          <p class="chart-title">Ettermiddager på rad</p>
-          <div class="chart-wrap" id="wrap-afternoons_in_row"><canvas id="chart-afternoons_in_row"></canvas></div>
-        </div></div>
-      </div>
-    </div>
-
-  </div>{# end #sections-view #}
-
-
-</div>{# end container #}
-
-{# ── Turnus detail modal ── #}
-<div class="modal fade" id="turnusModal" tabindex="-1" aria-labelledby="turnusModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header py-2 px-3">
-        <div class="d-flex align-items-center gap-2 flex-grow-1 me-2 min-width-0">
-          <h5 class="modal-title fw-bold text-truncate" id="turnusModalLabel">—</h5>
-          <button id="modal-fav-btn" type="button"
-                  class="btn btn-link p-0 border-0 flex-shrink-0 d-flex flex-column align-items-center"
-                  style="line-height:1;"
-                  title="Legg til favoritt">
-            <i id="modal-fav-icon" class="bi bi-star text-secondary" style="font-size:1.35rem"></i>
-            <small class="text-muted" style="font-size:0.6rem;line-height:1.3">Favoritt</small>
-          </button>
+    {# ── Min innplassering ── #} {% if innplassering %}
+    <div class="card mb-4" id="innplassering-section">
+        <div class="card-header py-2 px-3 d-flex align-items-center gap-2">
+            <i class="bi bi-calendar-check"></i>
+            <strong>Tidligere innplasseringer</strong>
         </div>
-        <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="modal" aria-label="Lukk"></button>
-      </div>
-      <div class="modal-body px-3 py-3" id="turnusModalBody"></div>
-      <div class="modal-footer py-2 px-3">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Lukk</button>
-      </div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 2rem"></th>
+                        <th>Turnussett</th>
+                        <th>Turnus</th>
+                        <th>Linje</th>
+                        <th>Ansinitet</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in innplassering %}
+                    <tr
+                        class="inn-row"
+                        style="cursor: pointer"
+                        data-turnus-set-id="{{ row.turnus_set_id }}"
+                        data-shift-title="{{ row.shift_title }}"
+                        data-target="inn-schedule-{{ loop.index }}"
+                    >
+                        <td class="text-center align-middle">
+                            <i
+                                class="bi bi-chevron-right inn-chevron"
+                                style="
+                                    font-size: 0.75rem;
+                                    transition: transform 0.15s;
+                                "
+                            ></i>
+                        </td>
+                        <td>{{ row.turnus_set_name }}</td>
+                        <td><strong>{{ row.shift_title }}</strong></td>
+                        <td>{{ row.linjenummer or '—' }}</td>
+                        <td>{{ row.ans_nr or '—' }}</td>
+                    </tr>
+                    <tr
+                        id="inn-schedule-{{ loop.index }}"
+                        class="inn-schedule-row"
+                        style="display: none"
+                    >
+                        <td colspan="5" class="p-2 bg-body-secondary">
+                            <div class="inn-schedule-body"></div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
+    {% endif %} {# ── Controls bar ── #}
+    <div class="compare-controls mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <label
+                for="global-sort"
+                class="form-label m-0 text-secondary"
+                style="font-size: 0.85rem; white-space: nowrap"
+                >Sorter:</label
+            >
+            <select
+                id="global-sort"
+                class="form-select form-select-sm"
+                style="width: auto"
+            >
+                <option value="desc">Størst → Minst</option>
+                <option value="asc">Minst → Størst</option>
+                <option value="alpha">A → Å</option>
+            </select>
+        </div>
+    </div>
+
+    {# ── Highlight strip ── #}
+    <div class="card mb-4" style="border-color: var(--bs-border-color)">
+        <div class="card-body py-2 px-3">
+            <div class="highlight-strip" id="highlight-strip"></div>
+        </div>
+    </div>
+
+    {# ── Fridager per ukedag (always visible, at top) ── #}
+    <div class="section-header section-fridager mb-3">
+        <span class="section-icon"><i class="bi bi-calendar-week"></i></span>
+        <h5>Fridager per ukedag</h5>
+        <hr />
+    </div>
+    <div class="card chart-card mb-4">
+        <div class="card-body p-2">
+            <div style="overflow-x: auto; max-height: 260px; overflow-y: auto">
+                <table
+                    class="table table-sm table-borderless weekday-grid mb-0"
+                >
+                    <thead
+                        style="
+                            position: sticky;
+                            top: 0;
+                            z-index: 1;
+                            background: var(--bs-body-bg);
+                        "
+                    >
+                        <tr>
+                            <th class="text-start">Turnus</th>
+                            <th class="wd-th" data-col="0">Man</th>
+                            <th class="wd-th" data-col="1">Tir</th>
+                            <th class="wd-th" data-col="2">Ons</th>
+                            <th class="wd-th" data-col="3">Tor</th>
+                            <th class="wd-th" data-col="4">Fre</th>
+                            <th class="wd-th" data-col="5">Lør</th>
+                            <th class="wd-th" data-col="6">Søn</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weekday-tbody">
+                        {% for label in labels %}
+                        <tr data-turnus="{{ label }}">
+                            <td class="turnus-name">
+                                <a
+                                    href="#"
+                                    class="text-decoration-none text-body modal-turnus-link"
+                                    data-turnus="{{ label }}"
+                                    >{{ label }}</a
+                                >
+                            </td>
+                            {% for day in
+                            ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag']
+                            %} {% set count = weekday_free.get(label,
+                            {}).get(day, 0) %}
+                            <td
+                                class="wd-cell"
+                                data-col="{{ loop.index0 }}"
+                                data-count="{{ count }}"
+                            >
+                                <span class="wd-pill">{{ count }}</span>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ── Vakttype & Helg — heatmap (always visible) ── #}
+    <div class="section-header section-vakttyper mb-3">
+        <span class="section-icon"
+            ><i class="bi bi-grid-3x3-gap-fill"></i
+        ></span>
+        <h5>Vakttype &amp; Helg — oversikt</h5>
+        <hr />
+    </div>
+    <div class="card chart-card mb-4">
+        <div class="card-body p-2">
+            <div style="overflow-x: auto; max-height: 320px; overflow-y: auto">
+                <table
+                    class="table table-sm table-borderless heatmap-grid mb-0"
+                >
+                    <thead
+                        style="
+                            position: sticky;
+                            top: 0;
+                            z-index: 1;
+                            background: var(--bs-body-bg);
+                        "
+                    >
+                        <tr class="hm-group-row">
+                            <th></th>
+                            <th
+                                colspan="6"
+                                class="hm-group-header text-center"
+                                style="color: #3b82f6"
+                            >
+                                Vakttyper
+                            </th>
+                            <th
+                                colspan="3"
+                                class="hm-group-header text-center hm-border-start"
+                                style="color: #10b981"
+                            >
+                                Helg
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="text-start" style="min-width: 7rem">
+                                Turnus
+                            </th>
+                            <th class="hm-th" data-key="natt">Natt</th>
+                            <th class="hm-th" data-key="tidlig">Tidlig</th>
+                            <th class="hm-th" data-key="ettermiddag">Ettm</th>
+                            <th class="hm-th" data-key="before_6">Bef.6</th>
+                            <th class="hm-th" data-key="tidlig_6_8">T.6-8</th>
+                            <th class="hm-th" data-key="tidlig_8_12">T.8-12</th>
+                            <th
+                                class="hm-th hm-border-start"
+                                data-key="helgetimer"
+                            >
+                                Helg-t
+                            </th>
+                            <th class="hm-th" data-key="helgedager">Helg-d</th>
+                            <th class="hm-th" data-key="natt_helg">N-helg</th>
+                        </tr>
+                    </thead>
+                    <tbody id="heatmap-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ── Chart sections ── #}
+    <div>
+        {# ─ Vaktprofil — 100% stacked ─ #}
+        <div class="section-header section-vakttyper mb-3">
+            <span class="section-icon"
+                ><i class="bi bi-bar-chart-steps"></i
+            ></span>
+            <h5>Vaktprofil — fordeling natt / tidlig / ettermiddag</h5>
+            <hr />
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">Andel av total (100 %)</p>
+                        <div class="chart-wrap" id="wrap-vaktprofil">
+                            <canvas id="chart-vaktprofil"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ─ Helgeprofil — dagtid vs kveld/natt ─ #}
+        <div class="section-header section-helg mb-3">
+            <span class="section-icon"><i class="bi bi-sunset-fill"></i></span>
+            <h5>Helgeprofil — dag vs kveld/natt</h5>
+            <hr />
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">
+                            Helgetimer: dagtid (lør/søn før 14:00) vs kveld/natt
+                            (fre 17+, lør/søn etter 14)
+                        </p>
+                        <div class="chart-wrap" id="wrap-helgeprofil">
+                            <canvas id="chart-helgeprofil"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ─ Rytmescore (derived) ─ #}
+        <div class="section-header section-rytme mb-3">
+            <span class="section-icon"><i class="bi bi-activity"></i></span>
+            <h5>Rytmescore</h5>
+            <hr />
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">
+                            Lengste fri ÷ lengste arbeidsrekke
+                            <span
+                                class="text-secondary"
+                                style="font-weight: 400"
+                                >(høyere = mer balansert)</span
+                            >
+                        </p>
+                        <div class="chart-wrap" id="wrap-rytmescore">
+                            <canvas id="chart-rytmescore"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ─ Rytme ─ #}
+        <div class="section-header section-rytme mb-3">
+            <span class="section-icon"><i class="bi bi-arrow-repeat"></i></span>
+            <h5>Rytme</h5>
+            <hr />
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">Dagsverk</p>
+                        <div class="chart-wrap" id="wrap-shift_cnt">
+                            <canvas id="chart-shift_cnt"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">Snitt timer per vakt</p>
+                        <div class="chart-wrap" id="wrap-avg_shift_hours">
+                            <canvas id="chart-avg_shift_hours"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">Lengste arbeidsrekke</p>
+                        <div class="chart-wrap" id="wrap-longest_work_streak">
+                            <canvas id="chart-longest_work_streak"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">Lengste fri</p>
+                        <div class="chart-wrap" id="wrap-longest_off_streak">
+                            <canvas id="chart-longest_off_streak"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card">
+                    <div class="card-body">
+                        <p class="chart-title">Ettermiddager på rad</p>
+                        <div class="chart-wrap" id="wrap-afternoons_in_row">
+                            <canvas id="chart-afternoons_in_row"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# end #sections-view #}
+</div>
+{# end container #} {# ── Turnus detail modal ── #}
+<div
+    class="modal fade"
+    id="turnusModal"
+    tabindex="-1"
+    aria-labelledby="turnusModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+                <div
+                    class="d-flex align-items-center gap-2 flex-grow-1 me-2 min-width-0"
+                >
+                    <h5
+                        class="modal-title fw-bold text-truncate"
+                        id="turnusModalLabel"
+                    >
+                        —
+                    </h5>
+                    <button
+                        id="modal-fav-btn"
+                        type="button"
+                        class="btn btn-link p-0 border-0 flex-shrink-0 d-flex flex-column align-items-center"
+                        style="line-height: 1"
+                        title="Legg til favoritt"
+                    >
+                        <i
+                            id="modal-fav-icon"
+                            class="bi bi-star text-secondary"
+                            style="font-size: 1.35rem"
+                        ></i>
+                        <small
+                            class="text-muted"
+                            style="font-size: 0.6rem; line-height: 1.3"
+                            >Favoritt</small
+                        >
+                    </button>
+                </div>
+                <button
+                    type="button"
+                    class="btn-close flex-shrink-0"
+                    data-bs-dismiss="modal"
+                    aria-label="Lukk"
+                ></button>
+            </div>
+            <div class="modal-body px-3 py-3" id="turnusModalBody"></div>
+            <div class="modal-footer py-2 px-3">
+                <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    data-bs-dismiss="modal"
+                >
+                    Lukk
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {# ── JSON data for JS ── #}
-<script id="compare-labels"   type="application/json">{{ labels|tojson }}</script>
-<script id="compare-data"     type="application/json">{{ data|tojson }}</script>
-<script id="compare-schedule" type="application/json">{{ schedule_data|tojson }}</script>
-<script id="compare-favoritt" type="application/json">{{ favoritt|tojson }}</script>
+<script id="compare-labels" type="application/json">
+    {{ labels|tojson }}
+</script>
+<script id="compare-data" type="application/json">
+    {{ data|tojson }}
+</script>
+<script id="compare-schedule" type="application/json">
+    {{ schedule_data|tojson }}
+</script>
+<script id="compare-favoritt" type="application/json">
+    {{ favoritt|tojson }}
+</script>
+<script id="compare-innplassering" type="application/json">
+    {{ innplassering|tojson }}
+</script>
+<script id="compare-inn-schedules" type="application/json">
+    {{ innplassering_schedules|tojson }}
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-(function () {
-  'use strict';
+    (function () {
+        "use strict";
 
-  const turnusLabels = JSON.parse(document.getElementById('compare-labels').textContent);
-  const metricsData  = JSON.parse(document.getElementById('compare-data').textContent);
-  const scheduleData = JSON.parse(document.getElementById('compare-schedule').textContent);
+        const turnusLabels = JSON.parse(
+            document.getElementById("compare-labels").textContent,
+        );
+        const metricsData = JSON.parse(
+            document.getElementById("compare-data").textContent,
+        );
+        const scheduleData = JSON.parse(
+            document.getElementById("compare-schedule").textContent,
+        );
 
-  // ── Favorites state ──────────────────────────────────────────────────────
-  let favorites = new Set(JSON.parse(document.getElementById('compare-favoritt').textContent));
-  let currentModalTurnus = null;
+        // ── Favorites state ──────────────────────────────────────────────────────
+        let favorites = new Set(
+            JSON.parse(document.getElementById("compare-favoritt").textContent),
+        );
+        let currentModalTurnus = null;
 
-  // ── Section config (Rytme only — Vakttyper/Helg shown as heatmap) ────────
-  const SECTIONS = [
-    {
-      color: '#8b5cf6',
-      metrics: [
-        { key: 'shift_cnt',           label: 'Dagsverk' },
-        { key: 'avg_shift_hours',     label: 'Snitt timer' },
-        { key: 'longest_work_streak', label: 'Lengste rekke' },
-        { key: 'longest_off_streak',  label: 'Lengste fri' },
-        { key: 'afternoons_in_row',   label: 'Ettermiddag på rad' },
-      ]
-    }
-  ];
-
-  // ── Heatmap config ────────────────────────────────────────────────────────
-  const HEATMAP_COLS = [
-    { key: 'natt',        group: 'vakttyper' },
-    { key: 'tidlig',      group: 'vakttyper' },
-    { key: 'ettermiddag', group: 'vakttyper' },
-    { key: 'before_6',    group: 'vakttyper' },
-    { key: 'tidlig_6_8',  group: 'vakttyper' },
-    { key: 'tidlig_8_12', group: 'vakttyper' },
-    { key: 'helgetimer',  group: 'helg' },
-    { key: 'helgedager',  group: 'helg' },
-    { key: 'natt_helg',   group: 'helg' },
-  ];
-  const GROUP_HUE = { vakttyper: 214, helg: 142 };
-
-  // ── State ────────────────────────────────────────────────────────────────
-  let currentSort = 'desc';
-  const charts = {};
-
-  // ── Sort helper ──────────────────────────────────────────────────────────
-  function sortedData(rawLabels, rawValues, sortMode) {
-    const zipped = rawLabels.map((l, i) => ({ l, v: rawValues[i] }));
-    if (sortMode === 'alpha') {
-      zipped.sort((a, b) => a.l.localeCompare(b.l, 'nb'));
-    } else if (sortMode === 'asc') {
-      zipped.sort((a, b) => a.v - b.v);
-    } else {
-      zipped.sort((a, b) => b.v - a.v);
-    }
-    return { lbls: zipped.map(x => x.l), vals: zipped.map(x => x.v) };
-  }
-
-  function destroyChart(id) {
-    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
-  }
-
-  // Replace the canvas element so Chart.js gets a clean slate (no stale
-  // width/height attributes left over from the previous render).
-  function freshCanvas(wrapId, canvasId) {
-    const wrap = document.getElementById(wrapId);
-    if (!wrap) return [null, null];
-    const old = document.getElementById(canvasId);
-    if (old) old.remove();
-    const canvas = document.createElement('canvas');
-    canvas.id = canvasId;
-    wrap.appendChild(canvas);
-    return [wrap, canvas];
-  }
-
-  // ── Shift colour class (mirrors the global CSS system) ───────────────────
-  function shiftClass(tidStr) {
-    if (!tidStr) return 'day_off';
-    const h = parseInt(tidStr.split(':')[0], 10);
-    if (h < 6)  return 'night-early';
-    if (h < 8)  return 'morning';
-    if (h < 12) return 'midday';
-    if (h < 17) return 'afternoon';
-    return 'evening';
-  }
-
-  // Map CSS class → CSS custom property (beats Bootstrap .table box-shadow)
-  const CLASS_TO_VAR = {
-    'night-early': '--color-shift-night-early',
-    'morning':     '--color-shift-morning',
-    'midday':      '--color-shift-midday',
-    'afternoon':   '--color-shift-afternoon',
-    'evening':     '--color-shift-evening',
-    'day_off':     '--color-shift-day-off',
-  };
-  // Classes that need white text on their default background
-  const WHITE_TEXT_CLASSES = new Set(['morning', 'midday', 'evening']);
-
-  // Apply user's custom colour settings (from color-adjustment.js localStorage)
-  function applyCustomColorsToModal() {
-    try {
-      const raw = localStorage.getItem('shiftColorSettings');
-      if (!raw) return;
-      const settings = JSON.parse(raw);
-      if (settings.early || settings.earlylate || settings.earlybefore6 || settings.late || settings.night) return;
-
-      const classToKey = {
-        'night-early': ['nightEarly', true],
-        'morning':     ['morning',    false],
-        'midday':      ['midday',     false],
-        'afternoon':   ['afternoon',  false],
-        'evening':     ['evening',    true],
-        'day_off':     ['dayoff',     false],
-      };
-
-      document.querySelectorAll('#turnusModalBody td').forEach(td => {
-        for (const [cls, [key, whiteText]] of Object.entries(classToKey)) {
-          if (td.classList.contains(cls) && settings[key]) {
-            td.style.backgroundColor = settings[key].color;
-            td.style.color = whiteText ? '#fff' : '';
-            break;
-          }
-        }
-      });
-    } catch (_) { /* ignore */ }
-  }
-
-  // ── Favorites: star button ───────────────────────────────────────────────
-  function updateFavButton(turnusName) {
-    const icon = document.getElementById('modal-fav-icon');
-    const btn  = document.getElementById('modal-fav-btn');
-    if (!icon || !btn) return;
-    const isFav = favorites.has(turnusName);
-    icon.className = isFav ? 'bi bi-star-fill text-warning' : 'bi bi-star text-secondary';
-    icon.style.fontSize = '1.35rem';
-    btn.title = isFav ? 'Fjern fra favoritter' : 'Legg til favoritter';
-  }
-
-  function toggleFavorite() {
-    if (!currentModalTurnus) return;
-    const isFav = favorites.has(currentModalTurnus);
-    const btn   = document.getElementById('modal-fav-btn');
-    if (btn) btn.disabled = true;
-
-    fetch('/api/toggle_favorite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shift_title: currentModalTurnus, favorite: !isFav }),
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.status === 'success') {
-          favorites = new Set(data.favorites);
-          updateFavButton(currentModalTurnus);
-        }
-      })
-      .catch(err => console.error('Favorite toggle failed:', err))
-      .finally(() => { if (btn) btn.disabled = false; });
-  }
-
-  // ── Turnus detail modal ──────────────────────────────────────────────────
-  function showTurnusModal(turnusName) {
-    currentModalTurnus = turnusName;
-    const idx = turnusLabels.indexOf(turnusName);
-
-    document.getElementById('turnusModalLabel').textContent = turnusName;
-    updateFavButton(turnusName);
-    document.getElementById('modal-fav-btn').onclick = toggleFavorite;
-
-    // Stats strip
-    const STATS = [
-      { key: 'shift_cnt',           label: 'Dagsverk' },
-      { key: 'natt',                label: 'Natt' },
-      { key: 'tidlig',              label: 'Tidlig' },
-      { key: 'ettermiddag',         label: 'Ettermiddag' },
-      { key: 'helgetimer',          label: 'Helgetimer' },
-      { key: 'helgedager',          label: 'Helgedager' },
-      { key: 'natt_helg',           label: 'Natt helg' },
-      { key: 'avg_shift_hours',     label: 'Snitt timer' },
-      { key: 'longest_work_streak', label: 'Lengste rekke' },
-      { key: 'longest_off_streak',  label: 'Lengste fri' },
-      { key: 'afternoons_in_row',   label: 'Etm. på rad' },
-    ];
-
-    let html = '<div class="d-flex flex-wrap gap-2 mb-3">';
-    STATS.forEach(({ key, label }) => {
-      const val = idx >= 0 ? (metricsData[key] || [])[idx] : undefined;
-      if (val !== undefined) {
-        html +=
-          `<div class="border rounded text-center px-2 py-1" style="min-width:4.5rem">` +
-          `<div class="text-secondary" style="font-size:.68rem;line-height:1.2">${label}</div>` +
-          `<div class="fw-bold" style="font-size:1rem;line-height:1.4">${val}</div>` +
-          `</div>`;
-      }
-    });
-    html += '</div>';
-
-    // Schedule table
-    const turSched   = scheduleData[turnusName] || {};
-    const DAY_LABELS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
-
-    html += '<p class="text-secondary mb-2" style="font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Turnusskjema</p>';
-    html += '<div style="overflow-x:auto"><table class="table table-sm table-bordered mb-0" style="table-layout:fixed;width:100%">';
-    html += '<thead class="table-light"><tr>';
-    html += '<th style="width:2.4rem"></th>';
-    DAY_LABELS.forEach(d => { html += `<th class="text-center" style="font-size:.75rem">${d}</th>`; });
-    html += '</tr></thead><tbody>';
-
-    for (let linje = 1; linje <= 6; linje++) {
-      const row = turSched[String(linje)] || {};
-      html += `<tr><td class="fw-semibold text-secondary align-middle text-center" style="font-size:.72rem;border:1px solid #555">L${linje}</td>`;
-      for (let dag = 1; dag <= 7; dag++) {
-        const cell    = row[String(dag)] || {};
-        const tid     = cell.tid || '';
-        const dg      = cell.dg  || '';
-        const cls     = shiftClass(tid);
-        const bgVar   = CLASS_TO_VAR[cls];
-        const bgStyle = bgVar ? `background-color:var(${bgVar});` : '';
-        const fgStyle = WHITE_TEXT_CLASSES.has(cls) ? 'color:#fff;' : '';
-        html += `<td class="${cls} text-center align-middle" style="${bgStyle}${fgStyle}padding:.15rem .2rem;border:1px solid #555;overflow:hidden">`;
-        if (dg)  html += `<div style="font-size:.62rem;line-height:1.1;opacity:.85">${dg}</div>`;
-        html += `<div style="font-size:.72rem;line-height:1.2">${tid || '<span style="opacity:.3">·</span>'}</div>`;
-        html += `</td>`;
-      }
-      html += '</tr>';
-    }
-    html += '</tbody></table></div>';
-
-    document.getElementById('turnusModalBody').innerHTML = html;
-    applyCustomColorsToModal();
-
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('turnusModal')).show();
-  }
-
-  // ── Heatmap table ─────────────────────────────────────────────────────────
-  function makeHeatmap() {
-    const tbody = document.getElementById('heatmap-tbody');
-    if (!tbody) return;
-
-    // Per-column max for independent normalization
-    const colMaxes = {};
-    HEATMAP_COLS.forEach(col => {
-      const arr = metricsData[col.key] || [];
-      colMaxes[col.key] = arr.length ? Math.max(...arr) : 1;
-    });
-
-    tbody.innerHTML = '';
-    turnusLabels.forEach(label => {
-      const origIdx = turnusLabels.indexOf(label);
-      const tr = document.createElement('tr');
-      tr.dataset.turnus = label;
-      tr.style.cursor = 'pointer';
-      tr.addEventListener('click', () => showTurnusModal(label));
-
-      const tdName = document.createElement('td');
-      tdName.className = 'turnus-name text-nowrap';
-      tdName.textContent = label;
-      tr.appendChild(tdName);
-
-      HEATMAP_COLS.forEach((col, colIdx) => {
-        const raw = origIdx >= 0 ? ((metricsData[col.key] || [])[origIdx] ?? 0) : 0;
-        const ratio = raw / (colMaxes[col.key] || 1);
-        const hue = GROUP_HUE[col.group] || 214;
-        const sat = Math.round(ratio * 65);
-        const lgt = Math.round(96 - ratio * 44);
-
-        const td = document.createElement('td');
-        td.className = 'hm-cell' + (colIdx === 6 ? ' hm-border-start' : '');
-        td.dataset.key = col.key;
-        td.dataset.val = raw;
-        td.style.backgroundColor = `hsl(${hue}, ${sat}%, ${lgt}%)`;
-        td.style.color = ratio > 0.58 ? '#fff' : '#222';
-        td.textContent = typeof raw === 'number' && raw % 1 !== 0 ? raw.toFixed(1) : raw;
-        tr.appendChild(td);
-      });
-
-      tbody.appendChild(tr);
-    });
-  }
-
-  function initHeatmapSort() {
-    let sortKey = null;
-    let sortDir = 'desc';
-    document.querySelectorAll('.hm-th').forEach(th => {
-      th.addEventListener('click', () => {
-        const key = th.dataset.key;
-        sortDir = sortKey === key ? (sortDir === 'desc' ? 'asc' : 'desc') : 'desc';
-        sortKey = key;
-        document.querySelectorAll('.hm-th').forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
-        th.classList.add('sort-' + sortDir);
-        const tbody = document.getElementById('heatmap-tbody');
-        Array.from(tbody.querySelectorAll('tr'))
-          .sort((a, b) => {
-            const aV = parseFloat(a.querySelector(`[data-key="${key}"]`)?.dataset.val || '0');
-            const bV = parseFloat(b.querySelector(`[data-key="${key}"]`)?.dataset.val || '0');
-            return sortDir === 'desc' ? bV - aV : aV - bV;
-          })
-          .forEach(row => tbody.appendChild(row));
-      });
-    });
-  }
-
-  // ── Horizontal bar chart ─────────────────────────────────────────────────
-  function makeBarChart(key, labelsArr, valuesArr, color) {
-    const canvasId = 'chart-' + key;
-    const wrapId   = 'wrap-'  + key;
-    destroyChart(canvasId);
-
-    const [wrap, canvas] = freshCanvas(wrapId, canvasId);
-    if (!wrap) return;
-
-    const count   = labelsArr.length;
-    const canvasH = Math.max(count * 26 + 20, 120);
-    const maxWrapH = 520;
-
-    wrap.style.maxHeight = maxWrapH + 'px';
-    wrap.style.overflowY = canvasH > maxWrapH ? 'auto' : 'hidden';
-    wrap.style.overflowX = 'hidden';
-    canvas.style.height  = canvasH + 'px';
-    canvas.style.width   = '100%';
-    canvas.height        = canvasH;
-
-    charts[canvasId] = new Chart(canvas.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: labelsArr,
-        datasets: [{
-          data: valuesArr,
-          backgroundColor: color + '33',
-          borderColor: color + 'cc',
-          borderWidth: 1,
-          borderRadius: 4,
-          borderSkipped: false,
-          barPercentage: 0.75,
-          categoryPercentage: 0.85,
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: false,
-        maintainAspectRatio: false,
-        animation: false,
-        onClick: (_e, elements) => {
-          if (elements.length > 0) showTurnusModal(labelsArr[elements[0].index]);
-        },
-        onHover: (_e, elements, chart) => {
-          chart.canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
-        },
-        scales: {
-          x: {
-            beginAtZero: true,
-            grid: { color: 'rgba(0,0,0,0.06)' },
-            ticks: { font: { size: 11 } }
-          },
-          y: {
-            ticks: {
-              autoSkip: false,
-              font: { size: 12 },
-              padding: 4,
-              callback: function (v) {
-                const lbl = this.getLabelForValue(v);
-                return lbl.length > 22 ? lbl.slice(0, 21) + '…' : lbl;
-              }
+        // ── Section config (Rytme only — Vakttyper/Helg shown as heatmap) ────────
+        const SECTIONS = [
+            {
+                color: "#8b5cf6",
+                metrics: [
+                    { key: "shift_cnt", label: "Dagsverk" },
+                    { key: "avg_shift_hours", label: "Snitt timer" },
+                    { key: "longest_work_streak", label: "Lengste rekke" },
+                    { key: "longest_off_streak", label: "Lengste fri" },
+                    { key: "afternoons_in_row", label: "Ettermiddag på rad" },
+                ],
             },
-            grid: { display: false }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { title: items => items[0]?.label || '' } }
-        }
-      }
-    });
-  }
+        ];
 
-  // ── Stacked bar chart ────────────────────────────────────────────────────
-  function makeStackedBar(canvasId, wrapId, labelsArr, datasets, isPercent) {
-    destroyChart(canvasId);
-    const [wrap, canvas] = freshCanvas(wrapId, canvasId);
-    if (!wrap) return;
+        // ── Heatmap config ────────────────────────────────────────────────────────
+        const HEATMAP_COLS = [
+            { key: "natt", group: "vakttyper" },
+            { key: "tidlig", group: "vakttyper" },
+            { key: "ettermiddag", group: "vakttyper" },
+            { key: "before_6", group: "vakttyper" },
+            { key: "tidlig_6_8", group: "vakttyper" },
+            { key: "tidlig_8_12", group: "vakttyper" },
+            { key: "helgetimer", group: "helg" },
+            { key: "helgedager", group: "helg" },
+            { key: "natt_helg", group: "helg" },
+        ];
+        const GROUP_HUE = { vakttyper: 214, helg: 142 };
 
-    const count   = labelsArr.length;
-    const canvasH = Math.max(count * 26 + 20, 120);
-    const maxWrapH = 520;
+        // ── State ────────────────────────────────────────────────────────────────
+        let currentSort = "desc";
+        const charts = {};
 
-    wrap.style.maxHeight = maxWrapH + 'px';
-    wrap.style.overflowY = canvasH > maxWrapH ? 'auto' : 'hidden';
-    wrap.style.overflowX = 'hidden';
-    canvas.style.height  = canvasH + 'px';
-    canvas.style.width   = '100%';
-    canvas.height        = canvasH;
-
-    charts[canvasId] = new Chart(canvas.getContext('2d'), {
-      type: 'bar',
-      data: { labels: labelsArr, datasets },
-      options: {
-        indexAxis: 'y',
-        responsive: false,
-        maintainAspectRatio: false,
-        animation: false,
-        onClick: (_e, elements) => {
-          if (elements.length > 0) showTurnusModal(labelsArr[elements[0].index]);
-        },
-        onHover: (_e, elements, chart) => {
-          chart.canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
-        },
-        scales: {
-          x: {
-            stacked: true,
-            beginAtZero: true,
-            ...(isPercent ? { max: 100 } : {}),
-            grid: { color: 'rgba(0,0,0,0.06)' },
-            ticks: {
-              font: { size: 11 },
-              ...(isPercent ? { callback: v => v + '%' } : {}),
+        // ── Sort helper ──────────────────────────────────────────────────────────
+        function sortedData(rawLabels, rawValues, sortMode) {
+            const zipped = rawLabels.map((l, i) => ({ l, v: rawValues[i] }));
+            if (sortMode === "alpha") {
+                zipped.sort((a, b) => a.l.localeCompare(b.l, "nb"));
+            } else if (sortMode === "asc") {
+                zipped.sort((a, b) => a.v - b.v);
+            } else {
+                zipped.sort((a, b) => b.v - a.v);
             }
-          },
-          y: {
-            stacked: true,
-            ticks: { autoSkip: false, font: { size: 12 }, padding: 4 },
-            grid: { display: false }
-          }
-        },
-        plugins: {
-          legend: {
-            display: true, position: 'top',
-            labels: { boxWidth: 12, font: { size: 11 }, padding: 12 }
-          },
-          tooltip: {
-            callbacks: {
-              title: items => items[0]?.label || '',
-              label: ctx => `${ctx.dataset.label}: ${ctx.raw}${isPercent ? '%' : ''}`
-            }
-          }
+            return {
+                lbls: zipped.map((x) => x.l),
+                vals: zipped.map((x) => x.v),
+            };
         }
-      }
-    });
-  }
 
-  // ── New chart renderers ──────────────────────────────────────────────────
+        function destroyChart(id) {
+            if (charts[id]) {
+                charts[id].destroy();
+                delete charts[id];
+            }
+        }
 
-  // Vaktprofil: 100% stacked bar (natt / tidlig / ettermiddag proportions)
-  function renderVaktprofil() {
-    const KEYS   = ['natt', 'tidlig', 'ettermiddag'];
-    const COLORS = ['#1e3a5f', '#3b82f6', '#f87171'];
-    const LBLS   = ['Natt', 'Tidlig', 'Ettermiddag'];
+        // Replace the canvas element so Chart.js gets a clean slate (no stale
+        // width/height attributes left over from the previous render).
+        function freshCanvas(wrapId, canvasId) {
+            const wrap = document.getElementById(wrapId);
+            if (!wrap) return [null, null];
+            const old = document.getElementById(canvasId);
+            if (old) old.remove();
+            const canvas = document.createElement("canvas");
+            canvas.id = canvasId;
+            wrap.appendChild(canvas);
+            return [wrap, canvas];
+        }
 
-    const { lbls } = sortedData(turnusLabels, metricsData['natt'] || [], currentSort);
-    const totals = lbls.map(lbl => {
-      const i = turnusLabels.indexOf(lbl);
-      return KEYS.reduce((s, k) => s + ((metricsData[k] || [])[i] || 0), 0);
-    });
+        // ── Shift colour class (mirrors the global CSS system) ───────────────────
+        function shiftClass(tidStr) {
+            if (!tidStr) return "day_off";
+            const h = parseInt(tidStr.split(":")[0], 10);
+            if (h < 6) return "night-early";
+            if (h < 8) return "morning";
+            if (h < 12) return "midday";
+            if (h < 17) return "afternoon";
+            return "evening";
+        }
 
-    const datasets = KEYS.map((k, ki) => ({
-      label: LBLS[ki],
-      data: lbls.map((lbl, ri) => {
-        const i = turnusLabels.indexOf(lbl);
-        const val = (metricsData[k] || [])[i] || 0;
-        return Math.round((val / (totals[ri] || 1)) * 100);
-      }),
-      backgroundColor: COLORS[ki] + 'cc',
-      borderColor: COLORS[ki],
-      borderWidth: 1,
-      borderRadius: 2,
-      borderSkipped: false,
-    }));
+        // Map CSS class → CSS custom property (beats Bootstrap .table box-shadow)
+        const CLASS_TO_VAR = {
+            "night-early": "--color-shift-night-early",
+            morning: "--color-shift-morning",
+            midday: "--color-shift-midday",
+            afternoon: "--color-shift-afternoon",
+            evening: "--color-shift-evening",
+            day_off: "--color-shift-day-off",
+        };
+        // Classes that need white text on their default background
+        const WHITE_TEXT_CLASSES = new Set(["morning", "midday", "evening"]);
 
-    makeStackedBar('chart-vaktprofil', 'wrap-vaktprofil', lbls, datasets, true);
-  }
+        // Apply user's custom colour settings (from color-adjustment.js localStorage)
+        function applyCustomColorsToModal() {
+            try {
+                const raw = localStorage.getItem("shiftColorSettings");
+                if (!raw) return;
+                const settings = JSON.parse(raw);
+                if (
+                    settings.early ||
+                    settings.earlylate ||
+                    settings.earlybefore6 ||
+                    settings.late ||
+                    settings.night
+                )
+                    return;
 
-  // Helgeprofil: stacked bar (dagtid vs kveld/natt helgetimer)
-  function renderHelgeprofil() {
-    if (!(metricsData['helgetimer_dagtid'] || []).length) return;
+                const classToKey = {
+                    "night-early": ["nightEarly", true],
+                    morning: ["morning", false],
+                    midday: ["midday", false],
+                    afternoon: ["afternoon", false],
+                    evening: ["evening", true],
+                    day_off: ["dayoff", false],
+                };
 
-    const { lbls } = sortedData(turnusLabels, metricsData['helgetimer'] || [], currentSort);
-    const datasets = [
-      {
-        label: 'Dagtid (lør/søn før 14)',
-        data: lbls.map(lbl => (metricsData['helgetimer_dagtid'] || [])[turnusLabels.indexOf(lbl)] || 0),
-        backgroundColor: '#6ee7b7cc',
-        borderColor: '#10b981',
-        borderWidth: 1,
-        borderRadius: 2,
-        borderSkipped: false,
-      },
-      {
-        label: 'Kveld/natt (fre 17+, lør/søn etter 14)',
-        data: lbls.map(lbl => (metricsData['helgetimer_ettermiddag'] || [])[turnusLabels.indexOf(lbl)] || 0),
-        backgroundColor: '#065f46cc',
-        borderColor: '#064e3b',
-        borderWidth: 1,
-        borderRadius: 2,
-        borderSkipped: false,
-      }
-    ];
+                document
+                    .querySelectorAll("#turnusModalBody td")
+                    .forEach((td) => {
+                        for (const [cls, [key, whiteText]] of Object.entries(
+                            classToKey,
+                        )) {
+                            if (td.classList.contains(cls) && settings[key]) {
+                                td.style.backgroundColor = settings[key].color;
+                                td.style.color = whiteText ? "#fff" : "";
+                                break;
+                            }
+                        }
+                    });
+            } catch (_) {
+                /* ignore */
+            }
+        }
 
-    makeStackedBar('chart-helgeprofil', 'wrap-helgeprofil', lbls, datasets, false);
-  }
+        // ── Favorites: star button ───────────────────────────────────────────────
+        function updateFavButton(turnusName) {
+            const icon = document.getElementById("modal-fav-icon");
+            const btn = document.getElementById("modal-fav-btn");
+            if (!icon || !btn) return;
+            const isFav = favorites.has(turnusName);
+            icon.className = isFav
+                ? "bi bi-star-fill text-warning"
+                : "bi bi-star text-secondary";
+            icon.style.fontSize = "1.35rem";
+            btn.title = isFav ? "Fjern fra favoritter" : "Legg til favoritter";
+        }
 
-  // Rytmescore: derived ratio (longest_off / longest_work)
-  function renderRytmescore() {
-    const rawScores = turnusLabels.map((_, i) => {
-      const off  = (metricsData.longest_off_streak  || [])[i] || 0;
-      const work = (metricsData.longest_work_streak || [])[i] || 1;
-      return Math.round((off / work) * 100) / 100;
-    });
-    const { lbls, vals } = sortedData(turnusLabels, rawScores, currentSort);
-    makeBarChart('rytmescore', lbls, vals, '#f59e0b');
-  }
+        function toggleFavorite() {
+            if (!currentModalTurnus) return;
+            const isFav = favorites.has(currentModalTurnus);
+            const btn = document.getElementById("modal-fav-btn");
+            if (btn) btn.disabled = true;
 
-  // ── Highlight strip ──────────────────────────────────────────────────────
+            fetch("/api/toggle_favorite", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    shift_title: currentModalTurnus,
+                    favorite: !isFav,
+                }),
+            })
+                .then((r) => r.json())
+                .then((data) => {
+                    if (data.status === "success") {
+                        favorites = new Set(data.favorites);
+                        updateFavButton(currentModalTurnus);
+                    }
+                })
+                .catch((err) => console.error("Favorite toggle failed:", err))
+                .finally(() => {
+                    if (btn) btn.disabled = false;
+                });
+        }
 
-  // Compute Sunday evening shifts (17:00+) per turnus — "natt til mandag"
-  const sundayNightVals = turnusLabels.map(name => {
-    let count = 0;
-    const sched = scheduleData[name] || {};
-    for (let linje = 1; linje <= 6; linje++) {
-      const tid = ((sched[String(linje)] || {})[String(7)] || {}).tid || '';
-      if (tid && parseInt(tid.split(':')[0], 10) >= 17) count++;
-    }
-    return count;
-  });
+        // ── Turnus detail modal ──────────────────────────────────────────────────
+        function showTurnusModal(turnusName) {
+            currentModalTurnus = turnusName;
+            const idx = turnusLabels.indexOf(turnusName);
 
-  const RECORDS = [
-    { label: 'Flest nattevakter',   key: 'natt',              dir: 'max', icon: '🌙' },
-    { label: 'Minst helgetimer',    key: 'helgetimer',         dir: 'min', icon: '☀️', nonzero: true },
-    { label: 'Flest helgedager',    key: 'helgedager',         dir: 'max', icon: '📅' },
-    { label: 'Lengste fri',         key: 'longest_off_streak', dir: 'max', icon: '🏖️' },
-    { label: 'Flest ettermiddager', key: 'ettermiddag',        dir: 'max', icon: '🌆' },
-    { label: 'Færrest tidlig',      key: 'tidlig',             dir: 'min', icon: '⏰', nonzero: true },
-    { label: 'Flest natt til mandag', vals: sundayNightVals,   dir: 'max', icon: '🌃' },
-  ];
+            document.getElementById("turnusModalLabel").textContent =
+                turnusName;
+            updateFavButton(turnusName);
+            document.getElementById("modal-fav-btn").onclick = toggleFavorite;
 
-  function renderHighlights() {
-    const strip = document.getElementById('highlight-strip');
-    if (!strip) return;
-    strip.innerHTML = '';
+            // Stats strip
+            const STATS = [
+                { key: "shift_cnt", label: "Dagsverk" },
+                { key: "natt", label: "Natt" },
+                { key: "tidlig", label: "Tidlig" },
+                { key: "ettermiddag", label: "Ettermiddag" },
+                { key: "helgetimer", label: "Helgetimer" },
+                { key: "helgedager", label: "Helgedager" },
+                { key: "natt_helg", label: "Natt helg" },
+                { key: "avg_shift_hours", label: "Snitt timer" },
+                { key: "longest_work_streak", label: "Lengste rekke" },
+                { key: "longest_off_streak", label: "Lengste fri" },
+                { key: "afternoons_in_row", label: "Etm. på rad" },
+            ];
 
-    RECORDS.forEach(rec => {
-      const arr = rec.vals || metricsData[rec.key] || [];
-      if (!arr.length) return;
+            let html = '<div class="d-flex flex-wrap gap-2 mb-3">';
+            STATS.forEach(({ key, label }) => {
+                const val =
+                    idx >= 0 ? (metricsData[key] || [])[idx] : undefined;
+                if (val !== undefined) {
+                    html +=
+                        `<div class="border rounded text-center px-2 py-1" style="min-width:4.5rem">` +
+                        `<div class="text-secondary" style="font-size:.68rem;line-height:1.2">${label}</div>` +
+                        `<div class="fw-bold" style="font-size:1rem;line-height:1.4">${val}</div>` +
+                        `</div>`;
+                }
+            });
+            html += "</div>";
 
-      let bestIdx;
-      if (rec.dir === 'max') {
-        bestIdx = arr.indexOf(Math.max(...arr));
-      } else {
-        const candidates = rec.nonzero
-          ? arr.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0)
-          : arr.map((_, i) => i);
-        if (!candidates.length) return;
-        bestIdx = candidates.reduce((b, i) => arr[i] < arr[b] ? i : b, candidates[0]);
-      }
+            // Schedule table
+            const turSched = scheduleData[turnusName] || {};
+            const DAY_LABELS = [
+                "Man",
+                "Tir",
+                "Ons",
+                "Tor",
+                "Fre",
+                "Lør",
+                "Søn",
+            ];
 
-      const badge = document.createElement('span');
-      badge.className = 'record-badge';
-      badge.innerHTML =
-        `<span class="record-icon">${rec.icon}</span>` +
-        `<span>${rec.label}:</span>` +
-        `<a href="#" class="record-value text-decoration-none modal-turnus-link"` +
-        ` data-turnus="${turnusLabels[bestIdx]}">${turnusLabels[bestIdx]}</a>` +
-        `<span class="text-secondary">— ${arr[bestIdx]}</span>`;
-      strip.appendChild(badge);
-    });
-  }
+            html +=
+                '<p class="text-secondary mb-2" style="font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Turnusskjema</p>';
+            html +=
+                '<div style="overflow-x:auto"><table class="table table-sm table-bordered mb-0" style="table-layout:fixed;width:100%">';
+            html += '<thead class="table-light"><tr>';
+            html += '<th style="width:2.4rem"></th>';
+            DAY_LABELS.forEach((d) => {
+                html += `<th class="text-center" style="font-size:.75rem">${d}</th>`;
+            });
+            html += "</tr></thead><tbody>";
 
-  // ── Weekday grid colouring ───────────────────────────────────────────────
-  function colorWeekdayGrid() {
-    const colMaxes = Array(7).fill(0);
-    document.querySelectorAll('.wd-cell').forEach(cell => {
-      const col = parseInt(cell.dataset.col, 10);
-      const cnt = parseInt(cell.dataset.count, 10);
-      if (cnt > colMaxes[col]) colMaxes[col] = cnt;
-    });
-    document.querySelectorAll('.wd-cell').forEach(cell => {
-      const col   = parseInt(cell.dataset.col, 10);
-      const cnt   = parseInt(cell.dataset.count, 10);
-      const ratio = cnt / (colMaxes[col] || 1);
-      const pill  = cell.querySelector('.wd-pill');
-      if (pill) {
-        pill.style.backgroundColor = `hsl(142, ${Math.round(ratio * 55)}%, ${Math.round(95 - ratio * 38)}%)`;
-        pill.style.color = ratio > 0.65 ? '#fff' : 'inherit';
-      }
-    });
-  }
+            for (let linje = 1; linje <= 6; linje++) {
+                const row = turSched[String(linje)] || {};
+                html += `<tr><td class="fw-semibold text-secondary align-middle text-center" style="font-size:.72rem;border:1px solid #555">L${linje}</td>`;
+                for (let dag = 1; dag <= 7; dag++) {
+                    const cell = row[String(dag)] || {};
+                    const tid = cell.tid || "";
+                    const dg = cell.dg || "";
+                    const cls = shiftClass(tid);
+                    const bgVar = CLASS_TO_VAR[cls];
+                    const bgStyle = bgVar
+                        ? `background-color:var(${bgVar});`
+                        : "";
+                    const fgStyle = WHITE_TEXT_CLASSES.has(cls)
+                        ? "color:#fff;"
+                        : "";
+                    html += `<td class="${cls} text-center align-middle" style="${bgStyle}${fgStyle}padding:.15rem .2rem;border:1px solid #555;overflow:hidden">`;
+                    if (dg)
+                        html += `<div style="font-size:.62rem;line-height:1.1;opacity:.85">${dg}</div>`;
+                    html += `<div style="font-size:.72rem;line-height:1.2">${tid || '<span style="opacity:.3">·</span>'}</div>`;
+                    html += `</td>`;
+                }
+                html += "</tr>";
+            }
+            html += "</tbody></table></div>";
 
-  // ── Weekday column sorting ───────────────────────────────────────────────
-  function initWeekdaySort() {
-    let sortCol = null;
-    let sortDir = 'desc';
-    document.querySelectorAll('.wd-th').forEach(th => {
-      th.addEventListener('click', () => {
-        const col = parseInt(th.dataset.col, 10);
-        sortDir = sortCol === col ? (sortDir === 'desc' ? 'asc' : 'desc') : 'desc';
-        sortCol = col;
-        document.querySelectorAll('.wd-th').forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
-        th.classList.add('sort-' + sortDir);
-        const tbody = document.getElementById('weekday-tbody');
-        Array.from(tbody.querySelectorAll('tr'))
-          .sort((a, b) => {
-            const aV = parseInt(a.querySelector(`.wd-cell[data-col="${col}"]`)?.dataset.count || '0', 10);
-            const bV = parseInt(b.querySelector(`.wd-cell[data-col="${col}"]`)?.dataset.count || '0', 10);
-            return sortDir === 'desc' ? bV - aV : aV - bV;
-          })
-          .forEach(row => tbody.appendChild(row));
-      });
-    });
-  }
+            document.getElementById("turnusModalBody").innerHTML = html;
+            applyCustomColorsToModal();
 
-  function renderSectionCharts() {
-    SECTIONS.forEach(section => {
-      section.metrics.forEach(({ key }) => {
-        const rawArr = metricsData[key] || [];
-        if (!rawArr.length) return;
-        const { lbls, vals } = sortedData(turnusLabels, rawArr, currentSort);
-        makeBarChart(key, lbls, vals, section.color);
-      });
-    });
-    renderVaktprofil();
-    renderHelgeprofil();
-    renderRytmescore();
-  }
+            bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("turnusModal"),
+            ).show();
+        }
 
-  // ── Event: sort ──────────────────────────────────────────────────────────
-  const sortSelect = document.getElementById('global-sort');
-  if (sortSelect) {
-    sortSelect.addEventListener('change', () => {
-      currentSort = sortSelect.value;
-      renderSectionCharts();
-    });
-  }
+        // ── Heatmap table ─────────────────────────────────────────────────────────
+        function makeHeatmap() {
+            const tbody = document.getElementById("heatmap-tbody");
+            if (!tbody) return;
 
-  // ── Event: turnus links → modal (delegated) ──────────────────────────────
-  document.addEventListener('click', e => {
-    const link = e.target.closest('.modal-turnus-link');
-    if (link) { e.preventDefault(); showTurnusModal(link.dataset.turnus); }
-  });
+            // Per-column max for independent normalization
+            const colMaxes = {};
+            HEATMAP_COLS.forEach((col) => {
+                const arr = metricsData[col.key] || [];
+                colMaxes[col.key] = arr.length ? Math.max(...arr) : 1;
+            });
 
-  // ── Init ─────────────────────────────────────────────────────────────────
-  makeHeatmap();
-  initHeatmapSort();
-  renderHighlights();
-  renderSectionCharts();
-  colorWeekdayGrid();
-  initWeekdaySort();
+            tbody.innerHTML = "";
+            turnusLabels.forEach((label) => {
+                const origIdx = turnusLabels.indexOf(label);
+                const tr = document.createElement("tr");
+                tr.dataset.turnus = label;
+                tr.style.cursor = "pointer";
+                tr.addEventListener("click", () => showTurnusModal(label));
 
-})();
+                const tdName = document.createElement("td");
+                tdName.className = "turnus-name text-nowrap";
+                tdName.textContent = label;
+                tr.appendChild(tdName);
+
+                HEATMAP_COLS.forEach((col, colIdx) => {
+                    const raw =
+                        origIdx >= 0
+                            ? ((metricsData[col.key] || [])[origIdx] ?? 0)
+                            : 0;
+                    const ratio = raw / (colMaxes[col.key] || 1);
+                    const hue = GROUP_HUE[col.group] || 214;
+                    const sat = Math.round(ratio * 65);
+                    const lgt = Math.round(96 - ratio * 44);
+
+                    const td = document.createElement("td");
+                    td.className =
+                        "hm-cell" + (colIdx === 6 ? " hm-border-start" : "");
+                    td.dataset.key = col.key;
+                    td.dataset.val = raw;
+                    td.style.backgroundColor = `hsl(${hue}, ${sat}%, ${lgt}%)`;
+                    td.style.color = ratio > 0.58 ? "#fff" : "#222";
+                    td.textContent =
+                        typeof raw === "number" && raw % 1 !== 0
+                            ? raw.toFixed(1)
+                            : raw;
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function initHeatmapSort() {
+            let sortKey = null;
+            let sortDir = "desc";
+            document.querySelectorAll(".hm-th").forEach((th) => {
+                th.addEventListener("click", () => {
+                    const key = th.dataset.key;
+                    sortDir =
+                        sortKey === key
+                            ? sortDir === "desc"
+                                ? "asc"
+                                : "desc"
+                            : "desc";
+                    sortKey = key;
+                    document
+                        .querySelectorAll(".hm-th")
+                        .forEach((t) =>
+                            t.classList.remove("sort-asc", "sort-desc"),
+                        );
+                    th.classList.add("sort-" + sortDir);
+                    const tbody = document.getElementById("heatmap-tbody");
+                    Array.from(tbody.querySelectorAll("tr"))
+                        .sort((a, b) => {
+                            const aV = parseFloat(
+                                a.querySelector(`[data-key="${key}"]`)?.dataset
+                                    .val || "0",
+                            );
+                            const bV = parseFloat(
+                                b.querySelector(`[data-key="${key}"]`)?.dataset
+                                    .val || "0",
+                            );
+                            return sortDir === "desc" ? bV - aV : aV - bV;
+                        })
+                        .forEach((row) => tbody.appendChild(row));
+                });
+            });
+        }
+
+        // ── Horizontal bar chart ─────────────────────────────────────────────────
+        function makeBarChart(key, labelsArr, valuesArr, color) {
+            const canvasId = "chart-" + key;
+            const wrapId = "wrap-" + key;
+            destroyChart(canvasId);
+
+            const [wrap, canvas] = freshCanvas(wrapId, canvasId);
+            if (!wrap) return;
+
+            const count = labelsArr.length;
+            const canvasH = Math.max(count * 26 + 20, 120);
+            const maxWrapH = 520;
+
+            wrap.style.maxHeight = maxWrapH + "px";
+            wrap.style.overflowY = canvasH > maxWrapH ? "auto" : "hidden";
+            wrap.style.overflowX = "hidden";
+            canvas.style.height = canvasH + "px";
+            canvas.style.width = "100%";
+            canvas.height = canvasH;
+
+            charts[canvasId] = new Chart(canvas.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: labelsArr,
+                    datasets: [
+                        {
+                            data: valuesArr,
+                            backgroundColor: color + "33",
+                            borderColor: color + "cc",
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            borderSkipped: false,
+                            barPercentage: 0.75,
+                            categoryPercentage: 0.85,
+                        },
+                    ],
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    onClick: (_e, elements) => {
+                        if (elements.length > 0)
+                            showTurnusModal(labelsArr[elements[0].index]);
+                    },
+                    onHover: (_e, elements, chart) => {
+                        chart.canvas.style.cursor =
+                            elements.length > 0 ? "pointer" : "default";
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: "rgba(0,0,0,0.06)" },
+                            ticks: { font: { size: 11 } },
+                        },
+                        y: {
+                            ticks: {
+                                autoSkip: false,
+                                font: { size: 12 },
+                                padding: 4,
+                                callback: function (v) {
+                                    const lbl = this.getLabelForValue(v);
+                                    return lbl.length > 22
+                                        ? lbl.slice(0, 21) + "…"
+                                        : lbl;
+                                },
+                            },
+                            grid: { display: false },
+                        },
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => items[0]?.label || "",
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+        // ── Stacked bar chart ────────────────────────────────────────────────────
+        function makeStackedBar(
+            canvasId,
+            wrapId,
+            labelsArr,
+            datasets,
+            isPercent,
+        ) {
+            destroyChart(canvasId);
+            const [wrap, canvas] = freshCanvas(wrapId, canvasId);
+            if (!wrap) return;
+
+            const count = labelsArr.length;
+            const canvasH = Math.max(count * 26 + 20, 120);
+            const maxWrapH = 520;
+
+            wrap.style.maxHeight = maxWrapH + "px";
+            wrap.style.overflowY = canvasH > maxWrapH ? "auto" : "hidden";
+            wrap.style.overflowX = "hidden";
+            canvas.style.height = canvasH + "px";
+            canvas.style.width = "100%";
+            canvas.height = canvasH;
+
+            charts[canvasId] = new Chart(canvas.getContext("2d"), {
+                type: "bar",
+                data: { labels: labelsArr, datasets },
+                options: {
+                    indexAxis: "y",
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    onClick: (_e, elements) => {
+                        if (elements.length > 0)
+                            showTurnusModal(labelsArr[elements[0].index]);
+                    },
+                    onHover: (_e, elements, chart) => {
+                        chart.canvas.style.cursor =
+                            elements.length > 0 ? "pointer" : "default";
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ...(isPercent ? { max: 100 } : {}),
+                            grid: { color: "rgba(0,0,0,0.06)" },
+                            ticks: {
+                                font: { size: 11 },
+                                ...(isPercent
+                                    ? { callback: (v) => v + "%" }
+                                    : {}),
+                            },
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                autoSkip: false,
+                                font: { size: 12 },
+                                padding: 4,
+                            },
+                            grid: { display: false },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: "top",
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 11 },
+                                padding: 12,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => items[0]?.label || "",
+                                label: (ctx) =>
+                                    `${ctx.dataset.label}: ${ctx.raw}${isPercent ? "%" : ""}`,
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+        // ── New chart renderers ──────────────────────────────────────────────────
+
+        // Vaktprofil: 100% stacked bar (natt / tidlig / ettermiddag proportions)
+        function renderVaktprofil() {
+            const KEYS = ["natt", "tidlig", "ettermiddag"];
+            const COLORS = ["#1e3a5f", "#3b82f6", "#f87171"];
+            const LBLS = ["Natt", "Tidlig", "Ettermiddag"];
+
+            const { lbls } = sortedData(
+                turnusLabels,
+                metricsData["natt"] || [],
+                currentSort,
+            );
+            const totals = lbls.map((lbl) => {
+                const i = turnusLabels.indexOf(lbl);
+                return KEYS.reduce(
+                    (s, k) => s + ((metricsData[k] || [])[i] || 0),
+                    0,
+                );
+            });
+
+            const datasets = KEYS.map((k, ki) => ({
+                label: LBLS[ki],
+                data: lbls.map((lbl, ri) => {
+                    const i = turnusLabels.indexOf(lbl);
+                    const val = (metricsData[k] || [])[i] || 0;
+                    return Math.round((val / (totals[ri] || 1)) * 100);
+                }),
+                backgroundColor: COLORS[ki] + "cc",
+                borderColor: COLORS[ki],
+                borderWidth: 1,
+                borderRadius: 2,
+                borderSkipped: false,
+            }));
+
+            makeStackedBar(
+                "chart-vaktprofil",
+                "wrap-vaktprofil",
+                lbls,
+                datasets,
+                true,
+            );
+        }
+
+        // Helgeprofil: stacked bar (dagtid vs kveld/natt helgetimer)
+        function renderHelgeprofil() {
+            if (!(metricsData["helgetimer_dagtid"] || []).length) return;
+
+            const { lbls } = sortedData(
+                turnusLabels,
+                metricsData["helgetimer"] || [],
+                currentSort,
+            );
+            const datasets = [
+                {
+                    label: "Dagtid (lør/søn før 14)",
+                    data: lbls.map(
+                        (lbl) =>
+                            (metricsData["helgetimer_dagtid"] || [])[
+                                turnusLabels.indexOf(lbl)
+                            ] || 0,
+                    ),
+                    backgroundColor: "#6ee7b7cc",
+                    borderColor: "#10b981",
+                    borderWidth: 1,
+                    borderRadius: 2,
+                    borderSkipped: false,
+                },
+                {
+                    label: "Kveld/natt (fre 17+, lør/søn etter 14)",
+                    data: lbls.map(
+                        (lbl) =>
+                            (metricsData["helgetimer_ettermiddag"] || [])[
+                                turnusLabels.indexOf(lbl)
+                            ] || 0,
+                    ),
+                    backgroundColor: "#065f46cc",
+                    borderColor: "#064e3b",
+                    borderWidth: 1,
+                    borderRadius: 2,
+                    borderSkipped: false,
+                },
+            ];
+
+            makeStackedBar(
+                "chart-helgeprofil",
+                "wrap-helgeprofil",
+                lbls,
+                datasets,
+                false,
+            );
+        }
+
+        // Rytmescore: derived ratio (longest_off / longest_work)
+        function renderRytmescore() {
+            const rawScores = turnusLabels.map((_, i) => {
+                const off = (metricsData.longest_off_streak || [])[i] || 0;
+                const work = (metricsData.longest_work_streak || [])[i] || 1;
+                return Math.round((off / work) * 100) / 100;
+            });
+            const { lbls, vals } = sortedData(
+                turnusLabels,
+                rawScores,
+                currentSort,
+            );
+            makeBarChart("rytmescore", lbls, vals, "#f59e0b");
+        }
+
+        // ── Highlight strip ──────────────────────────────────────────────────────
+
+        // Compute Sunday evening shifts (17:00+) per turnus — "natt til mandag"
+        const sundayNightVals = turnusLabels.map((name) => {
+            let count = 0;
+            const sched = scheduleData[name] || {};
+            for (let linje = 1; linje <= 6; linje++) {
+                const tid =
+                    ((sched[String(linje)] || {})[String(7)] || {}).tid || "";
+                if (tid && parseInt(tid.split(":")[0], 10) >= 17) count++;
+            }
+            return count;
+        });
+
+        const RECORDS = [
+            { label: "Flest nattevakter", key: "natt", dir: "max", icon: "🌙" },
+            {
+                label: "Minst helgetimer",
+                key: "helgetimer",
+                dir: "min",
+                icon: "☀️",
+                nonzero: true,
+            },
+            {
+                label: "Flest helgedager",
+                key: "helgedager",
+                dir: "max",
+                icon: "📅",
+            },
+            {
+                label: "Lengste fri",
+                key: "longest_off_streak",
+                dir: "max",
+                icon: "🏖️",
+            },
+            {
+                label: "Flest ettermiddager",
+                key: "ettermiddag",
+                dir: "max",
+                icon: "🌆",
+            },
+            {
+                label: "Færrest tidlig",
+                key: "tidlig",
+                dir: "min",
+                icon: "⏰",
+                nonzero: true,
+            },
+            {
+                label: "Flest natt til mandag",
+                vals: sundayNightVals,
+                dir: "max",
+                icon: "🌃",
+            },
+        ];
+
+        function renderHighlights() {
+            const strip = document.getElementById("highlight-strip");
+            if (!strip) return;
+            strip.innerHTML = "";
+
+            RECORDS.forEach((rec) => {
+                const arr = rec.vals || metricsData[rec.key] || [];
+                if (!arr.length) return;
+
+                let bestIdx;
+                if (rec.dir === "max") {
+                    bestIdx = arr.indexOf(Math.max(...arr));
+                } else {
+                    const candidates = rec.nonzero
+                        ? arr
+                              .map((v, i) => (v > 0 ? i : -1))
+                              .filter((i) => i >= 0)
+                        : arr.map((_, i) => i);
+                    if (!candidates.length) return;
+                    bestIdx = candidates.reduce(
+                        (b, i) => (arr[i] < arr[b] ? i : b),
+                        candidates[0],
+                    );
+                }
+
+                const badge = document.createElement("span");
+                badge.className = "record-badge";
+                badge.innerHTML =
+                    `<span class="record-icon">${rec.icon}</span>` +
+                    `<span>${rec.label}:</span>` +
+                    `<a href="#" class="record-value text-decoration-none modal-turnus-link"` +
+                    ` data-turnus="${turnusLabels[bestIdx]}">${turnusLabels[bestIdx]}</a>` +
+                    `<span class="text-secondary">— ${arr[bestIdx]}</span>`;
+                strip.appendChild(badge);
+            });
+        }
+
+        // ── Weekday grid colouring ───────────────────────────────────────────────
+        function colorWeekdayGrid() {
+            const colMaxes = Array(7).fill(0);
+            document.querySelectorAll(".wd-cell").forEach((cell) => {
+                const col = parseInt(cell.dataset.col, 10);
+                const cnt = parseInt(cell.dataset.count, 10);
+                if (cnt > colMaxes[col]) colMaxes[col] = cnt;
+            });
+            document.querySelectorAll(".wd-cell").forEach((cell) => {
+                const col = parseInt(cell.dataset.col, 10);
+                const cnt = parseInt(cell.dataset.count, 10);
+                const ratio = cnt / (colMaxes[col] || 1);
+                const pill = cell.querySelector(".wd-pill");
+                if (pill) {
+                    pill.style.backgroundColor = `hsl(142, ${Math.round(ratio * 55)}%, ${Math.round(95 - ratio * 38)}%)`;
+                    pill.style.color = ratio > 0.65 ? "#fff" : "inherit";
+                }
+            });
+        }
+
+        // ── Weekday column sorting ───────────────────────────────────────────────
+        function initWeekdaySort() {
+            let sortCol = null;
+            let sortDir = "desc";
+            document.querySelectorAll(".wd-th").forEach((th) => {
+                th.addEventListener("click", () => {
+                    const col = parseInt(th.dataset.col, 10);
+                    sortDir =
+                        sortCol === col
+                            ? sortDir === "desc"
+                                ? "asc"
+                                : "desc"
+                            : "desc";
+                    sortCol = col;
+                    document
+                        .querySelectorAll(".wd-th")
+                        .forEach((t) =>
+                            t.classList.remove("sort-asc", "sort-desc"),
+                        );
+                    th.classList.add("sort-" + sortDir);
+                    const tbody = document.getElementById("weekday-tbody");
+                    Array.from(tbody.querySelectorAll("tr"))
+                        .sort((a, b) => {
+                            const aV = parseInt(
+                                a.querySelector(`.wd-cell[data-col="${col}"]`)
+                                    ?.dataset.count || "0",
+                                10,
+                            );
+                            const bV = parseInt(
+                                b.querySelector(`.wd-cell[data-col="${col}"]`)
+                                    ?.dataset.count || "0",
+                                10,
+                            );
+                            return sortDir === "desc" ? bV - aV : aV - bV;
+                        })
+                        .forEach((row) => tbody.appendChild(row));
+                });
+            });
+        }
+
+        function renderSectionCharts() {
+            SECTIONS.forEach((section) => {
+                section.metrics.forEach(({ key }) => {
+                    const rawArr = metricsData[key] || [];
+                    if (!rawArr.length) return;
+                    const { lbls, vals } = sortedData(
+                        turnusLabels,
+                        rawArr,
+                        currentSort,
+                    );
+                    makeBarChart(key, lbls, vals, section.color);
+                });
+            });
+            renderVaktprofil();
+            renderHelgeprofil();
+            renderRytmescore();
+        }
+
+        // ── Event: sort ──────────────────────────────────────────────────────────
+        const sortSelect = document.getElementById("global-sort");
+        if (sortSelect) {
+            sortSelect.addEventListener("change", () => {
+                currentSort = sortSelect.value;
+                renderSectionCharts();
+            });
+        }
+
+        // ── Event: turnus links → modal (delegated) ──────────────────────────────
+        document.addEventListener("click", (e) => {
+            const link = e.target.closest(".modal-turnus-link");
+            if (link) {
+                e.preventDefault();
+                showTurnusModal(link.dataset.turnus);
+            }
+        });
+
+        // ── Innplassering schedule tables ────────────────────────────────────────
+        const innSchedules = JSON.parse(
+            document.getElementById("compare-inn-schedules").textContent,
+        );
+        const DAY_LABELS_INN = [
+            "Man",
+            "Tir",
+            "Ons",
+            "Tor",
+            "Fre",
+            "Lør",
+            "Søn",
+        ];
+
+        function buildScheduleTable(tsId, shiftTitle) {
+            const sched = (innSchedules[String(tsId)] || {})[shiftTitle] || {};
+            let html =
+                '<div style="overflow-x:auto"><table class="table table-sm table-bordered mb-0" style="table-layout:fixed;width:100%">';
+            html +=
+                '<thead class="table-light"><tr><th style="width:2.4rem"></th>';
+            DAY_LABELS_INN.forEach((d) => {
+                html += `<th class="text-center" style="font-size:.75rem">${d}</th>`;
+            });
+            html += "</tr></thead><tbody>";
+            for (let linje = 1; linje <= 6; linje++) {
+                const row = sched[String(linje)] || {};
+                html += `<tr><td class="fw-semibold text-secondary align-middle text-center" style="font-size:.72rem;border:1px solid #555">L${linje}</td>`;
+                for (let dag = 1; dag <= 7; dag++) {
+                    const cell = row[String(dag)] || {};
+                    const tid = cell.tid || "";
+                    const dg = cell.dg || "";
+                    const cls = shiftClass(tid);
+                    const bgVar = CLASS_TO_VAR[cls];
+                    const bgStyle = bgVar
+                        ? `background-color:var(${bgVar});`
+                        : "";
+                    const fgStyle = WHITE_TEXT_CLASSES.has(cls)
+                        ? "color:#fff;"
+                        : "";
+                    html += `<td class="${cls} text-center align-middle" style="${bgStyle}${fgStyle}padding:.15rem .2rem;border:1px solid #555;overflow:hidden">`;
+                    if (dg)
+                        html += `<div style="font-size:.62rem;line-height:1.1;opacity:.85">${dg}</div>`;
+                    html += `<div style="font-size:.72rem;line-height:1.2">${tid || '<span style="opacity:.3">·</span>'}</div>`;
+                    html += "</td>";
+                }
+                html += "</tr>";
+            }
+            html += "</tbody></table></div>";
+            return html;
+        }
+
+        document.querySelectorAll(".inn-row").forEach((row) => {
+            row.addEventListener("click", () => {
+                const targetId = row.dataset.target;
+                const schedRow = document.getElementById(targetId);
+                const chevron = row.querySelector(".inn-chevron");
+                const isOpen = schedRow.style.display !== "none";
+
+                if (isOpen) {
+                    schedRow.style.display = "none";
+                    if (chevron) chevron.style.transform = "";
+                } else {
+                    const body = schedRow.querySelector(".inn-schedule-body");
+                    if (body && !body.dataset.rendered) {
+                        body.innerHTML = buildScheduleTable(
+                            row.dataset.turnusSetId,
+                            row.dataset.shiftTitle,
+                        );
+                        body.dataset.rendered = "1";
+                    }
+                    schedRow.style.display = "";
+                    if (chevron) chevron.style.transform = "rotate(90deg)";
+                }
+            });
+        });
+
+        // ── Init ─────────────────────────────────────────────────────────────────
+        makeHeatmap();
+        initHeatmapSort();
+        renderHighlights();
+        renderSectionCharts();
+        colorWeekdayGrid();
+        initWeekdaySort();
+    })();
 </script>
 {% endblock %}
