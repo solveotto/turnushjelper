@@ -81,6 +81,8 @@ def toggle_favorite():
                     user_id, shift_title, order_index, turnus_set_id
                 )
                 if success:
+                    from app.services.activity_service import log_event
+                    log_event(user_id, 'favorite_add', details=shift_title)
                     return jsonify(_build_favorites_payload("Added to favorites"))
                 else:
                     return jsonify(
@@ -97,6 +99,8 @@ def toggle_favorite():
 
                 success = db_utils.remove_favorite(user_id, shift_title, turnus_set_id)
                 if success:
+                    from app.services.activity_service import log_event
+                    log_event(user_id, 'favorite_remove', details=shift_title)
                     return jsonify(_build_favorites_payload("Removed from favorites"))
                 else:
                     return jsonify(

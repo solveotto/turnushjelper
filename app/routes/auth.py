@@ -1,5 +1,6 @@
 import logging
 import secrets
+from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, session, url_for
 from flask_login import current_user, login_required, logout_user
@@ -49,6 +50,10 @@ def login():
                     form.username.data, db_user_data["id"], db_user_data["is_auth"]
                 )
                 flask_login_user(user)
+                session['login_at'] = datetime.utcnow().isoformat()
+
+                from app.services.activity_service import log_event
+                log_event(db_user_data['id'], 'login')
 
                 # Clear any previous turnus set choice for fresh start
                 session.pop("user_selected_turnus_set", None)
@@ -71,6 +76,17 @@ def login():
 @auth.route("/logout")
 @login_required
 def logout():
+    duration = None
+    login_at_str = session.get('login_at')
+    if login_at_str:
+        try:
+            duration = int((datetime.utcnow() - datetime.fromisoformat(login_at_str)).total_seconds())
+        except Exception:
+            pass
+
+    from app.services.activity_service import log_event
+    log_event(current_user.id, 'logout', session_duration_seconds=duration)
+
     # Clear turnus set choice on logout
     session.pop("user_selected_turnus_set", None)
     logout_user()

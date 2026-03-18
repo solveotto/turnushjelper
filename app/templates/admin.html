@@ -121,6 +121,29 @@
             </div>
         </div>
 
+        <!-- Aktivitetslogg -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-activity fs-4 text-info"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">Aktivitetslogg</h5>
+                            <small class="text-muted">Innlogginger og brukerhandlinger</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Se hvem som har logget inn, hvor lenge de var aktive, og hvilke favoritter de har endret.
+                    </p>
+                    <a href="{{ url_for('admin.activity_log') }}" class="btn btn-outline-info mt-auto">
+                        <i class="bi bi-arrow-right-circle"></i> Åpne
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- System -->
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 shadow-sm">

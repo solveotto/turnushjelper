@@ -39,6 +39,19 @@ def _turnusliste_cache_key():
 
 shifts = Blueprint("shifts", __name__)
 
+_TRACKED_ENDPOINTS = {"shifts.turnusliste", "shifts.compare", "shifts.favorites"}
+
+
+@shifts.before_request
+def log_page_view():
+    if not current_user.is_authenticated:
+        return
+    if request.endpoint not in _TRACKED_ENDPOINTS:
+        return
+    from app.services.activity_service import log_event
+    page = request.endpoint.split(".")[-1]
+    log_event(current_user.id, "page_view", details=page)
+
 
 @shifts.route("/")
 @login_required

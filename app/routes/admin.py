@@ -48,6 +48,18 @@ def admin_dashboard():
     )
 
 
+@admin.route("/activity")
+@admin_required
+def activity_log():
+    from app.services.activity_service import get_recent_activity, get_user_stats
+    return render_template(
+        "admin/activity.html",
+        events=get_recent_activity(limit=200),
+        user_stats=get_user_stats(),
+        page_name="Aktivitetslogg",
+    )
+
+
 @admin.route("/reset-tour", methods=["POST"])
 @admin_required
 def reset_tour():

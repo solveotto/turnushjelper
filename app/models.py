@@ -98,6 +98,16 @@ class SoknadsskjemaChoice(Base):
     )
 
 
+class UserActivity(Base):
+    __tablename__ = 'user_activity'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    event_type = Column(String(50), nullable=False)  # 'login', 'logout', 'favorite_add', 'favorite_remove'
+    timestamp = Column(DateTime, default=func.now(), nullable=False)
+    details = Column(String(255), nullable=True)       # e.g. shift title for favorite events
+    session_duration_seconds = Column(Integer, nullable=True)  # only for 'logout' events
+
+
 class Innplassering(Base):
     __tablename__ = "innplassering"
     id = Column(Integer, primary_key=True, autoincrement=True)
