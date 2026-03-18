@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex align-items-center gap-3">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Tilbake
+            </a>
+            <h1 class="mb-0">Aktivitetslogg</h1>
+        </div>
+    </div>
+
+    <!-- Per-user summary -->
+    <h4 class="mb-3">Brukeroversikt</h4>
+    <div class="table-responsive mb-5">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Bruker</th>
+                    <th class="text-end">Innlogginger</th>
+                    <th class="text-end">Sidevisninger</th>
+                    <th class="text-end">Favoritter lagt til</th>
+                    <th class="text-end">Favoritter fjernet</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in user_stats %}
+                <tr>
+                    <td>{{ s.username }}</td>
+                    <td class="text-end">{{ s.login_count }}</td>
+                    <td class="text-end">{{ s.page_views }}</td>
+                    <td class="text-end">{{ s.favorite_add }}</td>
+                    <td class="text-end">{{ s.favorite_remove }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted text-center">Ingen data ennå</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Recent activity feed -->
+    <h4 class="mb-3">Siste hendelser</h4>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tidspunkt</th>
+                    <th>Bruker</th>
+                    <th>Hendelse</th>
+                    <th>Detaljer</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in events %}
+                <tr>
+                    <td class="text-nowrap text-muted small">
+                        {{ e.timestamp.strftime('%d.%m.%Y %H:%M') if e.timestamp else '—' }}
+                    </td>
+                    <td>{{ e.username }}</td>
+                    <td>
+                        {% if e.event_type == 'login' %}
+                            <span class="badge bg-success">Innlogging</span>
+                        {% elif e.event_type == 'logout' %}
+                            <span class="badge bg-secondary">Utlogging</span>
+                        {% elif e.event_type == 'favorite_add' %}
+                            <span class="badge bg-primary">Favoritt lagt til</span>
+                        {% elif e.event_type == 'favorite_remove' %}
+                            <span class="badge bg-warning text-dark">Favoritt fjernet</span>
+                        {% elif e.event_type == 'page_view' %}
+                            <span class="badge bg-light text-dark border">Sidevisning</span>
+                        {% else %}
+                            <span class="badge bg-light text-dark">{{ e.event_type }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ e.details or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted text-center">Ingen hendelser logget ennå</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
