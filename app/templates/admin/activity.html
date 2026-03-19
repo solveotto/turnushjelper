@@ -18,6 +18,8 @@
             <thead class="table-dark">
                 <tr>
                     <th>Bruker</th>
+                    <th class="text-end">Sist aktiv</th>
+                    <th class="text-end">Aktivitet siste 30 dager</th>
                     <th class="text-end">Innlogginger</th>
                     <th class="text-end">Sidevisninger</th>
                     <th class="text-end">Favoritter lagt til</th>
@@ -28,13 +30,17 @@
                 {% for s in user_stats %}
                 <tr>
                     <td>{{ s.username }}</td>
+                    <td class="text-end text-nowrap">
+                        {{ s.last_active.strftime('%d.%m.%Y %H:%M') if s.last_active else '—' }}
+                    </td>
+                    <td class="text-end">{{ s.events_30d }}</td>
                     <td class="text-end">{{ s.login_count }}</td>
                     <td class="text-end">{{ s.page_views }}</td>
                     <td class="text-end">{{ s.favorite_add }}</td>
                     <td class="text-end">{{ s.favorite_remove }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-muted text-center">Ingen data ennå</td></tr>
+                <tr><td colspan="7" class="text-muted text-center">Ingen data ennå</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -42,6 +48,10 @@
 
     <!-- Recent activity feed -->
     <h4 class="mb-3">Siste hendelser</h4>
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="hidePageViews" checked>
+        <label class="form-check-label" for="hidePageViews">Skjul sidevisninger</label>
+    </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover align-middle">
             <thead class="table-dark">
@@ -54,7 +64,7 @@
             </thead>
             <tbody>
                 {% for e in events %}
-                <tr>
+                <tr{% if e.event_type == 'page_view' %} class="row-page-view"{% endif %}>
                     <td class="text-nowrap text-muted small">
                         {{ e.timestamp.strftime('%d.%m.%Y %H:%M') if e.timestamp else '—' }}
                     </td>
@@ -83,4 +93,18 @@
         </table>
     </div>
 </div>
+
+<script>
+(function () {
+    var checkbox = document.getElementById('hidePageViews');
+    function applyFilter() {
+        var hide = checkbox.checked;
+        document.querySelectorAll('.row-page-view').forEach(function (row) {
+            row.style.display = hide ? 'none' : '';
+        });
+    }
+    applyFilter();
+    checkbox.addEventListener('change', applyFilter);
+})();
+</script>
 {% endblock %}
