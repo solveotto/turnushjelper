@@ -28,6 +28,64 @@ export class GuidedTour {
                 }
             }
         }
+
+        // Resume a cross-page tour if one was saved
+        await this.checkAndResumeFromStorage();
+    }
+
+    async checkAndResumeFromStorage() {
+        const raw = sessionStorage.getItem('tourResume');
+        if (!raw) return;
+        sessionStorage.removeItem('tourResume');
+
+        let resume;
+        try { resume = JSON.parse(raw); } catch { return; }
+
+        const { stepsFile, startIndex, type } = resume;
+
+        let steps;
+        try {
+            const mod = await import(`./tour-definitions/${stepsFile}.js`);
+            steps = mod.default?.() || null;
+        } catch { return; }
+        if (!steps || steps.length === 0) return;
+
+        const slicedSteps = steps.slice(startIndex);
+        setTimeout(() => this._startDriverWith(slicedSteps, type === 'tour'), 500);
+    }
+
+    _startDriverWith(steps, trackSeen = false) {
+        if (typeof window.driver === 'undefined') {
+            console.warn('Driver.js not loaded');
+            return;
+        }
+
+        const config = {
+            showProgress: true,
+            animate: true,
+            overlayColor: 'rgba(30, 58, 138, 0.6)',
+            stagePadding: 8,
+            stageRadius: 8,
+            allowClose: true,
+            popoverClass: 'guided-tour-popover',
+            progressText: '{{current}} av {{total}}',
+            nextBtnText: 'Neste →',
+            prevBtnText: '← Forrige',
+            doneBtnText: 'Ferdig ✓',
+            steps: steps,
+        };
+
+        if (trackSeen) {
+            config.onDestroyStarted = () => {
+                if (this.tourSeen === '0') {
+                    this.markTourSeen();
+                }
+                this.driver.destroy();
+            };
+        }
+
+        this.driver = window.driver.js.driver(config);
+        this.driver.drive();
     }
 
     showHelpMenuItem() {
@@ -54,65 +112,13 @@ export class GuidedTour {
     async startHelp() {
         const steps = await this.getHelpStepsForCurrentPage();
         if (!steps || steps.length === 0) return;
-
-        if (typeof window.driver === 'undefined') {
-            console.warn('Driver.js not loaded');
-            return;
-        }
-
-        this.driver = window.driver.js.driver({
-            showProgress: true,
-            animate: true,
-            overlayColor: 'rgba(30, 58, 138, 0.6)',
-            stagePadding: 8,
-            stageRadius: 8,
-            allowClose: true,
-            popoverClass: 'guided-tour-popover',
-            progressText: '{{current}} av {{total}}',
-            nextBtnText: 'Neste →',
-            prevBtnText: '← Forrige',
-            doneBtnText: 'Ferdig ✓',
-            steps: steps,
-        });
-
-        this.driver.drive();
+        this._startDriverWith(steps, false);
     }
 
     async startTour() {
-        // Determine which page we're on and load the correct steps
         const steps = await this.getStepsForCurrentPage();
         if (!steps || steps.length === 0) return;
-
-        // Create a new Driver instance each time (clean state)
-        // driver.js is loaded via CDN as a global
-        if (typeof window.driver === 'undefined') {
-            console.warn('Driver.js not loaded');
-            return;
-        }
-
-        this.driver = window.driver.js.driver({
-            showProgress: true,
-            animate: true,
-            overlayColor: 'rgba(30, 58, 138, 0.6)',
-            stagePadding: 8,
-            stageRadius: 8,
-            allowClose: true,
-            popoverClass: 'guided-tour-popover',
-            progressText: '{{current}} av {{total}}',
-            nextBtnText: 'Neste →',
-            prevBtnText: '← Forrige',
-            doneBtnText: 'Ferdig ✓',
-            steps: steps,
-            onDestroyStarted: () => {
-                // Mark tour as seen when user completes or closes the tour
-                if (this.tourSeen === '0') {
-                    this.markTourSeen();
-                }
-                this.driver.destroy();
-            },
-        });
-
-        this.driver.drive();
+        this._startDriverWith(steps, true);
     }
 
     async getStepsForCurrentPage() {

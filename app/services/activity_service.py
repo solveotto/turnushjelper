@@ -1,5 +1,7 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import func, case
 
 from app.database import get_db_session
 from app.models import UserActivity, DBUser
@@ -15,7 +17,7 @@ def log_event(user_id, event_type, details=None, session_duration_seconds=None):
             event = UserActivity(
                 user_id=user_id,
                 event_type=event_type,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 details=details,
                 session_duration_seconds=session_duration_seconds,
             )
@@ -55,47 +57,40 @@ def get_recent_activity(limit=100):
 
 
 def get_user_stats():
-    """Return per-user activity aggregates."""
+    """Return per-user activity aggregates using SQL GROUP BY."""
     db_session = get_db_session()
     try:
+        cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
+
         rows = (
-            db_session.query(UserActivity, DBUser.username)
+            db_session.query(
+                UserActivity.user_id,
+                DBUser.username,
+                func.count(case((UserActivity.event_type == "login", 1))).label("login_count"),
+                func.count(case((UserActivity.event_type == "page_view", 1))).label("page_views"),
+                func.count(case((UserActivity.event_type == "favorite_add", 1))).label("favorite_add"),
+                func.count(case((UserActivity.event_type == "favorite_remove", 1))).label("favorite_remove"),
+                func.max(UserActivity.timestamp).label("last_active"),
+                func.count(case(((UserActivity.timestamp >= cutoff_30d), 1))).label("events_30d"),
+            )
             .outerjoin(DBUser, UserActivity.user_id == DBUser.id)
+            .group_by(UserActivity.user_id, DBUser.username)
             .all()
         )
+
+        result = []
+        for row in rows:
+            result.append({
+                "username": row.username or "(slettet)",
+                "login_count": row.login_count,
+                "page_views": row.page_views,
+                "favorite_add": row.favorite_add,
+                "favorite_remove": row.favorite_remove,
+                "last_active": row.last_active,
+                "events_30d": row.events_30d,
+            })
+
+        result.sort(key=lambda x: (x["last_active"] is None, x["last_active"]), reverse=True)
+        return result
     finally:
         db_session.close()
-
-    stats = {}
-    for activity, username in rows:
-        uid = activity.user_id
-        if uid not in stats:
-            stats[uid] = {
-                "username": username or "(slettet)",
-                "login_count": 0,
-                "page_views": 0,
-                "favorite_add": 0,
-                "favorite_remove": 0,
-            }
-        s = stats[uid]
-        if activity.event_type == "login":
-            s["login_count"] += 1
-        elif activity.event_type == "page_view":
-            s["page_views"] += 1
-        elif activity.event_type == "favorite_add":
-            s["favorite_add"] += 1
-        elif activity.event_type == "favorite_remove":
-            s["favorite_remove"] += 1
-
-    result = []
-    for uid, s in stats.items():
-        result.append({
-            "username": s["username"],
-            "login_count": s["login_count"],
-            "page_views": s["page_views"],
-            "favorite_add": s["favorite_add"],
-            "favorite_remove": s["favorite_remove"],
-        })
-
-    result.sort(key=lambda x: x["login_count"], reverse=True)
-    return result
