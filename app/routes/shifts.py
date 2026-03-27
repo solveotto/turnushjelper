@@ -56,7 +56,144 @@ def log_page_view():
 @shifts.route("/")
 @login_required
 def index():
-    return redirect(url_for("shifts.turnusliste", **request.args))
+    import os
+
+    import openpyxl
+
+    from config import AppConfig
+
+    if AppConfig.LANDING_PAGE == "favorites":
+        return redirect(url_for("shifts.favorites"))
+
+    active_set = db_utils.get_active_turnus_set()
+    records = get_innplassering_for_user(int(current_user.get_id()))
+    if not records or not active_set:
+        return redirect(url_for("shifts.turnusliste"))
+
+    user_record = next(
+        (r for r in records if r["turnus_set_id"] == active_set["id"]), None
+    )
+    if not user_record:
+        return redirect(url_for("shifts.turnusliste"))
+
+    shift_title = user_record["shift_title"]
+    linjenummer = user_record["linjenummer"]
+    turnus_set_id = active_set["id"]
+    year_identifier = active_set["year_identifier"]
+
+    dm = df_utils.DataframeManager(turnus_set_id)
+    raw = next((t[shift_title] for t in dm.turnus_data if shift_title in t), None)
+    if not raw:
+        return redirect(url_for("shifts.turnusliste"))
+
+    # Build linje_shifts for turnusnøkkel (same logic as turnusnokkel_view)
+    linje_shifts = {}
+    for uke_nr, ukedata in sorted(
+        [(k, v) for k, v in raw.items() if isinstance(v, dict)],
+        key=lambda x: int(x[0]),
+    ):
+        linje = int(uke_nr)
+        linje_shifts[linje] = {}
+        for dag_nr, dag_data in ukedata.items():
+            if not isinstance(dag_data, dict):
+                continue
+            tid = dag_data.get("tid", [])
+            value = (
+                f"{tid[0]} - {tid[1]}" if len(tid) >= 2 else (tid[0] if tid else "")
+            )
+            linje_shifts[linje][int(dag_nr)] = {
+                "value": value,
+                "dagsverk": dag_data.get("dagsverk", ""),
+            }
+
+    dag_names = ["Man", "Tirs", "Ons", "Tors", "Fre", "Lør", "Søn"]
+    linje_labels = ["Linje 1", "Linje 2", "Linje 3", "Linje 4", "Linje 5", "Linje 6"]
+    template_path = os.path.join(
+        AppConfig.turnusfiler_dir,
+        year_identifier.lower(),
+        f"turnusnøkkel_{year_identifier}_org.xlsx",
+    )
+    template_found = os.path.exists(template_path)
+    groups = []
+
+    if template_found:
+        wb = openpyxl.load_workbook(template_path, data_only=True)
+        sheet = wb["Turnusnøkkel"]
+        all_rows = [list(row) for row in sheet.iter_rows(min_row=1, max_row=48)]
+        wb.close()
+        for g in range(6):
+            uke_labels = [
+                str(c.value) for c in all_rows[g * 8][7:16] if c.value is not None
+            ]
+            user_col = (linjenummer - g - 1) % 6 + 1
+            day_rows = []
+            for d in range(7):
+                _e = {"value": "", "dagsverk": ""}
+                cells = [
+                    linje_shifts.get((g + j - 1) % 6 + 1, {}).get(d + 1, _e)
+                    for j in range(1, 7)
+                ]
+                dates = [
+                    {
+                        "value": c.value.strftime("%d.%m.%y")
+                        if hasattr(c.value, "strftime")
+                        else "",
+                        "holiday": bool(
+                            c.font
+                            and c.font.color
+                            and c.font.color.type == "rgb"
+                            and c.font.color.rgb == "FFFF0000"
+                        ),
+                    }
+                    for c in all_rows[g * 8 + 1 + d][7:16]
+                ]
+                day_rows.append({"name": dag_names[d], "cells": cells, "dates": dates})
+            groups.append(
+                {"uke_labels": uke_labels, "day_rows": day_rows, "user_col": user_col}
+            )
+    else:
+        for g in range(6):
+            user_col = (linjenummer - g - 1) % 6 + 1
+            day_rows = [
+                {
+                    "name": dag_names[d],
+                    "cells": [
+                        linje_shifts.get((g + j - 1) % 6 + 1, {}).get(
+                            d + 1, {"value": "", "dagsverk": ""}
+                        )
+                        for j in range(1, 7)
+                    ],
+                    "dates": [],
+                }
+                for d in range(7)
+            ]
+            groups.append(
+                {
+                    "uke_labels": [f"Linje {g + 1}"],
+                    "day_rows": day_rows,
+                    "user_col": user_col,
+                }
+            )
+
+    df_records = dm.df.to_dict(orient="records") if not dm.df.empty else []
+    df_row = next((r for r in df_records if r.get("turnus") == shift_title), None)
+
+    return render_template(
+        "hjem.html",
+        page_name="Min Turnus",
+        shift_title=shift_title,
+        linjenummer=linjenummer,
+        turnus_data={shift_title: raw},
+        df_row=df_row,
+        linje_labels=linje_labels,
+        groups=groups,
+        template_found=template_found,
+        year_identifier=year_identifier,
+        turnus_set_id=turnus_set_id,
+        active_set=active_set,
+        current_turnus_set=active_set,
+        all_turnus_sets=[],
+    )
 
 
 @shifts.route("/turnusliste")

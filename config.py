@@ -85,6 +85,9 @@ class AppConfig:
     DEFAULT_ADMIN_USERNAME = _env("DEFAULT_ADMIN_USERNAME", "admin")
     DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD", "admin")
 
+    # Landing page: "hjem" shows Min Turnus, "favorites" redirects to /favorites
+    LANDING_PAGE = _env("LANDING_PAGE", "hjem")
+
     # Paths
     base_dir = os.path.dirname(__file__)
     static_dir = os.path.abspath(os.path.join(base_dir, "app", "static"))
