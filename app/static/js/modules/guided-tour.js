@@ -18,7 +18,8 @@ export class GuidedTour {
         }
 
         // Onboarding tour: auto-start if user hasn't seen it (global flag)
-        const tourSeenEl = document.querySelector('[data-tour-seen]');
+        const pageEl = document.querySelector('[data-tour-page]');
+        const tourSeenEl = (pageEl?.hasAttribute('data-tour-seen')) ? pageEl : document.querySelector('[data-tour-seen]');
         if (tourSeenEl) {
             this.tourSeen = tourSeenEl.dataset.tourSeen;
             if (this.tourSeen === '0') {
@@ -29,29 +30,6 @@ export class GuidedTour {
             }
         }
 
-        // Resume a cross-page tour if one was saved
-        await this.checkAndResumeFromStorage();
-    }
-
-    async checkAndResumeFromStorage() {
-        const raw = sessionStorage.getItem('tourResume');
-        if (!raw) return;
-        sessionStorage.removeItem('tourResume');
-
-        let resume;
-        try { resume = JSON.parse(raw); } catch { return; }
-
-        const { stepsFile, startIndex, type } = resume;
-
-        let steps;
-        try {
-            const mod = await import(`./tour-definitions/${stepsFile}.js`);
-            steps = mod.default?.() || null;
-        } catch { return; }
-        if (!steps || steps.length === 0) return;
-
-        const slicedSteps = steps.slice(startIndex);
-        setTimeout(() => this._startDriverWith(slicedSteps, type === 'tour'), 500);
     }
 
     _startDriverWith(steps, trackSeen = false) {
@@ -147,10 +125,11 @@ export class GuidedTour {
 
     async markTourSeen() {
         try {
+            const page = document.querySelector('[data-tour-page]')?.dataset.tourPage || 'turnusliste';
             const response = await fetch('/api/mark-tour-seen', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tour_name: 'turnusliste' }),
+                body: JSON.stringify({ tour_name: page }),
             });
             const data = await response.json();
             if (data.status === 'success') {

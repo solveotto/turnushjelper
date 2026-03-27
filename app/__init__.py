@@ -61,10 +61,13 @@ def create_app():
             db_session = get_db_session()
             try:
                 db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
-                return {"has_seen_tour": db_user.has_seen_turnusliste_tour or 0 if db_user else 0}
+                return {
+                    "has_seen_tour": db_user.has_seen_turnusliste_tour or 0 if db_user else 0,
+                    "has_seen_favorites_tour": db_user.has_seen_favorites_tour or 0 if db_user else 0,
+                }
             finally:
                 db_session.close()
-        return {"has_seen_tour": 0}
+        return {"has_seen_tour": 0, "has_seen_favorites_tour": 0}
 
     from app.routes.main import blueprints
 

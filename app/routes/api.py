@@ -713,6 +713,7 @@ def mark_tour_seen():
     # Map tour names to column names
     tour_columns = {
         "turnusliste": "has_seen_turnusliste_tour",
+        "favorites": "has_seen_favorites_tour",
     }
 
     if tour_name not in tour_columns:

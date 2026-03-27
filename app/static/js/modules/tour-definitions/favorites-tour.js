@@ -1,13 +1,11 @@
-// Help guide step definitions for the Favorites page
-// Used both standalone (via help button) and as a cross-page continuation
-// from turnusliste-help.js.
-// State-aware: shows different steps depending on whether the user has favorites.
+// Onboarding tour step definitions for the Favorites page
+// State-aware: returns different steps depending on whether the user has favorites.
 
 export default function () {
   const hasFavorites = document.querySelector('.list-group-item') !== null;
 
   if (!hasFavorites) {
-    // Path A: No favorites — explain the empty state and how to get started
+    // Path A: No favorites yet — show the empty state and how to get started
     return [
       {
         popover: {
@@ -38,6 +36,7 @@ export default function () {
           title: "Gå til turnuslisten",
           description: `
             <p>Klikk her for å gå til turnuslisten der du kan stjernemerk turnuser.</p>
+            <p class="tour-hint">Du kan alltid komme tilbake hit etterpå.</p>
           `,
           side: "bottom",
           align: "start",
@@ -49,6 +48,7 @@ export default function () {
           title: "Generer automatisk",
           description: `
             <p>Har du favoritter fra et tidligere år? Bruk denne funksjonen for å finne turnuser som ligner mest på dem.</p>
+            <p class="tour-hint">Nyttig når du skal velge for et nytt turnusår.</p>
           `,
           side: "top",
           align: "start",
@@ -57,14 +57,14 @@ export default function () {
     ];
   }
 
-  // Path B: Has favorites — full guide
+  // Path B: Has favorites — show how to use the list
   return [
     {
       popover: {
         title: "Favoritter-siden",
         description: `
           <p>Her ser du alle turnusene du har stjernemerket.</p>
-          <p>Du kan <strong>sortere</strong> dem i prioritert rekkefølge og bruke listen som huskelapp når du skal velge turnus.</p>
+          <p>Du kan <strong>sortere</strong> dem i prioritert rekkefølge og bruke listen som grunnlag for søknadsskjema.</p>
         `,
         side: "over",
         align: "center",
@@ -124,6 +124,7 @@ export default function () {
         title: "Turnusnøkkel",
         description: `
           <p>Klikk på <strong>nøkkelen</strong> for å åpne turnusnøkkelen for denne turnusen.</p>
+          <p class="tour-hint">Nøkkelen viser den detaljerte dagsplanen for hvert skift.</p>
         `,
         side: "left",
         align: "start",
@@ -134,7 +135,7 @@ export default function () {
       popover: {
         title: "Fjern favoritt",
         description: `
-          <p>Klikk på <strong>søppelkassen</strong> eller stjernen igjen for å fjerne en turnus fra favorittlisten.</p>
+          <p>Klikk på <strong>søppelkassen</strong> for å fjerne en turnus fra favorittlisten.</p>
           <p class="tour-hint">Du kan alltid legge den til igjen fra turnuslisten.</p>
         `,
         side: "left",

@@ -104,26 +104,6 @@ export default function () {
       },
     },
     {
-      // Navigate to favorites page
-      element: ".custom-checkbox",
-      popover: {
-        title: "Se favoritter-siden",
-        description: `
-                  <p>Klikk <strong>Neste</strong> for å gå til favoritter-siden og se hvordan du kan organisere turnusene dine.</p>
-              `,
-        side: "left",
-        align: "start",
-        onNextClick: () => {
-          sessionStorage.setItem('tourResume', JSON.stringify({
-            stepsFile: 'favorites-help',
-            startIndex: 0,
-            type: 'help',
-          }));
-          window.location.href = '/favorites';
-        },
-      },
-    },
-    {
       // Dobbelttur — highlights both cells via temp wrapper, or single cell, or centered fallback
       ...(dobbelturEl
         ? { element: "#tour-dobbeltur-highlight" }
