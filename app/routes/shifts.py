@@ -39,7 +39,7 @@ def _turnusliste_cache_key():
 
 shifts = Blueprint("shifts", __name__)
 
-_TRACKED_ENDPOINTS = {"shifts.turnusliste", "shifts.compare", "shifts.favorites"}
+_TRACKED_ENDPOINTS = {"shifts.turnusliste", "shifts.oversikt", "shifts.favorites"}
 
 
 @shifts.before_request
@@ -56,14 +56,20 @@ def log_page_view():
 @shifts.route("/")
 @login_required
 def index():
+    from config import AppConfig
+
+    landing = AppConfig.LANDING_PAGE or "mintur"
+    return redirect(url_for(f"shifts.{landing}"))
+
+
+@shifts.route("/mintur")
+@login_required
+def mintur():
     import os
 
     import openpyxl
 
     from config import AppConfig
-
-    if AppConfig.LANDING_PAGE == "favorites":
-        return redirect(url_for("shifts.favorites"))
 
     active_set = db_utils.get_active_turnus_set()
     records = get_innplassering_for_user(int(current_user.get_id()))
@@ -125,7 +131,6 @@ def index():
             uke_labels = [
                 str(c.value) for c in all_rows[g * 8][7:16] if c.value is not None
             ]
-            user_col = (linjenummer - g - 1) % 6 + 1
             day_rows = []
             for d in range(7):
                 _e = {"value": "", "dagsverk": ""}
@@ -149,11 +154,10 @@ def index():
                 ]
                 day_rows.append({"name": dag_names[d], "cells": cells, "dates": dates})
             groups.append(
-                {"uke_labels": uke_labels, "day_rows": day_rows, "user_col": user_col}
+                {"uke_labels": uke_labels, "day_rows": day_rows}
             )
     else:
         for g in range(6):
-            user_col = (linjenummer - g - 1) % 6 + 1
             day_rows = [
                 {
                     "name": dag_names[d],
@@ -171,7 +175,6 @@ def index():
                 {
                     "uke_labels": [f"Linje {g + 1}"],
                     "day_rows": day_rows,
-                    "user_col": user_col,
                 }
             )
 
@@ -179,7 +182,7 @@ def index():
     df_row = next((r for r in df_records if r.get("turnus") == shift_title), None)
 
     return render_template(
-        "hjem.html",
+        "mintur.html",
         page_name="Min Turnus",
         shift_title=shift_title,
         linjenummer=linjenummer,
@@ -296,9 +299,9 @@ def favorites():
     )
 
 
-@shifts.route("/compare")
+@shifts.route("/oversikt")
 @login_required
-def compare():
+def oversikt():
     # Get user's selected turnus set
     user_turnus_set = get_user_turnus_set()
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
@@ -396,7 +399,7 @@ def compare():
         innplassering_schedules[ts_id] = ts_sched
 
     return render_template(
-        "compare.html",
+        "oversikt.html",
         page_name="Sammenlign Turnuser",
         labels=labels,
         data=data,

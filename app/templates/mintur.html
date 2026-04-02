@@ -6,13 +6,15 @@
 
 {% block content %}
 
-{# ── Section 1: Turnus (exact turnusliste structure, no key/favorite buttons) ── #}
+{# ── Shared centred column for both sections ─────────────────────────────── #}
 <div
     class="container-fluid printable mt-3"
     data-current-turnus-set-id="{{ active_set.id if active_set else 'null' }}"
 >
     <div class="row justify-content-center">
         <div class="col-auto">
+
+{# ── Section 1: Turnus ── #}
             <div class="table-responsive">
                 <ul class="list-group py-2">
                     <li
@@ -117,56 +119,53 @@
                     </li>
                 </ul>
             </div>
-        </div>
-    </div>
-</div>
 
-{# ── Section 2: Turnusnøkkel ──────────────────────────────────────────────── #}
-<div class="container-fluid mt-4 mb-4" style="max-width: 1320px">
-    <h5 class="mb-3">Turnusnøkkel &mdash; {{ shift_title }}</h5>
+{# ── Section 2: Turnusnøkkel ── #}
+            <h5 class="mt-4 mb-3 text-center">Turnusnøkkel &mdash; {{ shift_title }}</h5>
 
-    {% if not template_found %}
-    <div class="alert alert-warning">Turnusnøkkel-mal ikke funnet — viser kun rotasjonsdata.</div>
-    {% endif %}
+            {% if not template_found %}
+            <div class="alert alert-warning">Turnusnøkkel-mal ikke funnet — viser kun rotasjonsdata.</div>
+            {% endif %}
 
-    {% for group in groups %}
-    <div class="mb-4" style="overflow-x: auto">
-        <table style="border-collapse: collapse; font-size: 0.78rem; background: #fff; min-width: 100%">
+            <div class="table-responsive">
+            <table style="border-collapse: collapse; font-size: 0.78rem; background: #fff; width: 100%">
             <thead>
                 <tr>
                     <th style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; background: #4a5568; color: #fff">Dag</th>
-                    {% for lbl in linje_labels %}
-                    <th style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; white-space: nowrap;
-                        {% if loop.index == group.user_col %}
-                        background: #667eea; color: #fff; outline: 3px solid #4338ca; outline-offset: -3px;
-                        {% else %}
-                        background: #4a5568; color: #fff;
-                        {% endif %}">{{ lbl }}</th>
-                    {% endfor %}
-                    {% if group.day_rows and group.day_rows[0].dates %}
+                    <th style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; background: #667eea; color: #fff; white-space: nowrap">Linje {{ linjenummer }}</th>
+                    {% if groups and groups[0].day_rows and groups[0].day_rows[0].dates %}
                     <th style="border-left: 3px solid #667eea; padding: 0; width: 2px; background: #667eea"></th>
-                    {% for uke in group.uke_labels %}
-                    <th style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; background: #6b7280; color: #fff; font-size: 0.7rem; white-space: nowrap">{{ uke }}</th>
-                    {% endfor %}
+                    <th style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; background: #6b7280; color: #fff; font-size: 0.7rem; white-space: nowrap" colspan="{{ groups[0].uke_labels | length }}">Ukenummer</th>
                     {% endif %}
                 </tr>
             </thead>
             <tbody>
+                {% for group in groups %}
+                {%- set group_idx = loop.index0 %}
+                {% if group.uke_labels %}
+                <tr style="{% if group_idx > 0 %}border-top: 3px solid #667eea;{% endif %} background: #eef0ff;">
+                    <td colspan="2" style="border: 1px solid #ccc; padding: 0.2rem 0.35rem;"></td>
+                    {% if group.day_rows and group.day_rows[0].dates %}
+                    <td style="border-left: 3px solid #667eea; padding: 0; width: 2px; background: #667eea"></td>
+                    {% for uke in group.uke_labels %}
+                    <td style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; text-align: center; font-size: 0.7rem; font-weight: 600; color: #374151; white-space: nowrap">{{ uke }}</td>
+                    {% endfor %}
+                    {% endif %}
+                </tr>
+                {% endif %}
                 {% for row in group.day_rows %}
                 {%- set is_sat = loop.index0 == 5 %}
                 {%- set is_sun = loop.index0 == 6 %}
+                {%- set cell = row.cells[linjenummer - 1] %}
                 <tr>
                     <td style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; font-weight: 600; text-align: left;
                         {% if is_sat %}background: #dbeafe{% elif is_sun %}background: #fee2e2{% else %}background: #f0f0f0{% endif %}">
                         {{ row.name }}
                     </td>
-                    {% for cell in row.cells %}
                     <td data-nokkel-cell data-dagsverk="{{ cell.dagsverk }}"
-                        style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; text-align: center; white-space: nowrap;
-                        {% if loop.index == group.user_col %}font-weight: 600; outline: 2px solid #667eea; outline-offset: -2px;{% endif %}">
+                        style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; text-align: center; white-space: nowrap">
                         {{ cell.value }}
                     </td>
-                    {% endfor %}
                     {% if row.dates %}
                     <td style="border-left: 3px solid #667eea; padding: 0; width: 2px; background: #667eea"></td>
                     {% for date in row.dates %}
@@ -178,10 +177,13 @@
                     {% endif %}
                 </tr>
                 {% endfor %}
+                {% endfor %}
             </tbody>
         </table>
+            </div>
+
+        </div>
     </div>
-    {% endfor %}
 </div>
 
 <script type="module">

@@ -45,6 +45,13 @@
             <!-- Navigation Icons (visible on small screens) -->
             <div class="d-lg-none mobile-icon-nav">
               <ul class="navbar-nav d-flex flex-row">
+                {% if has_min_turnus %}
+                <li class="nav-item">
+                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.mintur' %}active{% endif %}" href="{{ url_for('shifts.mintur') }}" title="Min Tur">
+                    <i class="bi bi-train-freight-front"></i>
+                  </a>
+                </li>
+                {% endif %}
                 <li class="nav-item">
                   <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.turnusliste' %}active{% endif %}" href="{{ url_for('shifts.turnusliste') }}" title="Turnusliste">
                     <i class="bi bi-calendar-week"></i>
@@ -56,7 +63,7 @@
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.compare' %}active{% endif %}" href="{{ url_for('shifts.compare') }}" title="Grafer">
+                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.oversikt' %}active{% endif %}" href="{{ url_for('shifts.oversikt') }}" title="Grafer">
                     <i class="bi bi-bar-chart"></i>
                   </a>
                 </li>
@@ -64,8 +71,16 @@
             </div>
 
             <!-- Desktop Navigation Menu (hidden on small screens) -->
-            <div class="collapse navbar-collapse d-none d-lg-block" id="navbarNav">
+            <div class="collapse navbar-collapse d-none d-lg-flex" id="navbarNav">
               <ul class="navbar-nav me-auto">
+                {% if has_min_turnus %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.endpoint == 'shifts.mintur' %}active{% endif %}" href="{{ url_for('shifts.mintur') }}">
+                    <i class="bi bi-train-freight-front"></i>
+                    <span>Min Tur</span>
+                  </a>
+                </li>
+                {% endif %}
                 <li class="nav-item">
                   <a class="nav-link {% if request.endpoint == 'shifts.turnusliste' %}active{% endif %}" href="{{ url_for('shifts.turnusliste') }}">
                     <i class="bi bi-calendar-week"></i>
@@ -79,7 +94,7 @@
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link {% if request.endpoint == 'shifts.compare' %}active{% endif %}" href="{{ url_for('shifts.compare') }}">
+                  <a class="nav-link {% if request.endpoint == 'shifts.oversikt' %}active{% endif %}" href="{{ url_for('shifts.oversikt') }}">
                     <i class="bi bi-bar-chart"></i>
                     <span>Oversikt</span>
                   </a>

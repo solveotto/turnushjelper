@@ -1,6 +1,6 @@
 import logging
 
-from flask import Flask
+from flask import Flask, session
 from flask_login import current_user
 from flask_session import Session
 
@@ -58,16 +58,26 @@ def create_app():
     @app.context_processor
     def inject_tour_state():
         if current_user.is_authenticated:
+            from app.models import Innplassering, TurnusSet
             db_session = get_db_session()
             try:
                 db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
+                has_min_turnus = False
+                if db_user and db_user.rullenummer:
+                    active_ts = db_session.query(TurnusSet).filter_by(is_active=1).first()
+                    if active_ts:
+                        has_min_turnus = db_session.query(Innplassering).filter_by(
+                            turnus_set_id=active_ts.id,
+                            rullenummer=str(db_user.rullenummer),
+                        ).first() is not None
                 return {
-                    "has_seen_tour": db_user.has_seen_turnusliste_tour or 0 if db_user else 0,
-                    "has_seen_favorites_tour": db_user.has_seen_favorites_tour or 0 if db_user else 0,
+                    "has_seen_tour": session.get('has_seen_tour', 0),
+                    "has_seen_favorites_tour": session.get('has_seen_favorites_tour', 0),
+                    "has_min_turnus": has_min_turnus,
                 }
             finally:
                 db_session.close()
-        return {"has_seen_tour": 0, "has_seen_favorites_tour": 0}
+        return {"has_seen_tour": 0, "has_seen_favorites_tour": 0, "has_min_turnus": False}
 
     from app.routes.main import blueprints
 

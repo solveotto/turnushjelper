@@ -1,6 +1,6 @@
 import secrets
 
-from flask import Blueprint, flash, redirect, render_template, url_for
+from flask import Blueprint, flash, redirect, render_template, session, url_for
 from flask_login import current_user
 from flask_login import login_user as flask_login_user
 
@@ -84,6 +84,8 @@ def verify_email(token):
         if user_data:
             user = User(user_data["username"], user_data["id"], user_data["is_auth"])
             flask_login_user(user)
+            session['has_seen_tour'] = 0
+            session['has_seen_favorites_tour'] = 0
             cache.clear()  # evict any stale cached pages from a previous user with the same ID
             flash("E-post verifisert! Du er nå logget inn.", "success")
             return redirect(url_for("shifts.index"))

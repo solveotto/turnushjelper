@@ -62,6 +62,8 @@ def get_user_data(username_or_email):
                 "is_stub": result.is_stub or 0,
                 "seniority_nr": result.seniority_nr,
                 "ansatt_data": result.ans_dato,
+                "has_seen_turnusliste_tour": result.has_seen_turnusliste_tour or 0,
+                "has_seen_favorites_tour": result.has_seen_favorites_tour or 0,
             }
             return data
         else:

@@ -50,6 +50,8 @@ def login():
                     form.username.data, db_user_data["id"], db_user_data["is_auth"]
                 )
                 flask_login_user(user)
+                session['has_seen_tour'] = db_user_data.get('has_seen_turnusliste_tour', 0)
+                session['has_seen_favorites_tour'] = db_user_data.get('has_seen_favorites_tour', 0)
                 session['login_at'] = datetime.utcnow().isoformat()
 
                 from app.services.activity_service import log_event

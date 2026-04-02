@@ -3,7 +3,7 @@ import logging
 import os
 import re
 
-from flask import Blueprint, jsonify, request, send_from_directory
+from flask import Blueprint, jsonify, request, send_from_directory, session
 from flask_login import current_user, login_required
 
 from app.database import get_db_session
@@ -725,6 +725,11 @@ def mark_tour_seen():
         if user:
             setattr(user, tour_columns[tour_name], 1)
             db_session.commit()
+            # Keep session in sync so context processor doesn't re-query DB
+            if tour_name == 'turnusliste':
+                session['has_seen_tour'] = 1
+            elif tour_name == 'favorites':
+                session['has_seen_favorites_tour'] = 1
             # Invalidate the cached turnusliste page so the next load renders
             # with the updated has_seen_tour value instead of the stale cached one.
             ts = get_user_turnus_set()
