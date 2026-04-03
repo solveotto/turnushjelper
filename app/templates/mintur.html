@@ -9,6 +9,8 @@
 {# ── Shared centred column for both sections ─────────────────────────────── #}
 <div
     class="container-fluid printable mt-3"
+    data-tour-page="mintur"
+    data-tour-seen="{{ has_seen_mintur_tour }}"
     data-current-turnus-set-id="{{ active_set.id if active_set else 'null' }}"
 >
     <div class="row justify-content-center">

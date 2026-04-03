@@ -64,6 +64,8 @@ def get_user_data(username_or_email):
                 "ansatt_data": result.ans_dato,
                 "has_seen_turnusliste_tour": result.has_seen_turnusliste_tour or 0,
                 "has_seen_favorites_tour": result.has_seen_favorites_tour or 0,
+                "has_seen_mintur_tour": result.has_seen_mintur_tour or 0,
+                "has_seen_compare_tour": result.has_seen_compare_tour or 0,
             }
             return data
         else:

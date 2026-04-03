@@ -714,6 +714,8 @@ def mark_tour_seen():
     tour_columns = {
         "turnusliste": "has_seen_turnusliste_tour",
         "favorites": "has_seen_favorites_tour",
+        "mintur": "has_seen_mintur_tour",
+        "compare": "has_seen_compare_tour",
     }
 
     if tour_name not in tour_columns:
@@ -730,6 +732,10 @@ def mark_tour_seen():
                 session['has_seen_tour'] = 1
             elif tour_name == 'favorites':
                 session['has_seen_favorites_tour'] = 1
+            elif tour_name == 'mintur':
+                session['has_seen_mintur_tour'] = 1
+            elif tour_name == 'compare':
+                session['has_seen_compare_tour'] = 1
             # Invalidate the cached turnusliste page so the next load renders
             # with the updated has_seen_tour value instead of the stale cached one.
             ts = get_user_turnus_set()

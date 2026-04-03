@@ -4,6 +4,7 @@
 // State-aware: shows different steps depending on whether the user has favorites.
 
 export default function () {
+  const isMobile = window.innerWidth < 992;
   const hasFavorites = document.querySelector('.list-group-item') !== null;
 
   if (!hasFavorites) {
@@ -125,7 +126,7 @@ export default function () {
         description: `
           <p>Klikk på <strong>nøkkelen</strong> for å åpne turnusnøkkelen for denne turnusen.</p>
         `,
-        side: "left",
+        side: isMobile ? "bottom" : "left",
         align: "start",
       },
     },
@@ -137,7 +138,7 @@ export default function () {
           <p>Klikk på <strong>søppelkassen</strong> eller stjernen igjen for å fjerne en turnus fra favorittlisten.</p>
           <p class="tour-hint">Du kan alltid legge den til igjen fra turnuslisten.</p>
         `,
-        side: "left",
+        side: isMobile ? "bottom" : "left",
         align: "start",
       },
     },

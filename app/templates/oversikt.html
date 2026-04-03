@@ -5,7 +5,7 @@ block extra_css %}
     href="{{ url_for('static', filename='css/layout/oversikt.css') }}"
 />
 {% endblock %} {% block content %}
-<div class="container-xl py-3" data-tour-page="compare">
+<div class="container-xl py-3" data-tour-page="compare" data-tour-seen="{{ has_seen_compare_tour }}">
     {# ── Min innplassering ── #} {% if innplassering %}
     <div class="card mb-4" id="innplassering-section">
         <div class="card-header py-2 px-3 d-flex align-items-center gap-2">

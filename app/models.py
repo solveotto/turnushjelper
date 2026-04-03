@@ -24,6 +24,8 @@ class DBUser(Base):
     verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     has_seen_turnusliste_tour: Mapped[int] = mapped_column(Integer, default=0)
     has_seen_favorites_tour: Mapped[int] = mapped_column(Integer, default=0)
+    has_seen_mintur_tour: Mapped[int] = mapped_column(Integer, default=0)
+    has_seen_compare_tour: Mapped[int] = mapped_column(Integer, default=0)
     is_stub: Mapped[int] = mapped_column(Integer, default=0)
     stasjoneringssted = Column(String(100), nullable=True)
     ans_dato = Column(String(20), nullable=True)   # stored as DD.MM.YYYY string
