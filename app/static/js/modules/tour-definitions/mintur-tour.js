@@ -18,15 +18,18 @@ export default function () {
   ];
 
   // Schedule table — prefer the rendered table, fall back to placeholder
-  const tableEl = document.querySelector('.table-scroll-wrapper') || document.querySelector('.turnus-table-placeholder');
+  const tableEl =
+    document.querySelector(".table-scroll-wrapper") ||
+    document.querySelector(".turnus-table-placeholder");
   if (tableEl) {
     steps.push({
       element: tableEl,
       popover: {
         title: "Turnusplanen",
         description: `
-          <p>Her vises turnusen uke for uke med dag- og tidspunkt for hvert skift.</p>
+          <p>Dette er turen du står i nå.</p>
           <p>Klikk på et <strong>dagsverknummer</strong> i tabellen for å åpne streklisten for det dagsverk.</p>
+          <p>Under turen din kan du se <strong>turnusnøkkelen</strong> for turen din.</p>
         `,
         side: isMobile ? "bottom" : "right",
         align: "start",
@@ -34,7 +37,7 @@ export default function () {
     });
   }
 
-  const statsEl = document.querySelector('.data-felt');
+  const statsEl = document.querySelector(".data-felt");
   if (statsEl) {
     steps.push({
       element: statsEl,
@@ -50,7 +53,7 @@ export default function () {
     });
   }
 
-  const dagsverkEl = document.querySelector('.dagsverk-link');
+  const dagsverkEl = document.querySelector(".dagsverk-link");
   if (dagsverkEl) {
     steps.push({
       element: dagsverkEl,
@@ -66,7 +69,7 @@ export default function () {
     });
   }
 
-  const nokkelEl = document.querySelector('h5.mt-4');
+  const nokkelEl = document.querySelector("h5.mt-4");
   if (nokkelEl) {
     steps.push({
       element: nokkelEl,

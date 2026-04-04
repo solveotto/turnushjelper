@@ -54,6 +54,7 @@ def login():
                 session['has_seen_favorites_tour'] = db_user_data.get('has_seen_favorites_tour', 0)
                 session['has_seen_mintur_tour'] = db_user_data.get('has_seen_mintur_tour', 0)
                 session['has_seen_compare_tour'] = db_user_data.get('has_seen_compare_tour', 0)
+                session['has_seen_welcome'] = db_user_data.get('has_seen_welcome', 0)
                 session['login_at'] = datetime.utcnow().isoformat()
 
                 from app.services.activity_service import log_event

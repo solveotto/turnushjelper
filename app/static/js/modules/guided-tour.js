@@ -10,29 +10,29 @@ export class GuidedTour {
     }
 
     async init() {
-        // Help menu: show the "Hjelp" link if help steps exist for this page
-        const helpSteps = await this.getHelpStepsForCurrentPage();
-        if (helpSteps && helpSteps.length > 0) {
+        // Show help button if this page has a tour
+        const pageSteps = await this.getPageSteps();
+        if (pageSteps?.length > 0) {
             this.showHelpMenuItem();
             this.setupHelpButton();
         }
 
-        // Onboarding tour: auto-start if user hasn't seen it (global flag)
-        const pageEl = document.querySelector('[data-tour-page]');
-        const tourSeenEl = (pageEl?.hasAttribute('data-tour-seen')) ? pageEl : document.querySelector('[data-tour-seen]');
-        if (tourSeenEl) {
-            this.tourSeen = tourSeenEl.dataset.tourSeen;
-            if (this.tourSeen === '0') {
-                const tourSteps = await this.getStepsForCurrentPage();
-                if (tourSteps && tourSteps.length > 0) {
-                    setTimeout(() => this.startTour(), 1000);
-                }
-            }
-        }
+        const welcomeSeen = document.body.dataset.welcomeSeen;
 
+        const pageEl = document.querySelector('[data-tour-page]');
+        this.tourSeenEl = pageEl?.hasAttribute('data-tour-seen')
+            ? pageEl
+            : document.querySelector('[data-tour-seen]');
+        this.pageSeen = this.tourSeenEl?.dataset.tourSeen;
+
+        if (welcomeSeen === '0') {
+            setTimeout(() => this.startWelcomeThenPage(), 1000);
+        } else if (this.pageSeen === '0') {
+            setTimeout(() => this.startPageTour(), 1000);
+        }
     }
 
-    _startDriverWith(steps, trackSeen = false) {
+    _startDriverWith(steps, onDestroy = null) {
         if (typeof window.driver === 'undefined') {
             console.warn('Driver.js not loaded');
             return;
@@ -50,15 +50,13 @@ export class GuidedTour {
             nextBtnText: 'Neste →',
             prevBtnText: '← Forrige',
             doneBtnText: 'Ferdig ✓',
-            steps: steps,
+            steps,
         };
 
-        if (trackSeen) {
+        if (onDestroy) {
             config.onDestroyStarted = () => {
-                if (this.tourSeen === '0') {
-                    this.markTourSeen();
-                }
                 this.driver.destroy();
+                onDestroy();
             };
         }
 
@@ -88,21 +86,47 @@ export class GuidedTour {
     }
 
     async startHelp() {
-        const steps = await this.getHelpStepsForCurrentPage();
-        if (!steps || steps.length === 0) return;
-        this._startDriverWith(steps, false);
+        const steps = await this.getPageSteps();
+        if (!steps?.length) return;
+        this._startDriverWith(steps);
     }
 
-    async startTour() {
-        const steps = await this.getStepsForCurrentPage();
-        if (!steps || steps.length === 0) return;
-        this._startDriverWith(steps, true);
+    async startWelcomeThenPage() {
+        const welcomeSteps = await this.getWelcomeSteps();
+        if (!welcomeSteps?.length) {
+            // No welcome file — fall straight through to page tour
+            await this.startPageTour();
+            return;
+        }
+
+        this._startDriverWith(welcomeSteps, async () => {
+            await this.markSeen('welcome');
+            if (this.pageSeen === '0') {
+                setTimeout(() => this.startPageTour(), 400);
+            }
+        });
     }
 
-    async getStepsForCurrentPage() {
-        const el = document.querySelector('[data-tour-page]');
-        if (!el) return null;
-        const page = el.dataset.tourPage;
+    async startPageTour() {
+        const steps = await this.getPageSteps();
+        if (!steps?.length) return;
+        this._startDriverWith(steps, async () => {
+            await this.markSeen(this.getPageName());
+        });
+    }
+
+    async getWelcomeSteps() {
+        try {
+            const mod = await import('./tour-definitions/welcome-tour.js');
+            return mod.default?.() || null;
+        } catch {
+            return null;
+        }
+    }
+
+    async getPageSteps() {
+        const page = this.getPageName();
+        if (!page) return null;
         try {
             const mod = await import(`./tour-definitions/${page}-tour.js`);
             return mod.default?.() || null;
@@ -111,33 +135,24 @@ export class GuidedTour {
         }
     }
 
-    async getHelpStepsForCurrentPage() {
-        const el = document.querySelector('[data-tour-page]');
-        if (!el) return null;
-        const page = el.dataset.tourPage;
-        try {
-            const mod = await import(`./tour-definitions/${page}-help.js`);
-            return mod.default?.() || null;
-        } catch {
-            return null;
-        }
+    getPageName() {
+        return document.querySelector('[data-tour-page]')?.dataset.tourPage || null;
     }
 
-    async markTourSeen() {
+    async markSeen(name) {
         try {
-            const page = document.querySelector('[data-tour-page]')?.dataset.tourPage || 'turnusliste';
             const response = await fetch('/api/mark-tour-seen', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tour_name: page }),
+                body: JSON.stringify({ tour_name: name }),
             });
             const data = await response.json();
             if (data.status === 'success') {
-                // Update the data attribute so re-triggering doesn't re-POST
-                const tourSeenEl = document.querySelector('[data-tour-seen]');
-                if (tourSeenEl) {
-                    tourSeenEl.dataset.tourSeen = '1';
-                    this.tourSeen = '1';
+                if (name === 'welcome') {
+                    document.body.dataset.welcomeSeen = '1';
+                } else if (this.tourSeenEl) {
+                    this.tourSeenEl.dataset.tourSeen = '1';
+                    this.pageSeen = '1';
                 }
             }
         } catch (err) {

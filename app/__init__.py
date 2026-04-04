@@ -75,11 +75,12 @@ def create_app():
                     "has_seen_favorites_tour": session.get('has_seen_favorites_tour', 0),
                     "has_seen_mintur_tour": session.get('has_seen_mintur_tour', 0),
                     "has_seen_compare_tour": session.get('has_seen_compare_tour', 0),
+                    "has_seen_welcome": session.get('has_seen_welcome', 0),
                     "has_min_turnus": has_min_turnus,
                 }
             finally:
                 db_session.close()
-        return {"has_seen_tour": 0, "has_seen_favorites_tour": 0, "has_seen_mintur_tour": 0, "has_seen_compare_tour": 0, "has_min_turnus": False}
+        return {"has_seen_tour": 0, "has_seen_favorites_tour": 0, "has_seen_mintur_tour": 0, "has_seen_compare_tour": 0, "has_seen_welcome": 0, "has_min_turnus": False}
 
     from app.routes.main import blueprints
 

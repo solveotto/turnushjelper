@@ -27,106 +27,13 @@ function createDobbelturHighlight() {
 }
 
 export default function () {
-  // Detect mobile vs desktop for the sorter button selector
   const isMobile = window.innerWidth < 992;
   const dobbelturEl = isMobile ? null : createDobbelturHighlight();
   const firstDobbeltur =
     dobbelturEl ?? document.querySelector(".consecutive-shift-arrow");
   const firstDeltDagsverk = document.querySelector(".delt-dagsverk");
 
-  // Navbar selectors (mobile vs desktop)
-  const navEl = isMobile
-    ? document.querySelector(".mobile-icon-nav")
-    : document.querySelector("#navbarNav");
-  const navFav = isMobile
-    ? document.querySelector('.mobile-icon-nav a[href*="favorites"]')
-    : document.querySelector('#navbarNav a[href*="favorites"]');
-  const navOversikt = isMobile
-    ? document.querySelector('.mobile-icon-nav a[href*="oversikt"]')
-    : document.querySelector('#navbarNav a[href*="oversikt"]');
-  const navMintur = isMobile
-    ? document.querySelector('.mobile-icon-nav a[href*="mintur"]')
-    : document.querySelector('#navbarNav a[href*="mintur"]');
-
   return [
-    {
-      // Step 1: Welcome (centered, no element)
-      popover: {
-        title: "Velkommen til Turnushjelper! 👋",
-        description: `
-                    <p>Denne guiden viser deg de viktigste funksjonene på denne siden.</p>
-                    <p>Her kan du se alle turnuser, sortere dem etter dine preferanser,
-                    og lagre favoritter for å sortere den prioriterte rekkefølgen.</p>
-                    <p>Husk at du ALLTID må sjekke at turnusene her stemmer med de
-                    offesielle turnusene før sender inn søknaden. Jeg tar ikke ansvar for eventuelle
-                    feil i turnusene.</p>
-                    <br>
-                    <p class="tour-hint">Når du klikker <strong>Neste</strong> godtar du dette og starter omvisningen.</p>
-                `,
-        side: "over",
-        align: "center",
-      },
-    },
-
-    // Step 6: Min Tur nav link (conditional — only if element exists)
-    ...(navMintur
-      ? [
-          {
-            element: isMobile
-              ? '.mobile-icon-nav a[href*="mintur"]'
-              : '#navbarNav a[href*="mintur"]',
-            popover: {
-              title: "Min Tur 🚂",
-              description: `
-                    <p>Her ser du <strong>din valgte turnus</strong> i detalj — skiftene dine dag for dag.</p>
-                    <p class="tour-hint">Tilgjengelig etter at turnus er valgt.</p>
-                `,
-              side: "bottom",
-              align: "start",
-            },
-          },
-        ]
-      : []),
-
-    // Step 4: Favoritter nav link
-    ...(navFav
-      ? [
-          {
-            element: isMobile
-              ? '.mobile-icon-nav a[href*="favorites"]'
-              : '#navbarNav a[href*="favorites"]',
-            popover: {
-              title: "Favoritter ⭐",
-              description: `
-                    <p>Her lagrer du turnusene du er mest interessert i.</p>
-                    <p>Du kan sette dem i <strong>prioritert rekkefølge</strong> og laste ned søknadsskjema basert på listen.</p>
-                `,
-              side: "bottom",
-              align: "start",
-            },
-          },
-        ]
-      : []),
-    // Step 5: Oversikt nav link
-    ...(navOversikt
-      ? [
-          {
-            element: isMobile
-              ? '.mobile-icon-nav a[href*="oversikt"]'
-              : '#navbarNav a[href*="oversikt"]',
-            popover: {
-              title: "Oversikt 📊",
-              description: `
-                    <p>Her finner du <strong>statistikk</strong> over alle turnusene — helgetimer, nattevakter, tidligvakter og mer.</p>
-                    <p class="tour-hint">Nyttig for å sammenligne turnuser på tvers.</p>
-                `,
-              side: "bottom",
-              align: "start",
-            },
-          },
-        ]
-      : []),
-
     {
       // Step 8: Sort/Filter system
       element: isMobile ? ".mobile-sorter-btn" : ".sorter-btn",

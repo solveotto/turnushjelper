@@ -88,6 +88,7 @@ def verify_email(token):
             session['has_seen_favorites_tour'] = 0
             session['has_seen_mintur_tour'] = 0
             session['has_seen_compare_tour'] = 0
+            session['has_seen_welcome'] = 0
             cache.clear()  # evict any stale cached pages from a previous user with the same ID
             flash("E-post verifisert! Du er nå logget inn.", "success")
             return redirect(url_for("shifts.index"))
