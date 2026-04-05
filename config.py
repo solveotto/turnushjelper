@@ -26,7 +26,7 @@ def get_database_uri():
     db_type = _env("DB_TYPE", "sqlite")
 
     if db_type == "sqlite":
-        sqlite_path = _env("SQLITE_PATH", "./dummy.db")
+        sqlite_path = _env("SQLITE_PATH") or "./dummy.db"
         if not os.path.isabs(sqlite_path):
             sqlite_path = os.path.join(os.path.dirname(__file__), sqlite_path)
         return f"sqlite:///{sqlite_path}"
