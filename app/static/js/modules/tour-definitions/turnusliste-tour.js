@@ -158,5 +158,19 @@ export default function () {
                 align: "start",
             },
         },
+
+        ...(!isMobile && document.getElementById("gen-favorites-btn") ? [{
+            element: "#gen-favorites-btn",
+            popover: {
+                title: "Generer favorittliste ✨",
+                description: `
+                    <p>Klikk her for å <strong>generere en favorittliste automatisk</strong>.</p>
+                    <p>Verktøyet analyserer turnusene dine og finner de som ligner mest på dine favoritter fra tidligere år.</p>
+                    <p class="tour-hint">Nyttig hvis du vil ha et godt utgangspunkt for søknaden uten å gå gjennom alle turnusene manuelt.</p>
+                `,
+                side: "bottom",
+                align: "start",
+            },
+        }] : []),
     ];
 }

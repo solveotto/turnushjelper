@@ -100,40 +100,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Set up favorites toggle
-    const hideFavoritesRadio = document.getElementById('hide-favorites');
-    const showAllRadio = document.getElementById('show-all');
-    
-    if (hideFavoritesRadio && showAllRadio) {
-        // Load saved preference from localStorage, default to 'show-all'
-        const savedViewMode = localStorage.getItem('turnuslisteViewMode') || 'show-all';
-        const hideFavorites = savedViewMode === 'hide-favorites';
+    const toggleBtn = document.getElementById('favorites-toggle-btn');
 
-        // Set the radio button state based on saved preference
-        if (hideFavorites) {
-            hideFavoritesRadio.checked = true;
-            showAllRadio.checked = false;
-        } else {
-            showAllRadio.checked = true;
-            hideFavoritesRadio.checked = false;
+    if (toggleBtn) {
+        let hideFavorites = (localStorage.getItem('turnuslisteViewMode') || 'show-all') === 'hide-favorites';
+
+        function updateToggleBtn() {
+            if (hideFavorites) {
+                toggleBtn.innerHTML = '<i class="bi bi-eye me-1"></i>Vis favoritter';
+            } else {
+                toggleBtn.innerHTML = '<i class="bi bi-eye-slash me-1"></i>Skjul favoritter';
+            }
         }
 
-        // Apply the saved state
         toggleFavoritesVisibility(hideFavorites);
+        updateToggleBtn();
 
-        // Add event listeners
-        hideFavoritesRadio.addEventListener('change', function() {
-            if (this.checked) {
-                localStorage.setItem('turnuslisteViewMode', 'hide-favorites');
-                toggleFavoritesVisibility(true);
-            }
-        });
-
-        showAllRadio.addEventListener('change', function() {
-            if (this.checked) {
-                localStorage.setItem('turnuslisteViewMode', 'show-all');
-                toggleFavoritesVisibility(false);
-            }
+        toggleBtn.addEventListener('click', function() {
+            hideFavorites = !hideFavorites;
+            localStorage.setItem('turnuslisteViewMode', hideFavorites ? 'hide-favorites' : 'show-all');
+            toggleFavoritesVisibility(hideFavorites);
+            updateToggleBtn();
         });
     }
+
 });
 

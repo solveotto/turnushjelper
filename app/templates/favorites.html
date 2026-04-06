@@ -3,8 +3,8 @@
 {% block title %}Favoritter{% endblock %}
 
 {% block print %}
-    <button class="btn btn-outline-light btn-sm print-btn" onclick="printTables()">
-        <i class="bi bi-printer"></i> <span>Utskrift</span>
+    <button class="btn navbar-action-btn print-btn" onclick="printTables()">
+        <i class="bi bi-printer"></i>
     </button>
 {% endblock %}
 
@@ -46,13 +46,15 @@
         <div class="col-auto">
             <!-- Action buttons -->
             {% if favorites|length != 0 %}
-                <div class="mb-3 no-print d-flex gap-2 flex-wrap">
-                    <a href="{{ url_for('shifts.import_favorites') }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-box-arrow-in-down"></i> Generer favorittliste automatisk
-                    </a>
-                    <a href="{{ url_for('shifts.soknadsskjema') }}" class="btn btn-sm btn-outline-success">
-                        <i class="bi bi-file-earmark-word"></i> Last ned søknadsskjema
-                    </a>
+                <div class="card border-0 shadow-sm mb-3 no-print">
+                    <div class="card-body py-2 d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                        <a href="{{ url_for('shifts.import_favorites') }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-box-arrow-in-down me-1"></i>Generer favorittliste automatisk
+                        </a>
+                        <a href="{{ url_for('shifts.soknadsskjema') }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-file-earmark-word me-1"></i>Last ned søknadsskjema
+                        </a>
+                    </div>
                 </div>
             {% endif %}
 

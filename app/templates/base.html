@@ -113,7 +113,7 @@
 
                 <!-- Page Title and Navigation -->
 
-                <div class="action-buttons d-none d-lg-flex align-items-center me-3">
+                <div class="action-buttons d-none d-lg-flex align-items-center gap-1 me-2">
                 <!-- Filtering Controls -->
                   {% block filtering %}{% endblock %}
 
@@ -122,14 +122,16 @@
 
                 <!-- Turnus Set Switcher (only show if multiple sets available) -->
                   {% if current_user.is_authenticated and all_turnus_sets and all_turnus_sets|length > 1 %}
-                      <div class="me-2"></div>
                       {% include 'components/turnus_selector.html' %}
                   {% endif %}
                 </div>
 
+                <!-- Extra icon buttons (page-specific, between print area and help) -->
+                <div class="navbar-icon-actions d-none d-lg-flex align-items-center gap-1 me-1">
+                  {% block navbar_icon_extra %}{% endblock %}
+
                 <!-- Help button — desktop only (shown by JS on pages with a help guide) -->
-                <div class="navbar-icon-actions d-none d-lg-flex align-items-center me-2">
-                  <button class="navbar-icon-btn btn btn-outline-light"
+                  <button class="navbar-icon-btn navbar-action-btn btn"
                           id="help-icon-btn"
                           type="button"
                           style="display: none;"
@@ -141,9 +143,8 @@
 
                 <!-- User Menu -->
                 <div class="dropdown">
-                  <button class="btn btn-outline-light dropdown-toggle user-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person"></i>
-                    <span class="user-name d-none d-lg-inline">{{ current_user.username | capitalize }}</span>
+                  <button class="btn navbar-action-btn dropdown-toggle user-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-list"></i>
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li class="dropdown-header">
@@ -195,6 +196,9 @@
                     </li>
                     <li class="d-lg-none"><hr class="dropdown-divider"></li>
                     {% endif %}
+
+                    <!-- Page-specific menu items -->
+                    {% block user_menu_items %}{% endblock %}
 
                     <!-- Print button for small screens -->
                     {% block mobile_print %}

@@ -6,8 +6,8 @@
 <script src="{{ url_for('static', filename='js/modules/turnusliste.js') }}"></script>
 
 {% endblock %} {% block title %}Favoritter{% endblock %} {% block print %}
-<button class="btn btn-outline-light btn-sm print-btn" onclick="printTables()">
-    <i class="bi bi-printer"></i> <span>Utskrift</span>
+<button class="btn navbar-action-btn print-btn" onclick="printTables()">
+    <i class="bi bi-printer"></i>
 </button>
 {% endblock %} {% block mobile_print %}
 <li class="d-lg-none">
@@ -22,6 +22,13 @@
         <i class="bi bi-printer"></i> Utskrift
     </a>
 </li>
+{% endblock %} {% block user_menu_items %}
+<li>
+    <a class="dropdown-item" href="#" id="favorites-toggle-btn" onclick="return false;">
+        <i class="bi bi-eye-slash me-1"></i>Skjul favoritter
+    </a>
+</li>
+<li><hr class="dropdown-divider"></li>
 {% endblock %} {% block mobile_sorter %}
 <div class="mobile-sorter d-lg-none me-2">
     <button
@@ -41,7 +48,7 @@
 <div class="navbar-filtering d-none d-lg-flex align-items-center me-3">
     <div class="filter-dropdown">
         <button
-            class="btn btn-sm btn-warning dropdown-toggle sorter-btn"
+            class="btn navbar-action-btn dropdown-toggle sorter-btn"
             type="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
@@ -252,6 +259,13 @@
         </div>
     </div>
 </div>
+{% endblock %} {% block navbar_icon_extra %}
+<a href="{{ url_for('shifts.import_favorites') }}"
+   id="gen-favorites-btn"
+   class="btn navbar-action-btn"
+   title="Generer favorittliste automatisk — finn turnuser som ligner dine tidligere favoritter">
+    <i class="bi bi-stars"></i>
+</a>
 {% endblock %} {% block mobile_sorting %}
 <div class="mobile-sorting-menu">
     <div class="filter-controls">
@@ -503,49 +517,6 @@
             </div>
         </div>
 
-        <!-- Favorites Toggle -->
-        <div class="container-fluid mb-3">
-            <div class="row">
-                <div class="col-12">
-                    <div class="d-flex justify-content-center">
-                        <div
-                            class="btn-group"
-                            role="group"
-                            aria-label="View mode toggle"
-                        >
-                            <input
-                                type="radio"
-                                class="btn-check"
-                                name="view-mode"
-                                id="hide-favorites"
-                                autocomplete="off"
-                            />
-                            <label
-                                class="btn btn-sm btn-outline-secondary"
-                                for="hide-favorites"
-                            >
-                                <i class="bi bi-eye-slash me-1"></i>Skjul
-                                favoritter
-                            </label>
-
-                            <input
-                                type="radio"
-                                class="btn-check"
-                                name="view-mode"
-                                id="show-all"
-                                autocomplete="off"
-                            />
-                            <label
-                                class="btn btn-sm btn-outline-secondary"
-                                for="show-all"
-                            >
-                                <i class="bi bi-eye me-1"></i>Vis alle
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div
             class="container-fluid printable"
