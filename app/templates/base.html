@@ -199,7 +199,7 @@
                           <a class="dropdown-item {% if current_turnus_set and ts.id == current_turnus_set.id %}active{% endif %}"
                              href="/switch-year/{{ ts.id }}">
                             <i class="bi bi-{% if current_turnus_set and ts.id == current_turnus_set.id %}check-circle{% else %}circle{% endif %}"></i>
-                            {{ ts.year_identifier }}
+                            {{ ts.year_identifier | display_name }}
                           </a>
                         </li>
                         {% endfor %}

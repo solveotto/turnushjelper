@@ -42,15 +42,14 @@ block extra_css %}
                             ></i>
                         </td>
                         <td>{{ row.turnus_set_name }}</td>
-                        <td><strong>{{ row.shift_title }}</strong></td>
+                        <td><strong>{{ row.shift_title | display_name}}</strong></td>
                         <td>{{ row.linjenummer or '—' }}</td>
                         <td>{{ row.ans_nr or '—' }}</td>
                     </tr>
                     <tr
                         id="inn-schedule-{{ loop.index }}"
                         class="inn-schedule-row"
-                        style="display: none"
-                    >
+                        style="display: none">
                         <td colspan="5" class="p-2 bg-body-secondary">
                             <div class="inn-schedule-body"></div>
                         </td>
@@ -127,7 +126,7 @@ block extra_css %}
                                     href="#"
                                     class="text-decoration-none text-body modal-turnus-link"
                                     data-turnus="{{ label }}"
-                                    >{{ label }}</a
+                                    >{{ label | display_name}}</a
                                 >
                             </td>
                             {% for day in

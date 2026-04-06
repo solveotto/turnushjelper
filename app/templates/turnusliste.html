@@ -540,7 +540,7 @@
                                 >
                                     <div data-turnus="{{name}}">
                                         <h5 class="h4-hover t-name">
-                                            {{name}}
+                                            {{name | display_name}}
                                         </h5>
                                     </div>
                                     {% if name in favoritt %}
@@ -562,7 +562,7 @@
                                         >
                                             {%if current_turnus_set.id !=
                                             active_set.id %}Obs! Gammel turnus.
-                                            {{current_turnus_set.year_identifier}}.{%
+                                            {{current_turnus_set.year_identifier | display_name}}.{%
                                             endif %}
                                         </p>
                                     </div>

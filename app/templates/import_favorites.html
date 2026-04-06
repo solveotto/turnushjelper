@@ -18,7 +18,7 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted small">
-                        Lag en liste med favoirtter i {{ current_turnus_set.year_identifier if current_turnus_set else 'gjeldende turnus' }}
+                        Lag en liste med favoirtter i {{ current_turnus_set.year_identifier | display_name if current_turnus_set else 'gjeldende turnus' }}
                         som har lignende innhold som dine favoritter fra tidligere turnuser.
                     </p>
 
@@ -51,7 +51,7 @@
                                                         <input class="form-check-input form-check-input-sm inn-checkbox" type="checkbox"
                                                                value="{{ rec.turnus_set_id }}" id="inn_{{ rec.turnus_set_id }}" checked>
                                                         <label class="form-check-label" for="inn_{{ rec.turnus_set_id }}">
-                                                            <span class="year-badge">{{ rec.year_identifier }}</span>
+                                                            <span class="year-badge">{{ rec.year_identifier | display_name }}</span>
                                                             <span class="turnus-name">{{ rec.turnus_set_name }}</span>
                                                             <span class="favorite-count">{{ rec.shift_title }}</span>
                                                         </label>
@@ -136,7 +136,7 @@
                                 <br><br>
                                 For å bruke denne funksjonen må du:
                                 <ul class="mb-0 mt-2">
-                                    <li>Ha favoritter lagret i en annen turnus (f.eks. {{ current_turnus_set.year_identifier if current_turnus_set else 'R25' }} -> R25)</li>
+                                    <li>Ha favoritter lagret i en annen turnus (f.eks. {{ current_turnus_set.year_identifier | display_name if current_turnus_set else 'R25' }} -> R25)</li>
                                     <li>Statistikkfiler må finnes for begge turnusene</li>
                                 </ul>
                             </div>
@@ -170,7 +170,7 @@
                                         <option value="">-- Velg ett år --</option>
                                         {% for ts in available_sources %}
                                             <option value="{{ ts.id }}">
-                                                {{ ts.year_identifier }} - {{ ts.name }}
+                                                {{ ts.year_identifier | display_name }} - {{ ts.name }}
                                                 <span class="text-muted">({{ ts.favorite_count }} favoritter)</span>
                                             </option>
                                         {% endfor %}
@@ -190,7 +190,7 @@
                                                     <input class="form-check-input form-check-input-sm source-checkbox" type="checkbox"
                                                            value="{{ ts.id }}" id="source_{{ ts.id }}">
                                                     <label class="form-check-label" for="source_{{ ts.id }}">
-                                                        <span class="year-badge">{{ ts.year_identifier }}</span>
+                                                        <span class="year-badge">{{ ts.year_identifier | display_name }}</span>
                                                         <span class="turnus-name">{{ ts.name }}</span>
                                                         <span class="favorite-count">{{ ts.favorite_count }} favoritter</span>
                                                     </label>

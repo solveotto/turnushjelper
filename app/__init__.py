@@ -82,6 +82,10 @@ def create_app():
                 db_session.close()
         return {"has_seen_tour": 0, "has_seen_favorites_tour": 0, "has_seen_mintur_tour": 0, "has_seen_compare_tour": 0, "has_seen_welcome": 0, "has_min_turnus": False}
 
+    @app.template_filter('display_name')
+    def display_name_filter(s):
+        return s.replace('_', ' ') if s else s
+
     from app.routes.main import blueprints
 
     for blueprint in blueprints:

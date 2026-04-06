@@ -26,7 +26,7 @@
             {% if active_set %}
             <div class="alert alert-info mb-4">
                 <h5><i class="bi bi-info-circle"></i> Nåværende aktivt turnussett</h5>
-                <strong>{{ active_set.name }}</strong> ({{ active_set.year_identifier }})
+                <strong>{{ active_set.name }}</strong> ({{ active_set.year_identifier | display_name }})
                 <br><small>Opprettet: {{ active_set.created_at.strftime('%Y-%m-%d %H:%M') if active_set.created_at else 'Ukjent' }}</small>
             </div>
             {% else %}
@@ -60,7 +60,7 @@
                             <tbody>
                                 {% for turnus_set in turnus_sets %}
                                 <tr>
-                                    <td><strong>{{ turnus_set.year_identifier }}</strong></td>
+                                    <td><strong>{{ turnus_set.year_identifier | display_name }}</strong></td>
                                     <td>{{ turnus_set.name }}</td>
                                     <td>
                                         {% if turnus_set.is_active %}
@@ -167,7 +167,7 @@
                                         <form method="POST" action="{{ url_for('admin.switch_turnus_set') }}" style="display: inline;">
                                             <input type="hidden" name="turnus_set_id" value="{{ turnus_set.id }}">
                                             <button type="submit" class="btn btn-sm btn-primary"
-                                                    onclick="return confirm('Sett {{ turnus_set.year_identifier }} som aktivt turnussett?')">
+                                                    onclick="return confirm('Sett {{ turnus_set.year_identifier | display_name }} som aktivt turnussett?')">
                                                 <i class="bi bi-check-circle"></i> Aktiver
                                             </button>
                                         </form>
@@ -181,7 +181,7 @@
                                         </form>
 
                                         <form method="POST" action="{{ url_for('admin.delete_turnus_set', turnus_set_id=turnus_set.id) }}"
-                                              style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier }}? Dette vil også slette alle tilknyttede vakter og favoritter.')">
+                                              style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier | display_name }}? Dette vil også slette alle tilknyttede vakter og favoritter.')">
                                             <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="bi bi-trash"></i> Slett
                                             </button>

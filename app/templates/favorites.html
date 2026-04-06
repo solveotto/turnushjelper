@@ -130,8 +130,8 @@
                                 </div>
                                 
                                 <div class="flex-grow-1 text-center" data-turnus="{{name}}">
-                                    <h5 class="h4-hover t-name">{{name}}</h5>
-                                    <p class="fs-6 fst-italic text-decoration-underline text-danger">{%if current_turnus_set.id != active_set.id %}Obs! Gammel turnus. {{current_turnus_set.year_identifier}}.{% endif %}</p>
+                                    <h5 class="h4-hover t-name">{{name | display_name}}</h5>
+                                    <p class="fs-6 fst-italic text-decoration-underline text-danger">{%if current_turnus_set.id != active_set.id %}Obs! Gammel turnus. {{current_turnus_set.year_identifier | display_name}}.{% endif %}</p>
                                     
                                 </div>
                                 

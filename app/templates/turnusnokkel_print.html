@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base/variables.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/shift-colors.css') }}">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔑</text></svg>">
-    <title>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier }}</title>
+    <title>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier | display_name }}</title>
     <style>
         body {
             font-family: sans-serif;
@@ -215,7 +215,7 @@
         <div class="linje-prio-preview" id="linje-prio-preview"></div>
     </div>
 
-    <h1>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier }}</h1>
+    <h1>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier | display_name }}</h1>
 
     {% if not template_found %}
     <div class="alert alert-warning no-print">Turnusnøkkel-mal ikke funnet — viser kun rotasjonsdata.</div>
