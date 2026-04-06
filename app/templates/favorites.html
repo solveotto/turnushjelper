@@ -2,16 +2,10 @@
 
 {% block title %}Favoritter{% endblock %}
 
-{% block print %}
-    <button class="btn navbar-action-btn print-btn" onclick="printTables()">
-        <i class="bi bi-printer"></i>
-    </button>
-{% endblock %}
-
 {% block mobile_print %}
-<li class="d-lg-none">
+<li>
   <a class="dropdown-item mobile-print-item" href="#" onclick="printTables(); return false;">
-    <i class="bi bi-printer"></i> Utskrift!
+    <i class="bi bi-printer"></i> Utskrift
   </a>
 </li>
 {% endblock %}

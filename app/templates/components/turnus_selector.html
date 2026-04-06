@@ -4,7 +4,6 @@
 {% if all_turnus_sets and all_turnus_sets|length > 1 %}
 <div class="dropdown me-1">
     <a class="btn navbar-action-btn dropdown-toggle" href="#" id="turnusDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <i class="bi bi-calendar3"></i>
     <span>{{ current_turnus_set.year_identifier | display_name if current_turnus_set else 'Year' }}</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="turnusDropdown">

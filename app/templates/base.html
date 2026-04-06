@@ -68,7 +68,7 @@
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.soknadsskjema' %}active{% endif %}" href="{{ url_for('shifts.soknadsskjema') }}" title="Søknadskjema">
+                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.soknadsskjema' %}active{% endif %}" href="{{ url_for('shifts.soknadsskjema') }}" title="Skjema">
                     <i class="bi bi-file-earmark-text"></i>
                   </a>
                 </li>
@@ -107,7 +107,7 @@
                 <li class="nav-item">
                   <a class="nav-link {% if request.endpoint == 'shifts.soknadsskjema' %}active{% endif %}" href="{{ url_for('shifts.soknadsskjema') }}">
                     <i class="bi bi-file-earmark-text"></i>
-                    <span>Søknadskjema</span>
+                    <span>Skjema</span>
                   </a>
                 </li>
 
@@ -128,29 +128,19 @@
                 <!-- Filtering Controls -->
                   {% block filtering %}{% endblock %}
 
-                <!-- Print Button -->
-                  {% block print %}{% endblock %}
-
-                <!-- Turnus Set Switcher (only show if multiple sets available) -->
-                  {% if current_user.is_authenticated and all_turnus_sets and all_turnus_sets|length > 1 %}
-                      {% include 'components/turnus_selector.html' %}
-                  {% endif %}
-                </div>
-
-                <!-- Extra icon buttons (page-specific, between print area and help) -->
-                <div class="navbar-icon-actions d-none d-lg-flex align-items-center gap-1 me-1">
+                <!-- Extra icon buttons (page-specific) -->
                   {% block navbar_icon_extra %}{% endblock %}
-
-                <!-- Help button — desktop only (shown by JS on pages with a help guide) -->
-                  <button class="navbar-icon-btn navbar-action-btn btn"
-                          id="help-icon-btn"
-                          type="button"
-                          style="display: none;"
-                          title="Hjelp"
-                          aria-label="Vis hjelp for denne siden">
-                    <i class="bi bi-question-circle"></i>
-                  </button>
                 </div>
+
+                <!-- Help button (shown by JS on pages with a help guide) -->
+                <button class="navbar-icon-btn navbar-action-btn btn me-1"
+                        id="help-icon-btn"
+                        type="button"
+                        style="display: none;"
+                        title="Hjelp"
+                        aria-label="Vis hjelp for denne siden">
+                  <i class="bi bi-question-circle"></i>
+                </button>
 
                 <!-- User Menu -->
                 <div class="dropdown">
@@ -168,13 +158,6 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
 
-                    <!-- Contextual help — mobile only, shown by JS when a help guide exists -->
-                    <li id="help-icon-btn-mobile" class="d-lg-none" style="display: none;">
-                      <a class="dropdown-item" href="#">
-                        <i class="bi bi-question-circle"></i> Hjelp
-                      </a>
-                    </li>
-
                     <li>
                       <a class="dropdown-item" href="{{ url_for('downloads.download_pdf') }}">
                         <i class="bi bi-file-earmark-zip"></i> Lagre orginal PDF
@@ -186,9 +169,9 @@
                         <i class="bi bi-person-gear"></i> Min Side
                       </a>
                     </li>
-                    <!-- Turnus Set Selector for small screens -->
+                    <!-- Turnus Set Selector (always in menu) -->
                     {% if current_user.is_authenticated and all_turnus_sets and all_turnus_sets|length > 1 %}
-                    <li class="d-lg-none">
+                    <li>
                       <a class="dropdown-item" href="#" onclick="toggleTurnusSubmenu(event)">
                         <i class="bi bi-calendar3"></i> Velg Turnusår
                         <i class="bi bi-chevron-right float-end" id="turnus-chevron"></i>
@@ -205,15 +188,15 @@
                         {% endfor %}
                       </ul>
                     </li>
-                    <li class="d-lg-none"><hr class="dropdown-divider"></li>
+                    <li><hr class="dropdown-divider"></li>
                     {% endif %}
 
                     <!-- Page-specific menu items -->
                     {% block user_menu_items %}{% endblock %}
 
-                    <!-- Print button for small screens -->
+                    <!-- Print button (always in menu) -->
                     {% block mobile_print %}
-                    <li class="d-lg-none">
+                    <li>
                       <a class="dropdown-item mobile-print-item" href="#" onclick="printTables(); return false;">
                         <i class="bi bi-printer"></i> Utskrift
                       </a>
@@ -235,7 +218,6 @@
                   </ul>
                 </div>
               </div>
-            </div>
           </div>
         </nav>
       </header>

@@ -65,11 +65,8 @@ export class GuidedTour {
     }
 
     showHelpMenuItem() {
-        const desktopBtn = document.getElementById('help-icon-btn');
-        if (desktopBtn) desktopBtn.style.display = '';
-
-        const mobileItem = document.getElementById('help-icon-btn-mobile');
-        if (mobileItem) mobileItem.style.display = '';
+        const helpBtn = document.getElementById('help-icon-btn');
+        if (helpBtn) helpBtn.style.display = '';
     }
 
     setupHelpButton() {
@@ -78,11 +75,8 @@ export class GuidedTour {
             this.startHelp();
         };
 
-        const desktopBtn = document.getElementById('help-icon-btn');
-        if (desktopBtn) desktopBtn.addEventListener('click', handler);
-
-        const mobileBtn = document.getElementById('help-icon-btn-mobile');
-        if (mobileBtn) mobileBtn.addEventListener('click', handler);
+        const helpBtn = document.getElementById('help-icon-btn');
+        if (helpBtn) helpBtn.addEventListener('click', handler);
     }
 
     async startHelp() {
