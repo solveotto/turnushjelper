@@ -7,7 +7,7 @@
 //   morning     : start 06:00–07:59
 //   midday      : start 08:00–11:59
 //   afternoon   : start 12:00+ (kveldsvakt — evening shifts, including those ending shortly after midnight)
-//   evening     : crosses midnight AND ends 02:00+ next day (nattevakt — true night shifts)
+//   evening     : crosses midnight AND ends 04:00+ next day (nattevakt — true night shifts)
 //
 // NOTE: The Python equivalent lives in app/utils/shift_stats.py — keep in sync.
 

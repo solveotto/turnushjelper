@@ -439,14 +439,12 @@
     }
 
     /* Icons remain visible with normal styling */
-    .sorter-btn i,
     .btn-outline-light i {
         color: rgba(255, 255, 255, 0.9) !important;
     }
 
     /* Make buttons icon-only with proper touch targets */
-    .sorter-btn,
-    .mobile-sorter-btn {
+    .sorter-btn {
         padding: var(--spacing-sm) !important;
         min-width: 44px; /* WCAG minimum touch target */
         min-height: 44px;
@@ -492,15 +490,15 @@
     }
 
     .modern-navbar .nav-link {
-        color: #495057 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
         margin: 0.25rem 0;
         padding: 0.75rem 1rem !important;
     }
 
     .modern-navbar .nav-link:hover,
     .modern-navbar .nav-link.active {
-        background-color: #f8f9fa;
-        color: #212529 !important;
+        background-color: rgba(255, 255, 255, 0.15);
+        color: white !important;
     }
 
     .page-title {
@@ -602,8 +600,7 @@
     }
 
     /* Maintain proper touch targets even on very small screens */
-    .sorter-btn,
-    .mobile-sorter-btn {
+    .sorter-btn {
         padding: var(--spacing-xs) !important;
         min-width: 44px; /* WCAG minimum - don't compromise on small screens */
         min-height: 44px;
