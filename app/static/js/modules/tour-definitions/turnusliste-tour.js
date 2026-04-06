@@ -37,7 +37,7 @@ export default function () {
     return [
         {
             // Step 2: Shift color legend (centered, no element — informational)
-            element: ".list-group-item",
+            //element: ".list-group-item",
             popover: {
                 title: "Turnuslisten",
                 description: `
@@ -140,7 +140,7 @@ export default function () {
 
         {
             // Step 8: Sort/Filter system
-            element: isMobile ? ".mobile-sorter-btn" : ".sorter-btn",
+            element: isMobile ? ".mobile-sorter-btn" : ".filter-dropdown",
             popover: {
                 title: "Sortering og filtrering",
                 description: `
@@ -154,7 +154,7 @@ export default function () {
                     </ul>
                     <p class="tour-hint">Dra glideren mot høyre for å prioritere turnuser med <em>mange</em> av den typen.</p>
                 `,
-                side: isMobile ? "bottom" : "bottom",
+                side: isMobile ? "bottom" : "right",
                 align: "start",
             },
         },
@@ -168,7 +168,7 @@ export default function () {
                     <p>Verktøyet analyserer turnusene dine og finner de som ligner mest på dine favoritter fra tidligere år.</p>
                     <p class="tour-hint">Nyttig hvis du vil ha et godt utgangspunkt for søknaden uten å gå gjennom alle turnusene manuelt.</p>
                 `,
-                side: "bottom",
+                side: "left",
                 align: "start",
             },
         }] : []),

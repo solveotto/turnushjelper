@@ -50,6 +50,22 @@ export class GuidedTour {
             nextBtnText: 'Neste →',
             prevBtnText: '← Forrige',
             doneBtnText: 'Ferdig ✓',
+            smoothScroll: false,
+            scrollIntoView: false,
+            onHighlightStarted: (element) => {
+                if (!element) return;
+                // Fixed-position elements (e.g. navbar buttons) are always in the
+                // same viewport position — scrolling would send the page somewhere wrong.
+                let el = element;
+                while (el) {
+                    if (getComputedStyle(el).position === 'fixed') return;
+                    el = el.parentElement;
+                }
+                const rect = element.getBoundingClientRect();
+                const absoluteTop = rect.top + window.scrollY;
+                const targetY = absoluteTop - (window.innerHeight / 2) + (rect.height / 2);
+                window.scrollTo({ top: Math.max(0, targetY) });
+            },
             steps,
         };
 
