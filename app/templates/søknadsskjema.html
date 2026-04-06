@@ -111,6 +111,7 @@
   }
   .info-table input[type=text] { display: none; }
   .print-val { display: inline; }
+  .dato-wrapper { display: block; }
 }
 </style>
 {% endblock %}
@@ -134,9 +135,6 @@
 
   <!-- Toolbar (hidden when printing) -->
   <div class="no-print d-flex justify-content-center gap-2 py-2 mb-1">
-    <a href="{{ url_for('shifts.favorites') }}" class="btn btn-sm btn-outline-dark">
-      <i class="bi bi-arrow-left"></i> Tilbake
-    </a>
     <button type="submit" form="skjema-form" name="format" value="docx" class="btn btn-sm btn-outline-success">
       <i class="bi bi-download me-1"></i> Last ned .docx
     </button>
@@ -173,7 +171,17 @@
       <tbody>
         <tr>
           <td class="lbl">Dato</td>
-          <td class="val"><input type="text" name="dato" value="{{ today }}" placeholder="DD.MM.ÅÅÅÅ"><span class="print-val"></span></td>
+          <td class="val">
+            <div class="dato-wrapper" style="display:flex; align-items:center; gap:4px;">
+              <input type="text" name="dato" id="dato-text" value="{{ today }}" placeholder="DD.MM.ÅÅÅÅ" style="width:auto; flex:1; min-width:0;">
+              <span class="print-val"></span>
+              <span class="no-print" style="position:relative; display:inline-flex; align-items:center; flex-shrink:0;">
+                <i class="bi bi-calendar3" style="font-size:0.9rem; color:#aaa; pointer-events:none;"></i>
+                <input type="date" id="dato-picker" value="{{ today_iso }}"
+                       style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
+              </span>
+            </div>
+          </td>
         </tr>
         <tr>
           <td class="lbl">Rullenr. og navn</td>
@@ -332,5 +340,15 @@ document.querySelectorAll('.info-table input[type=text]').forEach(input => {
   span.textContent = input.value;
   input.addEventListener('input', () => span.textContent = input.value);
 });
+
+const datoPicker = document.getElementById('dato-picker');
+const datoText = document.getElementById('dato-text');
+if (datoPicker && datoText) {
+  datoPicker.addEventListener('change', () => {
+    const [y, m, d] = datoPicker.value.split('-');
+    datoText.value = `${d}.${m}.${y}`;
+    datoText.dispatchEvent(new Event('input'));
+  });
+}
 </script>
 {% endblock %}

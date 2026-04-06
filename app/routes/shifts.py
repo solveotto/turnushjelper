@@ -1245,6 +1245,7 @@ def soknadsskjema():
         current_turnus_set=user_turnus_set,
         all_turnus_sets=db_utils.get_all_turnus_sets(),
         today=date.today().strftime("%d.%m.%Y"),
+        today_iso=date.today().strftime("%Y-%m-%d"),
         default_rullenr_navn=default_rullenr_navn,
         default_stasjoneringssted=user_stasjoneringssted,
     )

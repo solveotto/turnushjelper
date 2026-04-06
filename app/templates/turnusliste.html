@@ -260,7 +260,7 @@
     </div>
 </div>
 {% endblock %} {% block navbar_icon_extra %}
-<a href="{{ url_for('shifts.import_favorites') }}"
+<a href="{{ url_for('shifts.import_favorites', ref='turnusliste') }}"
    id="gen-favorites-btn"
    class="btn navbar-action-btn"
    title="Generer favorittliste automatisk — finn turnuser som ligner dine tidligere favoritter">

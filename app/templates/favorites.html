@@ -16,6 +16,15 @@
 </li>
 {% endblock %}
 
+{% block navbar_icon_extra %}
+<a href="{{ url_for('shifts.import_favorites', ref='favorites') }}"
+   id="gen-favorites-btn"
+   class="btn navbar-action-btn"
+   title="Generer favorittliste automatisk — finn turnuser som ligner dine tidligere favoritter">
+    <i class="bi bi-stars"></i>
+</a>
+{% endblock %}
+
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/turnusliste/highlighted-turnus.css') }}">
     <script src="{{ url_for('static', filename='js/modules/turnusliste.js') }}"></script>
@@ -44,22 +53,6 @@
      data-current-turnus-set-id="{{ current_turnus_set.id if current_turnus_set else '' }}">
     <div class="row justify-content-center">
         <div class="col-auto">
-            <!-- Action buttons -->
-            {% if favorites|length != 0 %}
-                <div class="card border-0 shadow-sm mb-3 no-print">
-                    <div class="card-body py-2 d-flex align-items-center justify-content-center gap-2 flex-wrap">
-                        <a href="{{ url_for('shifts.import_favorites') }}" class="btn btn-sm btn-primary">
-                            <i class="bi bi-box-arrow-in-down me-1"></i>Generer favorittliste automatisk
-                        </a>
-                        <a href="{{ url_for('shifts.soknadsskjema') }}" class="btn btn-sm btn-success">
-                            <i class="bi bi-file-earmark-word me-1"></i>Last ned søknadsskjema
-                        </a>
-                    </div>
-                </div>
-            {% endif %}
-
-     
-            
             <div class="table-responsive">
                 <div class="container">
                     {% if favorites|length == 0 %}
@@ -67,6 +60,19 @@
                             <i class="bi bi-star fs-1 text-warning mb-3 d-block"></i>
                             <h4 class="mb-2">Ingen favoritter lagt til ennå</h4>
                             <p class="text-muted mb-3">Stjernemerk turnuser fra turnuslisten for å bygge opp favorittlisten din.</p>
+                            <div class="mb-4 no-print text-start">
+                                <div class="card border-primary">
+                                    <div class="card-body p-3">
+                                        <h6 class="mb-1">
+                                            <a href="{{ url_for('shifts.import_favorites', ref='favorites') }}">
+                                                <i class="bi bi-stars text-primary"></i>
+                                                Generer favorittliste automatisk
+                                            </a>
+                                        </h6>
+                                        <small class="text-muted">Finner turnuser som er mest like dine favoritter fra tidligere år.</small>
+                                    </div>
+                                </div>
+                            </div>
                             <ul class="list-unstyled text-muted small mb-4">
                                 <li class="mb-1"><i class="bi bi-arrow-up-down me-1"></i> Sett dem i prioritert rekkefølge med pil-knappene</li>
                                 <li class="mb-1"><i class="bi bi-file-earmark-word me-1"></i> Last ned søknadsskjema basert på prioriteringslisten</li>
@@ -75,24 +81,6 @@
                             <a href="{{ url_for('shifts.turnusliste') }}" class="btn btn-outline-primary btn-sm mb-4">
                                 <i class="bi bi-list-ul me-1"></i> Gå til turnuslisten
                             </a>
-                        </div>
-                        <div class="mb-5 no-print">
-                            <div class="card border-primary">
-                                <div class="card-body p-3">
-                                    <div class="d-flex align-items-center justify-content-between gap-3">
-                                        <div>
-                                            <h6 class="mb-1">
-                                                <a href="{{ url_for('shifts.import_favorites') }}">
-                                                    <i class="bi bi-box-arrow-in-down text-primary"></i>
-                                                        Generer favorittliste automatisk
-                                                </a>
-                                            </h6>
-                                            <small class="text-muted">Finner turnuser som er mest like dine favoritter fra tidligere år.</small>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     {% endif %}
                 </div>

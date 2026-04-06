@@ -3,6 +3,9 @@
 {% block title %}Generer favorittliste automatisk{% endblock %}
 
 {% block content %}
+{% set from_turnusliste = request.args.get('ref') == 'turnusliste' %}
+{% set back_url = url_for('shifts.turnusliste') if from_turnusliste else url_for('shifts.favorites') %}
+{% set back_label = 'Tilbake til turnuslisten' if from_turnusliste else 'Tilbake til favoritter' %}
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-10">
@@ -120,8 +123,8 @@
                             </div>
 
                             <div class="mt-4">
-                                <a href="{{ url_for('shifts.favorites') }}" class="btn btn-outline-secondary">
-                                    <i class="bi bi-arrow-left"></i> Tilbake til favoritter
+                                <a href="{{ back_url }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> {{ back_label }}
                                 </a>
                             </div>
 
@@ -137,8 +140,8 @@
                                     <li>Statistikkfiler må finnes for begge turnusene</li>
                                 </ul>
                             </div>
-                            <a href="{{ url_for('shifts.favorites') }}" class="btn btn-primary">
-                                <i class="bi bi-arrow-left"></i> Tilbake til favoritter
+                            <a href="{{ back_url }}" class="btn btn-primary">
+                                <i class="bi bi-arrow-left"></i> {{ back_label }}
                             </a>
                         {% endif %}
                     {% else %}

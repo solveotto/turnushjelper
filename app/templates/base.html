@@ -53,6 +53,11 @@
                 </li>
                 {% endif %}
                 <li class="nav-item">
+                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.oversikt' %}active{% endif %}" href="{{ url_for('shifts.oversikt') }}" title="Oversikt">
+                    <i class="bi bi-bar-chart"></i>
+                  </a>
+                </li>
+                <li class="nav-item">
                   <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.turnusliste' %}active{% endif %}" href="{{ url_for('shifts.turnusliste') }}" title="Turnusliste">
                     <i class="bi bi-calendar-week"></i>
                   </a>
@@ -63,8 +68,8 @@
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.oversikt' %}active{% endif %}" href="{{ url_for('shifts.oversikt') }}" title="Grafer">
-                    <i class="bi bi-bar-chart"></i>
+                  <a class="nav-link mobile-icon-link {% if request.endpoint == 'shifts.soknadsskjema' %}active{% endif %}" href="{{ url_for('shifts.soknadsskjema') }}" title="Søknadskjema">
+                    <i class="bi bi-file-earmark-text"></i>
                   </a>
                 </li>
               </ul>
@@ -82,6 +87,12 @@
                 </li>
                 {% endif %}
                 <li class="nav-item">
+                  <a class="nav-link {% if request.endpoint == 'shifts.oversikt' %}active{% endif %}" href="{{ url_for('shifts.oversikt') }}">
+                    <i class="bi bi-bar-chart"></i>
+                    <span>Oversikt</span>
+                  </a>
+                </li>
+                <li class="nav-item">
                   <a class="nav-link {% if request.endpoint == 'shifts.turnusliste' %}active{% endif %}" href="{{ url_for('shifts.turnusliste') }}">
                     <i class="bi bi-calendar-week"></i>
                     <span>Turnusliste</span>
@@ -94,9 +105,9 @@
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link {% if request.endpoint == 'shifts.oversikt' %}active{% endif %}" href="{{ url_for('shifts.oversikt') }}">
-                    <i class="bi bi-bar-chart"></i>
-                    <span>Oversikt</span>
+                  <a class="nav-link {% if request.endpoint == 'shifts.soknadsskjema' %}active{% endif %}" href="{{ url_for('shifts.soknadsskjema') }}">
+                    <i class="bi bi-file-earmark-text"></i>
+                    <span>Søknadskjema</span>
                   </a>
                 </li>
 
