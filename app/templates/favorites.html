@@ -10,10 +10,10 @@
 </li>
 {% endblock %}
 
-{% block navbar_icon_extra %}
+{% block navbar_icon_always %}
 <a href="{{ url_for('shifts.import_favorites', ref='favorites') }}"
    id="gen-favorites-btn"
-   class="btn navbar-action-btn"
+   class="btn navbar-action-btn me-1"
    title="Generer favorittliste automatisk — finn turnuser som ligner dine tidligere favoritter">
     <i class="bi bi-stars"></i>
 </a>

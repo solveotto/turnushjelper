@@ -132,6 +132,9 @@
                   {% block navbar_icon_extra %}{% endblock %}
                 </div>
 
+                <!-- Always-visible extra icon buttons (page-specific, shown on all screen sizes) -->
+                {% block navbar_icon_always %}{% endblock %}
+
                 <!-- Help button (shown by JS on pages with a help guide) -->
                 <button class="navbar-icon-btn navbar-action-btn btn me-1"
                         id="help-icon-btn"
@@ -160,10 +163,13 @@
 
                     <li>
                       <a class="dropdown-item" href="{{ url_for('downloads.download_pdf') }}">
-                        <i class="bi bi-file-earmark-zip"></i> Lagre orginal PDF
+                        <i class="bi bi-file-earmark-zip"></i> Lagre orginal Turnusliste (PDF)
                       </a>
                     </li>
+
                     <li><hr class="dropdown-divider"></li>
+
+
                     <li>
                       <a class="dropdown-item" href="{{ url_for('minside.user_minside') }}">
                         <i class="bi bi-person-gear"></i> Min Side

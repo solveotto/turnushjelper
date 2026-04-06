@@ -26,7 +26,6 @@ export class SortingSystem {
             return;
         }
 
-        console.log('Initializing sorting system...');
         this.initializeOriginalOrder();
         this.setupEventListeners();
         
@@ -106,7 +105,6 @@ export class SortingSystem {
             }
         });
         
-        console.log('Total turnus data collected:', turnusData.length);
         return turnusData;
     }
 
@@ -429,5 +427,14 @@ export class SortingSystem {
         window.hideSortingInfo = () => {
             this.resetOrder();
         };
+
+        // Fix aria-hidden warning: blur any focused element inside the modal before it hides
+        const modal = document.getElementById('mobileSorterModal');
+        if (modal) {
+            modal.addEventListener('hide.bs.modal', () => {
+                const focused = modal.querySelector(':focus');
+                if (focused) focused.blur();
+            });
+        }
     }
 }

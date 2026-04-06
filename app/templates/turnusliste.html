@@ -25,7 +25,7 @@
 {% endblock %} {% block mobile_sorter %}
 <div class="mobile-sorter d-lg-none me-2">
     <button
-        class="btn btn-warning mobile-sorter-btn"
+        class="btn navbar-icon-btn navbar-action-btn sorter-btn mobile-sorter-btn"
         type="button"
         data-bs-toggle="modal"
         data-bs-target="#mobileSorterModal"
@@ -252,10 +252,10 @@
         </div>
     </div>
 </div>
-{% endblock %} {% block navbar_icon_extra %}
+{% endblock %} {% block navbar_icon_always %}
 <a href="{{ url_for('shifts.import_favorites', ref='turnusliste') }}"
    id="gen-favorites-btn"
-   class="btn navbar-action-btn"
+   class="btn navbar-action-btn me-1"
    title="Generer favorittliste automatisk — finn turnuser som ligner dine tidligere favoritter">
     <i class="bi bi-stars"></i>
 </a>
