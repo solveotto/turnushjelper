@@ -129,7 +129,7 @@ export default function () {
                 title: "Delte dagsverk",
                 description: `
                     <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause i dagsverket.</p>
-                    ${firstDeltDagsverk ? "" : '<img src="static/img/tour/deltdagsverk.png" style="display:block; margin:8px auto; max-width:25%; border-radius:2px;">'}
+                    ${firstDeltDagsverk ? "" : '<img src="/static/img/tour/deltdagsverk.png" style="display:block; margin:8px auto; max-width:25%; border-radius:2px;">'}
                     <p>Disse cellene er markert med <strong>**</strong> i tabellen.</p>
                     <p class="tour-hint">Det vil også her komme en pop-up som indikerer et delt dagsverk.</p>
                 `,

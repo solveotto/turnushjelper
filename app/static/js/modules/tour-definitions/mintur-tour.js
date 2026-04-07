@@ -15,7 +15,9 @@ export default function () {
             popover: {
                 title: "Min Tur",
                 description: `
-                <p>Her ser du <strong>din tur</strong> i inneværede rutetermin.</p>
+                <p>Her ser du <strong>din turnus</strong> dag for dag gjennom hele ruteterminet.</p>
+                <p>Tabellen er organisert med uker som rader og ukedager som kolonner. Hver celle viser skiftet du jobber den dagen.</p>
+                <p class="tour-hint">Cellefargene følger samme fargekode som i turnuslisten.</p>
         `,
                 side: isMobile ? "bottom" : "bottom",
                 align: "center",

@@ -21,13 +21,16 @@ export default function () {
             popover: {
                 title: "Velkommen til Turnushjelper! 👋",
                 description: `
-          <p>Denne guiden viser deg de viktigste funksjonene på denne siden.</p>
-          <p>Her kan du se alle turnuser, sortere dem etter dine preferanser,
-          og lagre favoritter for å sortere den prioriterte rekkefølgen.</p>
+          <p>Denne guiden viser deg de viktigste funksjonene i appen.</p>
+          <p>Turnushjelper lar deg:</p>
+          <ul class="tour-list">
+            <li>Se og sammenligne alle turnuser i ruteterminet</li>
+            <li>Lagre favoritter og sette dem i prioritert rekkefølge</li>
+            <li>Laste ned søknadsskjema basert på din prioritering</li>
+          </ul>
           <p>Husk at du ALLTID må sjekke at turnusene her stemmer med de
           offisielle turnusene før du sender inn søknaden. Jeg tar ikke ansvar for eventuelle
           feil i turnusene.</p>
-          <br>
           <p class="tour-hint">Når du klikker <strong>Neste</strong> godtar du dette og starter omvisningen.</p>
         `,
                 side: "over",
