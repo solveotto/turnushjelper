@@ -37,11 +37,11 @@ export default function () {
     return [
         {
             // Step 2: Shift color legend (centered, no element — informational)
-            element: ".list-group-item",
+            // element: ".list-group-item",
             popover: {
                 title: "Turnuslisten",
                 description: `
-                      <p>Dette er <strong>turnsene</strong> i ruteterminet</p>
+                      <p>Dette er <strong>turnsene</strong> i ruteterminet.</p>
                       <p><strong>Cellefargene</strong> viser når på dagen skiftet starter:</p>
                       <div class="tour-color-legend">
                           <div class="tour-color-row"><span class="tour-color-swatch" style="background:#87ceeb;"></span><span>Tidligvakt — starter før 06:00</span></div>
@@ -57,9 +57,45 @@ export default function () {
                 side: "over",
                 align: "start",
             },
-        },
+      },
 
-        {
+      {
+          // Step 8: Sort/Filter system
+          element: isMobile ? ".mobile-sorter-btn" : ".navbar-filtering .sorter-btn",
+          popover: {
+              title: "Sortering og filtrering",
+              description: `
+                  <p>Bruk filteret for å sortere turnusene etter det som er viktigst for deg.</p>
+                  <p>Du kan justere glidebrytere for:</p>
+                  <ul class="tour-list">
+                      <li><strong>Helgetimer</strong> — antall timer i helgen</li>
+                      <li><strong>Nattevakter</strong> — antall nattskift</li>
+                      <li><strong>Tidligvakter</strong> — skift som starter tidlig</li>
+                      <li>...og flere kriterier</li>
+                  </ul>
+                  <p class="tour-hint">Dra glideren mot høyre for å prioritere turnuser med <em>mange</em> av den typen.</p>
+              `,
+              side: isMobile ? "bottom" : "bottom",
+              align: isMobile ? "start" : "end",
+          },
+      },
+
+
+      ...(!isMobile && document.getElementById("gen-favorites-btn") ? [{
+          element: "#gen-favorites-btn",
+          popover: {
+              title: "Generer favorittliste ✨",
+              description: `
+                  <p>Klikk her for å <strong>generere en favorittliste automatisk</strong>.</p>
+                  <p>Verktøyet analyserer turnusene dine og finner de som ligner mest på dine favoritter fra tidligere år.</p>
+                  <p class="tour-hint">Nyttig hvis du vil ha et godt utgangspunkt for søknaden uten å gå gjennom alle turnusene manuelt.</p>
+              `,
+              side: "bottom",
+              align: isMobile ? "start" : "end",
+          },
+      }] : []),
+
+      {
             // Turnsnøkkel
             element: ".custom-key-btn",
             popover: {
@@ -138,39 +174,8 @@ export default function () {
             },
         },
 
-        {
-            // Step 8: Sort/Filter system
-            element: isMobile ? ".mobile-sorter-btn" : ".sorter-btn",
-            popover: {
-                title: "Sortering og filtrering",
-                description: `
-                    <p>Bruk filteret for å sortere turnusene etter det som er viktigst for deg.</p>
-                    <p>Du kan justere glidebrytere for:</p>
-                    <ul class="tour-list">
-                        <li><strong>Helgetimer</strong> — antall timer i helgen</li>
-                        <li><strong>Nattevakter</strong> — antall nattskift</li>
-                        <li><strong>Tidligvakter</strong> — skift som starter tidlig</li>
-                        <li>...og flere kriterier</li>
-                    </ul>
-                    <p class="tour-hint">Dra glideren mot høyre for å prioritere turnuser med <em>mange</em> av den typen.</p>
-                `,
-                side: isMobile ? "bottom" : "bottom",
-                align: "start",
-            },
-        },
 
-        ...(!isMobile && document.getElementById("gen-favorites-btn") ? [{
-            element: "#gen-favorites-btn",
-            popover: {
-                title: "Generer favorittliste ✨",
-                description: `
-                    <p>Klikk her for å <strong>generere en favorittliste automatisk</strong>.</p>
-                    <p>Verktøyet analyserer turnusene dine og finner de som ligner mest på dine favoritter fra tidligere år.</p>
-                    <p class="tour-hint">Nyttig hvis du vil ha et godt utgangspunkt for søknaden uten å gå gjennom alle turnusene manuelt.</p>
-                `,
-                side: "bottom",
-                align: "start",
-            },
-        }] : []),
+
+
     ];
 }

@@ -12,8 +12,8 @@ export default function () {
         popover: {
           title: "Favoritter-siden",
           description: `
-            <p>Her samler du turnusene du er mest interessert i.</p>
-            <p>Favorittlisten lar deg <strong>prioritere</strong> turnusene og laste ned søknadsskjema basert på din prioritering.</p>
+            <p>Her setter du turene i prioritert rekkefølge.</p>
+            <p class="tour-hint">Valgene blir automatisk oppdatert i <strong>skjema</strong>, som kan printes ut.</p>
           `,
           side: "over",
           align: "center",
@@ -72,7 +72,7 @@ export default function () {
       },
     },
     {
-      element: '.list-group-item',
+      // element: '.list-group-item',
       popover: {
         title: "Din favorittliste",
         description: `
