@@ -63,17 +63,18 @@ export default function () {
           // Step 8: Sort/Filter system
           element: isMobile ? ".mobile-sorter-btn" : ".navbar-filtering .sorter-btn",
           popover: {
-              title: "Sortering og filtrering",
+              title: "Sorter turnuser",
               description: `
-                  <p>Bruk filteret for å sortere turnusene etter det som er viktigst for deg.</p>
-                  <p>Du kan justere glidebrytere for:</p>
+                  <p>Bruk glidebrytere for å sortere turnusene etter det som er viktigst for deg.</p>
+                  <p>Du kan foreksempel justere:</p>
                   <ul class="tour-list">
-                      <li><strong>Helgetimer</strong> — antall timer i helgen</li>
-                      <li><strong>Nattevakter</strong> — antall nattskift</li>
-                      <li><strong>Tidligvakter</strong> — skift som starter tidlig</li>
+                      <li><strong>Helgetimer</strong></li>
+                      <li><strong>Nattevakter</strong></li>
+                      <li><strong>Tidligvakter</strong></li>
+                      <li><strong>Kveldsvakter</strong></li>
                       <li>...og flere kriterier</li>
                   </ul>
-                  <p class="tour-hint">Dra glideren mot høyre for å prioritere turnuser med <em>mange</em> av den typen.</p>
+                  <p class="tour-hint">Du kan velge <strong>flere kriterier</strong> samtidig.</p>
               `,
               side: isMobile ? "bottom" : "bottom",
               align: isMobile ? "start" : "end",
