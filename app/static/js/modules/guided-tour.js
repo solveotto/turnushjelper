@@ -66,8 +66,6 @@ export class GuidedTour {
             },
         };
 
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
         document.addEventListener('keydown', this._blockKeyScroll);
         document.addEventListener('touchmove', this._blockTouchScroll, { passive: false });
         document.addEventListener('wheel', this._blockWheelScroll, { passive: false });
@@ -77,8 +75,6 @@ export class GuidedTour {
     }
 
     _unlockScroll() {
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
         document.removeEventListener('keydown', this._blockKeyScroll);
         document.removeEventListener('touchmove', this._blockTouchScroll);
         document.removeEventListener('wheel', this._blockWheelScroll);

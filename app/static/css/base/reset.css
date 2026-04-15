@@ -6,6 +6,7 @@ html {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    scroll-padding-top: 80px; /* account for fixed navbar when scrolling elements into view */
     font-family: var(--font-system);
     color: var(--color-text-primary);
     line-height: var(--line-height-normal);

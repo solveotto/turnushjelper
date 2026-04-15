@@ -348,7 +348,7 @@
 .mobile-icon-nav {
     display: flex;
     align-items: center;
-    margin-left: 1rem;
+    margin-left: auto;
     margin-right: auto;
 }
 
@@ -538,7 +538,7 @@
 
     /* Mobile icon navigation adjustments */
     .mobile-icon-nav {
-        margin-left: 0.5rem;
+        margin-left: auto;
         margin-right: auto;
     }
 
@@ -568,7 +568,7 @@
     }
 
     .mobile-icon-nav {
-        margin-left: 0.25rem;
+        margin-left: auto;
         margin-right: auto;
     }
 

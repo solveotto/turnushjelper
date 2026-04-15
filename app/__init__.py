@@ -59,6 +59,9 @@ def create_app():
     def inject_tour_state():
         if current_user.is_authenticated:
             from app.models import Innplassering, TurnusSet
+            from app.utils.pdf_downloads import get_pdf_downloads
+            from app.utils.turnus_helpers import get_user_turnus_set
+            from flask import url_for
             db_session = get_db_session()
             try:
                 db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
@@ -70,6 +73,27 @@ def create_app():
                             turnus_set_id=active_ts.id,
                             rullenummer=str(db_user.rullenummer),
                         ).first() is not None
+
+                turnus_set = get_user_turnus_set()
+                pdf_downloads = []
+                if turnus_set:
+                    year_id = turnus_set["year_identifier"].lower()
+                    cache_key = f"pdf_downloads_{year_id}"
+                    pdf_downloads = cache.get(cache_key)
+                    if pdf_downloads is None:
+                        raw = get_pdf_downloads(AppConfig.turnusfiler_dir, year_id)
+                        pdf_downloads = [
+                            {
+                                "display_name": item["display_name"],
+                                "url": url_for(
+                                    "static",
+                                    filename=f'turnusfiler/{year_id}/pdf/{item["filename"]}',
+                                ),
+                            }
+                            for item in raw
+                        ]
+                        cache.set(cache_key, pdf_downloads, timeout=300)
+
                 return {
                     "has_seen_tour": session.get('has_seen_tour', 0),
                     "has_seen_favorites_tour": session.get('has_seen_favorites_tour', 0),
@@ -77,10 +101,21 @@ def create_app():
                     "has_seen_compare_tour": session.get('has_seen_compare_tour', 0),
                     "has_seen_welcome": session.get('has_seen_welcome', 0),
                     "has_min_turnus": has_min_turnus,
+                    "pdf_downloads": pdf_downloads,
+                    "global_turnus_set": turnus_set,
                 }
             finally:
                 db_session.close()
-        return {"has_seen_tour": 0, "has_seen_favorites_tour": 0, "has_seen_mintur_tour": 0, "has_seen_compare_tour": 0, "has_seen_welcome": 0, "has_min_turnus": False}
+        return {
+            "has_seen_tour": 0,
+            "has_seen_favorites_tour": 0,
+            "has_seen_mintur_tour": 0,
+            "has_seen_compare_tour": 0,
+            "has_seen_welcome": 0,
+            "has_min_turnus": False,
+            "pdf_downloads": [],
+            "global_turnus_set": None,
+        }
 
     @app.template_filter('display_name')
     def display_name_filter(s):

@@ -127,7 +127,7 @@ label input[type="checkbox"] {
 }
 
 .custom-remove-btn {
-    margin-top: -10px; /* Adjust the value as needed */
+    align-self: center;
 }
 
 /* Arrow icon styling for move up/down buttons */

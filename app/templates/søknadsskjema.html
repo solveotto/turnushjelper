@@ -2,6 +2,14 @@
 
 {% block title %}Søknadsskjema{% endblock %}
 
+{% block mobile_print %}
+<li>
+    <a class="dropdown-item mobile-print-item" href="#" onclick="window.print(); return false;">
+        <i class="bi bi-printer"></i> Utskrift
+    </a>
+</li>
+{% endblock %}
+
 {% block extra_css %}
 <style>
 .document-wrap {
