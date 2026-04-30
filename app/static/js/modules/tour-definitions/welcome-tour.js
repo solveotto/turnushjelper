@@ -55,8 +55,8 @@ export default function () {
                       popover: {
                           title: "Min Tur 🚂",
                           description: `
-          <p>Her ser du <strong>din valgte turnus</strong> i detalj — skiftene dine dag for dag.</p>
-          <p class="tour-hint">Tilgjengelig etter at turnus er valgt.</p>
+          <p>Her ser du turnusen <strong>du står i nå.</strong></p>
+          <p class="tour-hint">Klikk på skiftene for å se streklisten.</p>
         `,
                           side: "bottom",
                           align: "start",
@@ -75,7 +75,7 @@ export default function () {
                           title: "Oversikt 📊",
                           description: `
           <p>Her finner du <strong>statistikk</strong> over alle turnusene — helgetimer, nattevakter, tidligvakter og mer.</p>
-          <p class="tour-hint">Nyttig for å sammenligne turnuser på tvers.</p>
+          <p class="tour-hint">Nyttig for å få en rask oversikt over turnusene.</p>
         `,
                           side: "bottom",
                           align: "start",
@@ -94,7 +94,8 @@ export default function () {
                           title: "Turnusliste 📋",
                           description: `
               <p>Her ser du <strong>alle tilgjengelige turnuser</strong> i ruteterminet.</p>
-              <p>Du kan sortere og filtrere etter skifttype, helgetimer, nattevakter og mer.</p>
+              <p>Dette er hovedsiden hvor du finner å velger turnuser du vil søke på.</p>
+              <p class="tour-hint">Du kan sortere og filtrere etter skifttype, helgetimer, nattevakter og mer.</p>
             `,
                           side: "bottom",
                           align: "start",
@@ -103,7 +104,27 @@ export default function () {
               ]
             : []),
 
-        ...(navSkjema
+        ...(navFav
+            ? [
+                  {
+                      element: isMobile
+                          ? '.mobile-icon-nav a[href*="favorites"]'
+                          : '#navbarNav a[href*="favorites"]',
+                      popover: {
+                          title: "Favoritter ⭐",
+                          description: `
+          <p>Her havner turnusene du velger som favoritter.</p>
+          <p>Du kan sette dem i <strong>prioritert rekkefølge</strong> og laste ned søknadsskjema basert på listen.</p>
+          <p class="tour-hint">Du kan se på turnusnøkkel og feks. velge hvilke linjer du vil prioritere herfra. Det vil komme automatisk på søknadskjema.</p>
+        `,
+                          side: "bottom",
+                          align: "start",
+                      },
+                  },
+              ]
+            : []),
+
+      ...(navSkjema
             ? [
                   {
                       element: isMobile
@@ -122,24 +143,7 @@ export default function () {
               ]
             : []),
 
-        ...(navFav
-            ? [
-                  {
-                      element: isMobile
-                          ? '.mobile-icon-nav a[href*="favorites"]'
-                          : '#navbarNav a[href*="favorites"]',
-                      popover: {
-                          title: "Favoritter ⭐",
-                          description: `
-          <p>Her lagrer du turnusene du er mest interessert i.</p>
-          <p>Du kan sette dem i <strong>prioritert rekkefølge</strong> og laste ned søknadsskjema basert på listen.</p>
-        `,
-                          side: "bottom",
-                          align: "start",
-                      },
-                  },
-              ]
-            : []),
+
 
 
 
@@ -165,13 +169,13 @@ export default function () {
             popover: {
                 title: "Brukermeny",
                 description: `
-                <p>Her finner du:</p>
+                <p>Her finner du feks.:</p>
                 <ul class="tour-list">
                     <li><strong>Min Side</strong> — innstillinger og profil</li>
                     <li><strong>Last ned PDF</strong> — turnus som PDF</li>
                     <li><strong>Logg ut</strong></li>
                 </ul>
-                <p class="tour-hint">Administratorer finner også admin-panelet her.</p>
+                <p class="tour-hint">Herfra kan du endre rutetermin hvis du vil se på gamle turnuser.</p>
             `,
                 side: "bottom",
                 align: "end",

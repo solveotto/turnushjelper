@@ -33,6 +33,7 @@ export default function () {
     const firstDobbeltur =
         dobbelturEl ?? document.querySelector(".consecutive-shift-arrow");
     const firstDeltDagsverk = document.querySelector(".delt-dagsverk");
+    const statsEl = document.querySelector(".data-felt");
 
     return [
         {
@@ -58,6 +59,19 @@ export default function () {
                 align: "start",
             },
       },
+
+
+      ...(statsEl ? [{
+          element: statsEl,
+          popover: {
+              title: "Statistikk",
+              description: `
+          <p>Her ser du nøkkeltall for din turnus: antall dagsverk, tidlig-/kveld-/nattskift, helgetimer og mer.</p>
+        `,
+              side: isMobile ? "bottom" : "right",
+              align: "start",
+          },
+      }] : []),
 
       {
           // Step 8: Sort/Filter system
@@ -88,7 +102,7 @@ export default function () {
               title: "Generer favorittliste ✨",
               description: `
                   <p>Klikk her for å <strong>generere en favorittliste automatisk</strong>.</p>
-                  <p>Verktøyet analyserer turnusene dine og finner de som ligner mest på dine favoritter fra tidligere år.</p>
+                  <p>Verktøyet analyserer turnusene og finner de som ligner mest på dine favoritter fra tidligere år.</p>
                   <p class="tour-hint">Nyttig hvis du vil ha et godt utgangspunkt for søknaden uten å gå gjennom alle turnusene manuelt.</p>
               `,
               side: "bottom",
@@ -103,7 +117,7 @@ export default function () {
                 title: "Turnusnøkkel 🔑",
                 description: `
                     <p>Klikk på <strong>nøkkelen</strong> for å se turnusnøkelen for den aktuelle turnus.</p>
-                    <p class="tour-hint">Her kan du velge rekkefølgen på linjene du søker. De vil automatisk bli lagt til søknadskjema.</p>
+                    <p class="tour-hint">Her kan du velge rekkefølgen på linjene du søker og om du vil jobbe H-dag. De vil automatisk bli lagt til søknadskjema.</p>
                 `,
                 side: isMobile ? "bottom" : "left",
                 align: "start",
@@ -131,8 +145,7 @@ export default function () {
             popover: {
                 title: "Streklister 📝",
                 description: `
-                    <p>Klikk på <strong>dagsverk-nummeret</strong> (f.eks. 3007) for å se en visuell tidslinje for det skiftet.</p>
-                    <p>Tidslinjen viser hele skiftet grafisk, slik at du raskt kan se start- og sluttider.</p>
+                    <p>Klikk på <strong>dagsverk-nummeret</strong> (f.eks. 3007) for å se streklisten for det skiftet.</p>
                     <p class="tour-hint">Prøv å klikke på et dagsverk-nummer etter omvisningen!</p>
                 `,
                 side: "bottom",
@@ -165,7 +178,7 @@ export default function () {
             popover: {
                 title: "Delte dagsverk",
                 description: `
-                    <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en pause i dagsverket.</p>
+                    <p>Et <strong>delt dagsverk</strong> betyr at du jobber et skift med en mindre betalt pause i dagsverket.</p>
                     ${firstDeltDagsverk ? "" : '<img src="/static/img/tour/deltdagsverk.png" style="display:block; margin:8px auto; max-width:25%; border-radius:2px;">'}
                     <p>Disse cellene er markert med <strong>**</strong> i tabellen.</p>
                     <p class="tour-hint">Det vil også her komme en pop-up som indikerer et delt dagsverk.</p>

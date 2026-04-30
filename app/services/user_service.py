@@ -67,6 +67,7 @@ def get_user_data(username_or_email):
                 "has_seen_mintur_tour": result.has_seen_mintur_tour or 0,
                 "has_seen_compare_tour": result.has_seen_compare_tour or 0,
                 "has_seen_welcome": result.has_seen_welcome or 0,
+                "has_seen_soknadsskjema_tour": result.has_seen_soknadsskjema_tour or 0,
             }
             return data
         else:

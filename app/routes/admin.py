@@ -72,6 +72,7 @@ def reset_tour():
             DBUser.has_seen_mintur_tour: 0,
             DBUser.has_seen_compare_tour: 0,
             DBUser.has_seen_welcome: 0,
+            DBUser.has_seen_soknadsskjema_tour: 0,
         })
         db_session.commit()
         cache.clear()  # evict all cached pages so data-tour-seen is re-rendered fresh

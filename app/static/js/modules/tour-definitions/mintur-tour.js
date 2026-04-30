@@ -41,22 +41,6 @@ export default function () {
         });
     }
 
-    const statsEl = document.querySelector(".data-felt");
-    if (statsEl) {
-        steps.push({
-            element: statsEl,
-            popover: {
-                title: "Statistikk",
-                description: `
-          <p>Her ser du nøkkeltall for din turnus: antall dagsverk, tidlig-/kveld-/nattskift, helgetimer og mer.</p>
-          <p class="tour-hint">Tallene er beregnet over hele turnusperioden.</p>
-        `,
-                side: isMobile ? "bottom" : "right",
-                align: "start",
-            },
-        });
-    }
-
     const nokkelEl = document.querySelector("h5.mt-4");
     if (nokkelEl) {
         steps.push({
