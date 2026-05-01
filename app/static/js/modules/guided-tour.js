@@ -38,6 +38,14 @@ export class GuidedTour {
             return;
         }
 
+        this._blockKeyScroll = (e) => {
+            const scrollKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                                ' ', 'PageUp', 'PageDown', 'Home', 'End'];
+            if (scrollKeys.includes(e.key)) e.preventDefault();
+        };
+        this._blockTouchScroll = (e) => e.preventDefault();
+        this._blockWheelScroll = (e) => e.preventDefault();
+
         const config = {
             showProgress: true,
             animate: true,
@@ -67,17 +75,25 @@ export class GuidedTour {
                 window.scrollTo({ top: Math.max(0, targetY) });
             },
             steps,
+            onDestroyStarted: () => {
+                this.driver.destroy();
+                this._unlockScroll();
+                if (onDestroy) onDestroy();
+            },
         };
 
-        if (onDestroy) {
-            config.onDestroyStarted = () => {
-                this.driver.destroy();
-                onDestroy();
-            };
-        }
+        document.addEventListener('keydown', this._blockKeyScroll);
+        document.addEventListener('touchmove', this._blockTouchScroll, { passive: false });
+        document.addEventListener('wheel', this._blockWheelScroll, { passive: false });
 
         this.driver = window.driver.js.driver(config);
         this.driver.drive();
+    }
+
+    _unlockScroll() {
+        document.removeEventListener('keydown', this._blockKeyScroll);
+        document.removeEventListener('touchmove', this._blockTouchScroll);
+        document.removeEventListener('wheel', this._blockWheelScroll);
     }
 
     showHelpMenuItem() {

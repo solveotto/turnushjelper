@@ -15,7 +15,9 @@ export default function () {
             popover: {
                 title: "Min Tur",
                 description: `
-                <p>Her ser du <strong>din tur</strong> i inneværede rutetermin.</p>
+                <p>Her ser du <strong>din turnus</strong> dag for dag gjennom hele ruteterminet.</p>
+                <p>Tabellen er organisert med uker som rader og ukedager som kolonner. Hver celle viser skiftet du jobber den dagen.</p>
+                <p class="tour-hint">Cellefargene følger samme fargekode som i turnuslisten.</p>
         `,
                 side: isMobile ? "bottom" : "bottom",
                 align: "center",
@@ -35,22 +37,6 @@ export default function () {
         `,
                 side: "bottom",
                 align: "center",
-            },
-        });
-    }
-
-    const statsEl = document.querySelector(".data-felt");
-    if (statsEl) {
-        steps.push({
-            element: statsEl,
-            popover: {
-                title: "Statistikk",
-                description: `
-          <p>Her ser du nøkkeltall for din turnus: antall dagsverk, tidlig-/kveld-/nattskift, helgetimer og mer.</p>
-          <p class="tour-hint">Tallene er beregnet over hele turnusperioden.</p>
-        `,
-                side: isMobile ? "bottom" : "right",
-                align: "start",
             },
         });
     }

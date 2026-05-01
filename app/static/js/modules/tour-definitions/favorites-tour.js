@@ -8,17 +8,7 @@ export default function () {
   if (!hasFavorites) {
     // Path A: No favorites yet — show the empty state and how to get started
     return [
-      {
-        popover: {
-          title: "Favoritter-siden",
-          description: `
-            <p>Her samler du turnusene du er mest interessert i.</p>
-            <p>Favorittlisten lar deg <strong>prioritere</strong> turnusene og laste ned søknadsskjema basert på din prioritering.</p>
-          `,
-          side: "over",
-          align: "center",
-        },
-      },
+
       {
         element: '.text-center.py-5',
         popover: {
@@ -60,24 +50,15 @@ export default function () {
 
   // Path B: Has favorites — show how to use the list
   return [
+
     {
-      popover: {
-        title: "Favoritter-siden",
-        description: `
-          <p>Her ser du alle turnusene du har stjernemerket.</p>
-          <p>Du kan <strong>sortere</strong> dem i prioritert rekkefølge og bruke listen som grunnlag for søknadsskjema.</p>
-        `,
-        side: "over",
-        align: "center",
-      },
-    },
-    {
-      element: '.list-group-item',
+      // element: '.list-group-item',
       popover: {
         title: "Din favorittliste",
         description: `
           <p>Favorittene vises her i den rekkefølgen du har satt dem.</p>
           <p>Øverst er din <strong>høyest prioriterte</strong> turnus.</p>
+          <p class="tour-hint">Turnene vil ha samme rekkefølge i søknadsskjemaet.</p>
         `,
         side: "bottom",
         align: "start",
@@ -107,18 +88,7 @@ export default function () {
         align: "start",
       },
     },
-    {
-      element: '.mb-3.no-print.d-flex',
-      popover: {
-        title: "Handlingsknapper",
-        description: `
-          <p><strong>Generer favorittliste</strong> — henter turnuser fra forrige år som ligner dine nåværende favoritter.</p>
-          <p><strong>Last ned søknadsskjema</strong> — lager et Word-dokument med favorittene i prioritert rekkefølge.</p>
-        `,
-        side: "bottom",
-        align: "start",
-      },
-    },
+
     {
       element: '.custom-key-btn',
       popover: {

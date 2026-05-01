@@ -66,7 +66,14 @@ def reset_tour():
     """Reset the guided tour flag for all users so the tour auto-starts again."""
     db_session = get_db_session()
     try:
-        db_session.query(DBUser).update({DBUser.has_seen_turnusliste_tour: 0})
+        db_session.query(DBUser).update({
+            DBUser.has_seen_turnusliste_tour: 0,
+            DBUser.has_seen_favorites_tour: 0,
+            DBUser.has_seen_mintur_tour: 0,
+            DBUser.has_seen_compare_tour: 0,
+            DBUser.has_seen_welcome: 0,
+            DBUser.has_seen_soknadsskjema_tour: 0,
+        })
         db_session.commit()
         cache.clear()  # evict all cached pages so data-tour-seen is re-rendered fresh
         flash("Omvisningen er tilbakestilt for alle brukere.", "success")

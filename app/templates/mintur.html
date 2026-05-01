@@ -1,4 +1,21 @@
-{% extends "base.html" %} {% block extra_css %}
+{% extends "base.html" %}
+
+{% block mobile_print %}
+<li>
+    <a class="dropdown-item mobile-print-item" href="#" onclick="printTables(); return false;">
+        <i class="bi bi-printer"></i> Skriv ut Turnus
+    </a>
+</li>
+{% if template_found %}
+<li>
+    <a class="dropdown-item" href="{{ url_for('shifts.turnusnokkel_view', turnus_set_id=turnus_set_id, turnus_name=shift_title) }}" target="_blank">
+        <i class="bi bi-printer"></i> Skriv ut turnusnøkkel
+    </a>
+</li>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
 <link
     rel="stylesheet"
     href="{{ url_for('static', filename='css/turnusliste/highlighted-turnus.css') }}"

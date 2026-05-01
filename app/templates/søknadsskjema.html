@@ -2,6 +2,14 @@
 
 {% block title %}Søknadsskjema{% endblock %}
 
+{% block mobile_print %}
+<li>
+    <a class="dropdown-item mobile-print-item" href="#" onclick="window.print(); return false;">
+        <i class="bi bi-printer"></i> Utskrift
+    </a>
+</li>
+{% endblock %}
+
 {% block extra_css %}
 <style>
 .document-wrap {
@@ -117,7 +125,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="document-wrap">
+<div class="document-wrap" data-tour-page="soknadsskjema" data-tour-seen="{{ has_seen_soknadsskjema_tour }}">
 
   <!-- Flash messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -134,16 +142,18 @@
   {% endwith %}
 
   <!-- Toolbar (hidden when printing) -->
-  <div class="no-print d-flex justify-content-center gap-2 py-2 mb-1">
-    <button type="submit" form="skjema-form" name="format" value="docx" class="btn btn-sm btn-outline-success">
-      <i class="bi bi-download me-1"></i> Last ned .docx
-    </button>
-    <button type="submit" form="skjema-form" name="format" value="pdf" class="btn btn-sm btn-outline-danger">
-      <i class="bi bi-file-earmark-pdf me-1"></i> Last ned .pdf
-    </button>
-    <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()">
-      <i class="bi bi-printer"></i> Skriv ut
-    </button>
+  <div id="skjema-toolbar" class="no-print d-flex justify-content-center py-2 mb-1">
+    <div id="skjema-download-buttons" class="d-flex gap-2">
+      <button type="submit" form="skjema-form" name="format" value="docx" class="btn btn-sm btn-outline-success">
+        <i class="bi bi-download me-1"></i> Last ned .docx
+      </button>
+      <button type="submit" form="skjema-form" name="format" value="pdf" class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Last ned .pdf
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()">
+        <i class="bi bi-printer"></i> Skriv ut
+      </button>
+    </div>
   </div>
 
   <!-- Document sheet -->

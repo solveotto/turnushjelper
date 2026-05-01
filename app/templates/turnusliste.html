@@ -5,23 +5,12 @@
 />
 <script src="{{ url_for('static', filename='js/modules/turnusliste.js') }}"></script>
 
-{% endblock %} {% block title %}Favoritter{% endblock %} {% block mobile_print %}
-<li>
-    <a
-        class="dropdown-item mobile-print-item"
-        href="#"
-        onclick="printTables(); return false;"
-    >
-        <i class="bi bi-printer"></i> Utskrift
-    </a>
-</li>
-{% endblock %} {% block user_menu_items %}
+{% endblock %} {% block title %}Favoritter{% endblock %} {% block user_menu_items %}
 <li>
     <a class="dropdown-item" href="#" id="favorites-toggle-btn" onclick="return false;">
         <i class="bi bi-eye-slash me-1"></i>Skjul favoritter
     </a>
 </li>
-<li><hr class="dropdown-divider"></li>
 {% endblock %} {% block mobile_sorter %}
 <div class="mobile-sorter d-lg-none me-2">
     <button
