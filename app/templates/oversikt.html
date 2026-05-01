@@ -41,7 +41,7 @@ block extra_css %}
                                 "
                             ></i>
                         </td>
-                        <td>{{ row.turnus_set_name }}</td>
+                        <td>{{ row.year_identifier | display_name }}</td>
                         <td><strong>{{ row.shift_title | display_name}}</strong></td>
                         <td>{{ row.linjenummer or '—' }}</td>
                         <td>{{ row.ans_nr or '—' }}</td>

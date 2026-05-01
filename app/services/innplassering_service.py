@@ -85,6 +85,7 @@ def get_innplassering_for_user(user_id: int) -> list[dict]:
             db_session.query(Innplassering, TurnusSet)
             .join(TurnusSet, Innplassering.turnus_set_id == TurnusSet.id)
             .filter(Innplassering.rullenummer == str(user.rullenummer))
+            .order_by(TurnusSet.id.desc())
             .all()
         )
         return [
