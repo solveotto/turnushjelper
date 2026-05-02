@@ -88,6 +88,7 @@ def reset_tour():
 @admin.route("/create-test-user", methods=["POST"])
 @admin_required
 def create_test_user():
+    """Dev tool: create or reset testbruker with random favorites per TurnusSet."""
     success, message = user_service.create_test_user_with_favorites()
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.admin_dashboard"))
