@@ -85,6 +85,14 @@ def reset_tour():
     return redirect(url_for("admin.admin_dashboard"))
 
 
+@admin.route("/create-test-user", methods=["POST"])
+@admin_required
+def create_test_user():
+    success, message = user_service.create_test_user_with_favorites()
+    flash(message, "success" if success else "danger")
+    return redirect(url_for("admin.admin_dashboard"))
+
+
 @admin.route("/create_user", methods=["GET", "POST"])
 @admin_required
 def create_user():
