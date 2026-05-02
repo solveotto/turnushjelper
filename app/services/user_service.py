@@ -808,7 +808,7 @@ def create_test_user_with_favorites():
             email_verified=1,
         )
         db_session.add(new_user)
-        db_session.commit()
+        db_session.flush()
         user_id = new_user.id
 
         turnus_sets = db_session.query(TurnusSet).all()

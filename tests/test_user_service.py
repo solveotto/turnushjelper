@@ -87,10 +87,20 @@ class TestCreateTestUser:
         assert "R25" in msg
 
     def test_resets_existing_testbruker(self, patch_db, db_session):
-        from app.models import DBUser, Favorites
+        from app.models import DBUser, Favorites, TurnusSet, Shifts
+        # Seed a TurnusSet with 6 shifts so favorites actually get created
+        ts = TurnusSet(name="Turnus 2025", year_identifier="R25", is_active=1)
+        db_session.add(ts)
+        db_session.commit()
+        for i in range(6):
+            db_session.add(Shifts(title=f"D{i}", turnus_set_id=ts.id))
+        db_session.commit()
+
         user_service.create_test_user_with_favorites()
         user_service.create_test_user_with_favorites()  # second call resets
+
         user = db_session.query(DBUser).filter_by(username="testbruker").first()
         assert user is not None
         fav_count = db_session.query(Favorites).filter_by(user_id=user.id).count()
-        assert fav_count <= 5  # favorites from first call deleted, not accumulated
+        # Should be exactly 5 (min(5, 6)), not 10 (accumulated from 2 calls)
+        assert fav_count == 5
