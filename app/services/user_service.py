@@ -1,11 +1,12 @@
 import logging
+import random
 import secrets
 
 import bcrypt
 from sqlalchemy import func
 
 from app.database import get_db_session
-from app.models import DBUser, Favorites
+from app.models import DBUser, Favorites, Shifts, TurnusSet
 
 logger = logging.getLogger(__name__)
 
@@ -785,5 +786,56 @@ def init_default_admin():
             )
         else:
             logger.error("Error creating default admin: %s", e)
+    finally:
+        db_session.close()
+
+
+def create_test_user_with_favorites():
+    """Dev tool: create/reset testbruker with 5 random favorites per TurnusSet."""
+    db_session = get_db_session()
+    try:
+        existing = db_session.query(DBUser).filter_by(username="testbruker").first()
+        if existing:
+            db_session.query(Favorites).filter_by(user_id=existing.id).delete()
+            db_session.delete(existing)
+            db_session.commit()
+
+        new_user = DBUser(
+            username="testbruker",
+            email="testbruker@test.no",
+            password=hash_password("test123"),
+            is_auth=0,
+            email_verified=1,
+        )
+        db_session.add(new_user)
+        db_session.commit()
+        user_id = new_user.id
+
+        turnus_sets = db_session.query(TurnusSet).all()
+        summary_parts = []
+        for ts in turnus_sets:
+            shifts = db_session.query(Shifts).filter_by(turnus_set_id=ts.id).all()
+            sample = random.sample(shifts, min(5, len(shifts)))
+            for i, shift in enumerate(sample):
+                db_session.add(Favorites(
+                    user_id=user_id,
+                    shift_title=shift.title,
+                    turnus_set_id=ts.id,
+                    order_index=i,
+                ))
+            if sample:
+                summary_parts.append(f"{len(sample)} i {ts.year_identifier}")
+
+        db_session.commit()
+
+        if summary_parts:
+            msg = "Testbruker opprettet med " + ", ".join(summary_parts) + "."
+        else:
+            msg = "Testbruker opprettet (ingen turnussett med skift funnet)."
+        return True, msg
+    except Exception as e:
+        db_session.rollback()
+        logger.error("Error creating test user: %s", e)
+        return False, f"Feil ved opprettelse av testbruker: {e}"
     finally:
         db_session.close()
