@@ -47,8 +47,9 @@
 
 .modern-navbar .navbar-brand {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
+    gap: 0.5rem;
     font-weight: 600;
     color: white !important;
     text-decoration: none;
@@ -60,22 +61,10 @@
     transform: scale(1.05);
 }
 
-.brand-logo {
-    border-radius: var(--radius-full);
-    /* margin-right: 0.75rem; */
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    transition: all var(--transition-normal);
-}
-
-.brand-logo:hover {
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 0 24px rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
-}
-
 .brand-text {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
     color: white;
 }
 
@@ -392,12 +381,6 @@
         font-size: 1.1rem;
     }
 
-    /* Make brand logo smaller on medium screens */
-    .brand-logo {
-        width: 35px;
-        height: 35px;
-    }
-
     /* Hide text in desktop navigation links, keep only icons */
     .modern-navbar .nav-link span {
         display: none;
@@ -572,14 +555,8 @@
         margin-right: auto;
     }
 
-    /* Make brand logo and text smaller on very small screens */
-    .brand-logo {
-        width: 30px;
-        height: 30px;
-    }
-
     .brand-text {
-        font-size: 0.9rem;
+        display: none;
     }
 
     .modern-navbar .navbar-brand {
