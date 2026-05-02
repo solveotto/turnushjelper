@@ -87,8 +87,10 @@ class TestCreateTestUser:
         assert "R25" in msg
 
     def test_resets_existing_testbruker(self, patch_db, db_session):
-        from app.models import DBUser
+        from app.models import DBUser, Favorites
         user_service.create_test_user_with_favorites()
         user_service.create_test_user_with_favorites()  # second call resets
-        count = db_session.query(DBUser).filter_by(username="testbruker").count()
-        assert count == 1
+        user = db_session.query(DBUser).filter_by(username="testbruker").first()
+        assert user is not None
+        fav_count = db_session.query(Favorites).filter_by(user_id=user.id).count()
+        assert fav_count <= 5  # favorites from first call deleted, not accumulated

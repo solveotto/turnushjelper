@@ -798,7 +798,7 @@ def create_test_user_with_favorites():
         if existing:
             db_session.query(Favorites).filter_by(user_id=existing.id).delete()
             db_session.delete(existing)
-            db_session.commit()
+            db_session.flush()
 
         new_user = DBUser(
             username="testbruker",
