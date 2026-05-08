@@ -1,0 +1,2 @@
+- Bytte ut rullenummer med NLF nummer
+- Koble til Google kalender

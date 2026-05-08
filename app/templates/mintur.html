@@ -12,6 +12,11 @@
         <i class="bi bi-printer"></i> Skriv ut turnusnøkkel
     </a>
 </li>
+<li>
+    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportCalModal">
+        <i class="bi bi-calendar-plus"></i> Eksporter til kalender
+    </a>
+</li>
 {% endif %}
 {% endblock %}
 
@@ -46,9 +51,9 @@
                                     {{ shift_title | display_name }}
                                 </h5>
                             </div>
-                            <span class="badge bg-primary"
-                                >Linje {{ linjenummer }}</span
-                            >
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary">Linje {{ linjenummer }}</span>
+                            </div>
                         </div>
 
                         <!-- Lazy-loaded schedule table -->
@@ -239,9 +244,21 @@
             </div>
 
             {# ── Section 2: Turnusnøkkel ── #}
-            <h5 class="mt-4 mb-3 text-center">
-                Turnusnøkkel &mdash; {{ shift_title | display_name }}
-            </h5>
+            <div class="d-flex align-items-center justify-content-center gap-3 mt-4 mb-3">
+                <h5 class="mb-0 text-center">
+                    Turnusnøkkel &mdash; {{ shift_title | display_name }}
+                </h5>
+                {% if template_found %}
+                <button
+                    type="button"
+                    class="btn btn-sm btn-warning d-none d-sm-inline-flex align-items-center gap-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#exportCalModal"
+                >
+                    <i class="bi bi-calendar-plus" aria-hidden="true"></i> Eksporter til kalender
+                </button>
+                {% endif %}
+            </div>
 
             {% if not template_found %}
             <div class="alert alert-warning">
@@ -393,6 +410,192 @@
         </div>
     </div>
 </div>
+
+{% if template_found %}
+<!-- Calendar export modal -->
+<div class="modal fade" id="exportCalModal" tabindex="-1" aria-labelledby="exportCalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportCalModalLabel">
+                    <i class="bi bi-calendar-plus me-2" aria-hidden="true"></i>Eksporter til kalender
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Lukk"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Step 1: title -->
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <span class="badge rounded-circle bg-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                          style="width:1.75rem;height:1.75rem;font-size:.8rem;" aria-hidden="true">1</span>
+                    <div class="flex-grow-1">
+                        <p class="fw-semibold mb-2">Velg navn i kalenderen</p>
+                        <div class="btn-group mb-2" role="group" aria-label="Hendelsestittel-modus">
+                            <input type="radio" class="btn-check" name="calExportMode"
+                                   id="calModeAuto" value="auto" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary btn-sm" for="calModeAuto">Skifttype automatisk</label>
+                            <input type="radio" class="btn-check" name="calExportMode"
+                                   id="calModeFixed" value="fixed" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm" for="calModeFixed">Fast tekst</label>
+                        </div>
+                        <div id="calFixedInput" class="d-none">
+                            <label for="calFixedLabel" class="visually-hidden">Tekst for alle hendelser</label>
+                            <input type="text" class="form-control form-control-sm" id="calFixedLabel"
+                                   value="Jobb" placeholder="Jobb" maxlength="60" style="max-width:220px">
+                            <div class="form-text">Alle hendelser får denne tittelen.</div>
+                        </div>
+                        <div id="calAutoInput">
+                            <label for="calAutoPrefix" class="visually-hidden">Prefiks for skifttype-tittel</label>
+                            <input type="text" class="form-control form-control-sm" id="calAutoPrefix"
+                                   value="Vy" placeholder="Vy" maxlength="40" style="max-width:220px">
+                            <div class="form-text">Eksempel: <span id="calAutoPreview" class="fw-semibold">Vy: Tidlig, Vy: Dag, Vy: Ettermiddag, Vy: Natt</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <!-- Step 2: download -->
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <span class="badge rounded-circle bg-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                          style="width:1.75rem;height:1.75rem;font-size:.8rem;" aria-hidden="true">2</span>
+                    <div class="flex-grow-1">
+                        <p class="fw-semibold mb-2">Last ned kalenderfilen</p>
+                        <a id="calDownloadBtn" href="#" class="btn btn-primary">
+                            <i class="bi bi-download me-2" aria-hidden="true"></i>Last ned .ics-fil
+                        </a>
+                        <p class="small text-muted mt-2 mb-0">
+                            <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                            <strong>For å angre:</strong> slett kalenderen — påvirker ikke andre kalendere.
+                        </p>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <!-- Step 3: set up in calendar app -->
+                <div class="d-flex align-items-start gap-3">
+                    <span class="badge rounded-circle bg-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                          style="width:1.75rem;height:1.75rem;font-size:.8rem;" aria-hidden="true">3</span>
+                    <div class="flex-grow-1">
+                        <p class="fw-semibold mb-2">Sett opp i kalenderen din</p>
+                        <ul class="nav nav-tabs mb-3" id="calAppTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active small py-1 px-3" id="calGoogleTab"
+                                        data-bs-toggle="tab" data-bs-target="#calGooglePane"
+                                        type="button" role="tab"
+                                        aria-controls="calGooglePane" aria-selected="true">
+                                    Google Calendar
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link small py-1 px-3" id="calOutlookTab"
+                                        data-bs-toggle="tab" data-bs-target="#calOutlookPane"
+                                        type="button" role="tab"
+                                        aria-controls="calOutlookPane" aria-selected="false">
+                                    Outlook
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content small" id="calAppTabContent">
+
+                            <!-- Google Calendar -->
+                            <div class="tab-pane fade show active" id="calGooglePane"
+                                 role="tabpanel" aria-labelledby="calGoogleTab">
+                                <p class="text-muted text-uppercase fw-semibold mb-1"
+                                   style="font-size:.7rem;letter-spacing:.06em">Opprett ny kalender</p>
+                                <ol class="mb-3 ps-3">
+                                    <li>Åpne <strong>Google Calendar</strong> på PC (ikke mobilapp)</li>
+                                    <li>Finn <em>Andre kalendere</em> i venstre sidemeny</li>
+                                    <li>Klikk <strong>+</strong> ved siden av <em>Andre kalendere</em></li>
+                                    <li>Velg <em>Opprett ny kalender</em></li>
+                                    <li>Skriv inn <code>[ditt navn på kalender]</code> og klikk <em>Opprett kalender</em></li>
+                                </ol>
+                                <p class="text-muted text-uppercase fw-semibold mb-1"
+                                   style="font-size:.7rem;letter-spacing:.06em">Importer filen</p>
+                                <ol class="ps-3 mb-0">
+                                    <li>Klikk tannhjulet øverst til høyre → <em>Innstillinger</em></li>
+                                    <li>Velg <em>Importer &amp; eksporter</em> i menyen til venstre</li>
+                                    <li>Klikk <em>Velg fil fra datamaskinen</em> og velg den nedlastede filen</li>
+                                    <li>Under <em>Legg til i kalender</em>: velg <code>[ditt navn på kalender]</code></li>
+                                    <li>Klikk <em>Importer</em></li>
+                                </ol>
+                            </div>
+
+                            <!-- Outlook -->
+                            <div class="tab-pane fade" id="calOutlookPane"
+                                 role="tabpanel" aria-labelledby="calOutlookTab">
+                                <p class="text-muted text-uppercase fw-semibold mb-1"
+                                   style="font-size:.7rem;letter-spacing:.06em">Opprett ny kalender</p>
+                                <ol class="mb-3 ps-3">
+                                    <li>Åpne <strong>Outlook</strong> og klikk på kalender-ikonet nederst til venstre</li>
+                                    <li>Høyreklikk på <em>Mine kalendere</em> i sidepanelet</li>
+                                    <li>Velg <em>Legg til kalender</em> → <em>Opprett tom kalender</em></li>
+                                    <li>Skriv inn <code>[navn på kalender]</code> og trykk Enter</li>
+                                </ol>
+                                <p class="text-muted text-uppercase fw-semibold mb-1"
+                                   style="font-size:.7rem;letter-spacing:.06em">Importer filen</p>
+                                <ol class="ps-3 mb-0">
+                                    <li>Klikk <em>Fil</em> → <em>Åpne og eksporter</em> → <em>Importer/eksporter</em></li>
+                                    <li>Velg <em>Importer en iCalendar-fil (.ics)</em> og klikk <em>Neste</em></li>
+                                    <li>Velg den nedlastede filen og klikk <em>OK</em></li>
+                                    <li>Velg <em>Importer</em> (ikke <em>Åpne som ny kalender</em>)</li>
+                                </ol>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const fixedRadio = document.getElementById("calModeFixed");
+    const autoRadio = document.getElementById("calModeAuto");
+    const fixedInput = document.getElementById("calFixedInput");
+    const autoInput = document.getElementById("calAutoInput");
+    const fixedLabel = document.getElementById("calFixedLabel");
+    const autoPrefix = document.getElementById("calAutoPrefix");
+    const preview = document.getElementById("calAutoPreview");
+    const downloadBtn = document.getElementById("calDownloadBtn");
+
+    function updatePreview() {
+        const p = autoPrefix.value.trim() || "Vy";
+        preview.textContent = `${p}: Tidlig, ${p}: Dag, ${p}: Ettermiddag, ${p}: Natt`;
+    }
+
+    function updateDownloadUrl() {
+        const mode = autoRadio.checked ? "auto" : "fixed";
+        const label = autoRadio.checked
+            ? encodeURIComponent(autoPrefix.value.trim() || "Vy")
+            : encodeURIComponent(fixedLabel.value.trim() || "Jobb");
+        downloadBtn.href = `/mintur/export_ical?mode=${mode}&label=${label}`;
+    }
+
+    function toggleMode() {
+        const isAuto = autoRadio.checked;
+        fixedInput.classList.toggle("d-none", isAuto);
+        autoInput.classList.toggle("d-none", !isAuto);
+        updatePreview();
+        updateDownloadUrl();
+    }
+
+    fixedRadio.addEventListener("change", toggleMode);
+    autoRadio.addEventListener("change", toggleMode);
+    fixedLabel.addEventListener("input", updateDownloadUrl);
+    autoPrefix.addEventListener("input", function () {
+        updatePreview();
+        updateDownloadUrl();
+    });
+
+    updateDownloadUrl();
+})();
+</script>
+{% endif %}
 
 <script type="module">
     import { classifyCell } from "{{ url_for('static', filename='js/modules/shift-classifier.js') }}";
