@@ -36,21 +36,21 @@ from app.models import TurnusSet
 
 class TestLoadMinturData:
     def test_returns_none_when_no_active_set(self, monkeypatch):
-        from app.routes.shifts import _load_mintur_data
-        monkeypatch.setattr("app.routes.shifts.db_utils.get_active_turnus_set", lambda: None)
+        from app.routes.shifts.mintur import _load_mintur_data
+        monkeypatch.setattr("app.routes.shifts.mintur.db_utils.get_active_turnus_set", lambda: None)
         monkeypatch.setattr(
-            "app.routes.shifts.get_innplassering_for_user", lambda uid: []
+            "app.routes.shifts.mintur.get_innplassering_for_user", lambda uid: []
         )
         assert _load_mintur_data(1) is None
 
     def test_returns_none_when_no_records(self, monkeypatch):
-        from app.routes.shifts import _load_mintur_data
+        from app.routes.shifts.mintur import _load_mintur_data
         monkeypatch.setattr(
-            "app.routes.shifts.db_utils.get_active_turnus_set",
+            "app.routes.shifts.mintur.db_utils.get_active_turnus_set",
             lambda: {"id": 1, "year_identifier": "T26", "name": "Test"},
         )
         monkeypatch.setattr(
-            "app.routes.shifts.get_innplassering_for_user", lambda uid: []
+            "app.routes.shifts.mintur.get_innplassering_for_user", lambda uid: []
         )
         assert _load_mintur_data(1) is None
 
@@ -112,7 +112,7 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=fixed&label=Jobb")
         assert resp.status_code == 200
@@ -158,7 +158,7 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=auto&label=Vy")
         assert resp.status_code == 200
@@ -199,7 +199,7 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=fixed&label=Nattjobb")
         body = resp.data.decode("utf-8")
@@ -240,7 +240,7 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=fixed&label=Jobb")
         assert resp.status_code == 200

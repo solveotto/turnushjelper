@@ -1,7 +1,6 @@
 // Main JavaScript entry point
 // Coordinates all modules and handles initialization
 
-import { ShiftSelection } from './modules/shift-selection.js';
 import { ShiftColors } from './modules/shift-colors.js';
 import { PostNightMarker } from './modules/post-night-marker.js';
 import { SortingSystem } from './modules/sorting-system.js';
@@ -51,11 +50,6 @@ class App {
                 this.modules.postNightMarker,
                 this.modules.shiftTimeline
             );
-        }
-
-        // Initialize shift selection if we have clickable rows
-        if (document.querySelector('.clickable-row')) {
-            this.modules.shiftSelection = new ShiftSelection();
         }
 
         // Initialize color adjustment if we're on the turnusliste page (user customization UI)

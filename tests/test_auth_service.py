@@ -10,11 +10,11 @@ from app.services import auth_service, user_service
 class TestAuthorizedEmails:
     def test_add_and_check(self, patch_db, sample_user):
         success, _ = auth_service.add_authorized_email(
-            "allowed@test.com", added_by=sample_user["id"]
+            email="allowed@test.com", rullenummer="12345", added_by=sample_user["id"]
         )
         assert success is True
-        assert auth_service.is_email_authorized("allowed@test.com") is True
-        assert auth_service.is_email_authorized("other@test.com") is False
+        assert auth_service.is_email_authorized("allowed@test.com", rullenummer="12345") is True
+        assert auth_service.is_email_authorized("other@test.com", rullenummer="99999") is False
 
 
 class TestVerificationToken:

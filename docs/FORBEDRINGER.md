@@ -1,2 +1,2 @@
 - Bytte ut rullenummer med NLF nummer
-- Koble til Google kalender
+- CSRF-beskyttelse: 18 admin-ruter bruker raw `request.form` uten CSRF-validering. JSON API-endepunkter har lav risiko (kan ikke sendes cross-origin som JSON). Fix: aktiver `CSRFProtect` globalt i `app/extensions.py` + `app/__init__.py`, legg til `@csrf.exempt` på alt som ikke er fikset enda, og migrer gradvis — legg til `{{ csrf_token() }}` i admin-templates og send `X-CSRFToken`-header fra JS i API-kall.

@@ -43,6 +43,26 @@ class TestDuplicateHandling:
         assert lst.count("D1") == 1
 
 
+class TestUpdateFavoriteOrder:
+    def test_updates_order_index(self, patch_db, db_session, sample_user):
+        ts = TurnusSet(name="Test Set", year_identifier="T26", is_active=1)
+        db_session.add(ts)
+        db_session.commit()
+
+        favorites_service.add_favorite(sample_user["id"], "D1", 0, ts.id)
+        favorites_service.add_favorite(sample_user["id"], "N2", 1, ts.id)
+        favorites_service.add_favorite(sample_user["id"], "K3", 2, ts.id)
+
+        result = favorites_service.update_favorite_order(sample_user["id"], ts.id)
+        assert result is True
+
+        from app.models import Favorites
+        rows = db_session.query(Favorites).filter_by(
+            user_id=sample_user["id"], turnus_set_id=ts.id
+        ).order_by(Favorites.order_index).all()
+        assert [r.order_index for r in rows] == [0, 1, 2]
+
+
 class TestMaxOrderIndex:
     def test_get_max_ordered_index(self, patch_db, db_session, sample_user):
         ts = TurnusSet(name="Test Set", year_identifier="T25", is_active=1)
