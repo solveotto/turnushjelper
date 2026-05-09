@@ -19,19 +19,6 @@ logger = logging.getLogger(__name__)
 api = Blueprint("api", __name__, url_prefix="/api")
 
 
-@api.route("/js_select_shift", methods=["POST"])
-def select_shift():
-    data = request.get_json() or {}
-    shift_title = data.get("shift_title")
-
-    if shift_title:
-        # Redirect to the display_shift page instead of returning JSON
-        from flask import redirect, url_for
-
-        return redirect(url_for("shifts.display_shift", shift_title=shift_title))
-    else:
-        return jsonify({"status": "error", "message": "No shift title provided"})
-
 
 @api.route("/toggle_favorite", methods=["POST"])
 @login_required
@@ -729,6 +716,7 @@ def mark_tour_seen():
         if user:
             setattr(user, tour_columns[tour_name], 1)
             db_session.commit()
+            cache.delete(f"tour_state_{current_user.id}")
             # Keep session in sync so context processor doesn't re-query DB
             if tour_name == 'turnusliste':
                 session['has_seen_tour'] = 1

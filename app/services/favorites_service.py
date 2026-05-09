@@ -64,16 +64,9 @@ def update_favorite_order(user_id, turnus_set_id=None):
             user_id=user_id,
             turnus_set_id=turnus_set_id
         ).all()
-        current_shift_titles = [favorite.shift_title for favorite in current_favorites]
 
-        for index, shift_title in enumerate(current_shift_titles):
-            favorite = db_session.query(Favorites).filter_by(
-                user_id=user_id,
-                shift_title=shift_title,
-                turnus_set_id=turnus_set_id
-            ).first()
-            if favorite:
-                favorite.order_index = index
+        for index, favorite in enumerate(current_favorites):
+            favorite.order_index = index
 
         db_session.commit()
         logger.debug("Favorite order updated successfully")

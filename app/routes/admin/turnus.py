@@ -1,189 +1,18 @@
 import json
 import os
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for, current_app
+from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
 
-from app.database import get_db_session
 from app.decorators import admin_required
+from app.database import get_db_session
 from app.extensions import cache
-from app.forms import (
-    CreateTurnusSetForm,
-    CreateUserForm,
-    EditUserForm,
-    UploadStreklisteForm,
-)
-from app.models import DBUser
-from app.services import user_service
+from app.forms import CreateTurnusSetForm, UploadStreklisteForm
+from app.routes.admin import admin
 from app.utils import db_utils
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
 from config import AppConfig
-
-admin = Blueprint("admin", __name__, url_prefix="/admin")
-
-
-@admin.route("/dashboard")
-@admin_required
-def admin_dashboard():
-    employees = user_service.get_all_stub_users()
-    registered_count = sum(1 for e in employees if e["is_registered"])
-    pending_count = sum(1 for e in employees if e["is_stub"] == 1)
-
-    turnus_sets = db_utils.get_all_turnus_sets()
-    active_set = db_utils.get_active_turnus_set()
-
-    pdf_path = os.path.join(current_app.root_path, "static", "turnusfiler", "ansinitet.pdf")
-    pdf_exists = os.path.exists(pdf_path)
-
-    return render_template(
-        "admin.html",
-        total_users=len(employees),
-        registered_count=registered_count,
-        pending_count=pending_count,
-        turnus_sets=turnus_sets,
-        active_set=active_set,
-        pdf_exists=pdf_exists,
-        page_name="Admin Panel",
-    )
-
-
-@admin.route("/activity")
-@admin_required
-def activity_log():
-    from app.services.activity_service import get_recent_activity, get_user_stats
-    return render_template(
-        "admin/activity.html",
-        events=get_recent_activity(limit=200),
-        user_stats=get_user_stats(),
-        page_name="Aktivitetslogg",
-    )
-
-
-@admin.route("/reset-tour", methods=["POST"])
-@admin_required
-def reset_tour():
-    """Reset the guided tour flag for all users so the tour auto-starts again."""
-    db_session = get_db_session()
-    try:
-        db_session.query(DBUser).update({
-            DBUser.has_seen_turnusliste_tour: 0,
-            DBUser.has_seen_favorites_tour: 0,
-            DBUser.has_seen_mintur_tour: 0,
-            DBUser.has_seen_compare_tour: 0,
-            DBUser.has_seen_welcome: 0,
-            DBUser.has_seen_soknadsskjema_tour: 0,
-        })
-        db_session.commit()
-        cache.clear()  # evict all cached pages so data-tour-seen is re-rendered fresh
-        flash("Omvisningen er tilbakestilt for alle brukere.", "success")
-    except Exception as e:
-        db_session.rollback()
-        flash(f"Feil ved tilbakestilling: {e}", "danger")
-    finally:
-        db_session.close()
-    return redirect(url_for("admin.admin_dashboard"))
-
-
-@admin.route("/create-test-user", methods=["POST"])
-@admin_required
-def create_test_user():
-    """Dev tool: create or reset testbruker with random favorites per TurnusSet."""
-    success, message = user_service.create_test_user_with_favorites()
-    flash(message, "success" if success else "danger")
-    return redirect(url_for("admin.admin_dashboard"))
-
-
-@admin.route("/create_user", methods=["GET", "POST"])
-@admin_required
-def create_user():
-    form = CreateUserForm()
-    if form.validate_on_submit():
-        success, message = db_utils.create_user(
-            username=form.username.data,
-            password=form.password.data,
-            is_auth=1 if form.is_auth.data else 0,
-        )
-        if success:
-            flash(message, "success")
-            return redirect(url_for("admin.admin_dashboard"))
-        else:
-            flash(message, "danger")
-
-    return render_template("create_user.html", form=form, page_name="Create User")
-
-
-@admin.route("/edit_user/<int:user_id>", methods=["GET", "POST"])
-@admin_required
-def edit_user(user_id):
-    user = db_utils.get_user_by_id(user_id)
-    if not user:
-        flash("Bruker ikke funnet.", "danger")
-        return redirect(url_for("admin.admin_dashboard"))
-
-    form = EditUserForm()
-
-    if form.validate_on_submit():
-        success, message = db_utils.update_user(
-            user_id=user_id,
-            username=form.username.data,
-            email=(form.email.data or "").strip() or None,
-            rullenummer=form.rullenummer.data,
-            password=form.password.data if form.password.data else None,
-            is_auth=1 if form.is_auth.data else 0,
-        )
-        if success:
-            flash(message, "success")
-            return redirect(url_for("admin.admin_dashboard"))
-        else:
-            flash(message, "danger")
-    elif request.method == "GET":
-        form.username.data = user["username"]
-        # Only pre-fill email if it looks like a real address.
-        # Admin accounts created via create_user() have email=username (no @),
-        # pre-filling that would cause Email() validator to reject the form.
-        email_val = user.get("email") or ""
-        form.email.data = email_val if "@" in email_val else ""
-        form.rullenummer.data = user.get("rullenummer")
-        form.is_auth.data = user["is_auth"] == 1
-
-    return render_template(
-        "edit_user.html", form=form, user=user, page_name="Edit User"
-    )
-
-
-@admin.route("/delete_user/<int:user_id>", methods=["POST"])
-@admin_required
-def delete_user(user_id):
-    # Prevent admin from deleting themselves
-    if user_id == current_user.id:
-        flash("Du kan ikke slette din egen konto.", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    success, message = db_utils.delete_user(user_id)
-    if success:
-        flash(message, "success")
-    else:
-        flash(message, "danger")
-
-    return redirect(url_for("admin.manage_employees"))
-
-
-@admin.route("/toggle_auth/<int:user_id>", methods=["POST"])
-@admin_required
-def toggle_auth(user_id):
-    # Prevent admin from disabling their own auth
-    if user_id == current_user.id:
-        flash("Du kan ikke deaktivere dine egne rettigheter.", "danger")
-        return redirect(url_for("admin.admin_dashboard"))
-
-    success, message = db_utils.toggle_user_auth(user_id)
-    if success:
-        flash(message, "success")
-    else:
-        flash(message, "danger")
-
-    return redirect(url_for("admin.admin_dashboard"))
 
 
 @admin.route("/turnus-sets")
@@ -215,8 +44,6 @@ def create_turnus_set():
         # Determine file paths
         if form.use_existing_files.data:
             # Use existing files from turnusfiler directory
-            from config import AppConfig
-
             turnusfiler_dir = os.path.join(
                 AppConfig.static_dir, "turnusfiler", year_id.lower()
             )
@@ -279,7 +106,6 @@ def create_turnus_set():
         if not df_json_path or not os.path.exists(df_json_path):
             try:
                 from app.utils.shift_stats import Turnus
-                from config import AppConfig
 
                 stats = Turnus(turnus_json_path)
                 df_json_path = os.path.join(
@@ -329,7 +155,6 @@ def handle_pdf_upload(pdf_file, year_id):
     try:
         from app.utils.pdf.scraper_validator import validate_turnus_json
         from app.utils.pdf.shiftscraper import ShiftScraper
-        from config import AppConfig
 
         # Create turnusfiler directory
         turnusfiler_dir = os.path.join(
@@ -400,9 +225,9 @@ def refresh_turnus_set(turnus_set_id):
     version = year_id.lower()
 
     try:
+        from app.utils.pdf.scraper_validator import validate_turnus_json
         from app.utils.pdf.shiftscraper import ShiftScraper
         from app.utils.shift_stats import Turnus
-        from config import AppConfig
 
         # Find the original PDF
         turnusfiler_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version)
@@ -413,8 +238,6 @@ def refresh_turnus_set(turnus_set_id):
             return redirect(url_for("admin.manage_turnus_sets"))
 
         # Re-scrape the PDF into memory
-        from app.utils.pdf.scraper_validator import validate_turnus_json
-
         scraper = ShiftScraper()
         scraper.scrape_pdf(pdf_path, year_id)
 
@@ -620,68 +443,6 @@ def delete_turnus_set(turnus_set_id):
     return redirect(url_for("admin.manage_turnus_sets"))
 
 
-# Authorized Email Management Routes
-@admin.route("/authorized-emails")
-@admin_required
-def manage_authorized_emails():
-    """Manage authorized emails for self-registration"""
-    emails = db_utils.get_all_authorized_emails()
-    return render_template(
-        "admin_authorized_emails.html",
-        page_name="Manage Authorized Emails",
-        emails=emails,
-    )
-
-
-@admin.route("/add-authorized-email", methods=["POST"])
-@admin_required
-def add_authorized_email():
-    """Add new authorized rullenummer (email is optional)"""
-    email = request.form.get("email", "").lower().strip() or None
-    rullenummer = request.form.get("rullenummer", "").strip()
-    notes = request.form.get("notes", "").strip()
-
-    if not rullenummer:
-        flash("Rullenummer er påkrevd.", "danger")
-        return redirect(url_for("admin.manage_authorized_emails"))
-
-    success, message = db_utils.add_authorized_email(
-        email=email, added_by=current_user.id, notes=notes, rullenummer=rullenummer
-    )
-
-    flash(message, "success" if success else "danger")
-    return redirect(url_for("admin.manage_authorized_emails"))
-
-
-@admin.route("/delete-authorized-email/<int:email_id>", methods=["POST"])
-@admin_required
-def delete_authorized_email(email_id):
-    """Remove authorized email"""
-    success, message = db_utils.delete_authorized_email(email_id)
-    flash(message, "success" if success else "danger")
-    return redirect(url_for("admin.manage_authorized_emails"))
-
-
-@admin.route("/bulk-add-emails", methods=["POST"])
-@admin_required
-def bulk_add_authorized_emails():
-    """Bulk add emails from textarea (one per line)"""
-    emails_text = request.form.get("emails_bulk", "")
-    emails = [e.strip().lower() for e in emails_text.split("\n") if e.strip()]
-
-    added_count = 0
-    for email in emails:
-        success, _ = db_utils.add_authorized_email(
-            email=email, added_by=current_user.id, notes="Masseimport"
-        )
-        if success:
-            added_count += 1
-
-    flash(f"La til {added_count} av {len(emails)} e-poster.", "success")
-    return redirect(url_for("admin.manage_authorized_emails"))
-
-
-# Strekliste Management Routes
 @admin.route("/strekliste-status/<int:turnus_set_id>")
 @admin_required
 def strekliste_status(turnus_set_id):
@@ -828,278 +589,3 @@ def delete_strekliste_images(turnus_set_id):
         return jsonify(
             {"status": "error", "message": result.get("error", "Unknown error")}
         ), 500
-
-
-# Employee / Stub-User Management Routes
-
-@admin.route("/user/<int:user_id>")
-@admin_required
-def user_detail(user_id):
-    """Show full detail for one user: HR info, account status, and favorites."""
-    from datetime import datetime, timezone
-
-    detail = user_service.get_user_detail(user_id)
-    if not detail:
-        flash("Bruker ikke funnet.", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    # Compute account age in days
-    age_days = None
-    created = detail.get("created_at")
-    if created:
-        if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
-        age_days = (datetime.now(timezone.utc) - created).days
-
-    display_name = detail["name"] or detail["username"]
-    return render_template(
-        "admin_user_detail.html",
-        page_name=f"Brukerdetaljer — {display_name}",
-        detail=detail,
-        age_days=age_days,
-    )
-
-
-
-@admin.route("/employees")
-@admin_required
-def manage_employees():
-    """List all employees (stub and registered) from the seniority list."""
-    employees = user_service.get_all_stub_users()
-
-    registered_list = []
-    stub_list       = []
-    not_on_list     = []
-    system_list     = []
-
-    for emp in employees:
-        if not emp.get("rullenummer"):
-            # No rullenummer → admin / system account
-            system_list.append(emp)
-        elif emp.get("seniority_nr"):
-            # Has seniority_nr → matched to current PDF
-            if emp.get("is_registered"):
-                registered_list.append(emp)
-            else:
-                stub_list.append(emp)
-        else:
-            # Has rullenummer but no seniority_nr → not on current PDF
-            not_on_list.append(emp)
-
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
-    pdf_exists = os.path.exists(pdf_path)
-
-    pdf_date = None
-    if pdf_exists:
-        from app.utils.pdf.employee_scraper import scrape_pdf_date
-        pdf_date = scrape_pdf_date(pdf_path)
-
-    return render_template(
-        "admin_employees.html",
-        page_name="Ansattliste",
-        registered_list=registered_list,
-        stub_list=stub_list,
-        not_on_list=not_on_list,
-        system_list=system_list,
-        pdf_exists=pdf_exists,
-        pdf_date=pdf_date,
-    )
-
-
-@admin.route("/import-employees", methods=["POST"])
-@admin_required
-def import_employees():
-    """Import employees from the seniority PDF into the stub-user table."""
-    from app.utils.pdf.employee_scraper import scrape_employees
-
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
-    if not os.path.exists(pdf_path):
-        flash(f"PDF ikke funnet: {pdf_path}", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    try:
-        scraped = scrape_employees(pdf_path)
-    except Exception as e:
-        flash(f"Feil ved lesing av PDF: {e}", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    imported = 0
-    skipped = 0
-    for emp in scraped:
-        if not emp.get("rullenummer"):
-            skipped += 1
-            continue
-        success, _msg = user_service.create_stub_user(
-            rullenummer=emp["rullenummer"],
-            etternavn=emp["etternavn"],
-            fornavn=emp["fornavn"],
-            stasjoneringssted=emp.get("stasjoneringssted"),
-            ans_dato=emp.get("ans_dato"),
-            fodt_dato=emp.get("fodt_dato"),
-            seniority_nr=emp.get("seniority_nr"),
-        )
-        if success:
-            imported += 1
-        else:
-            skipped += 1
-
-    flash(
-        f"Importert {imported} nye, hoppet over {skipped} eksisterende av {len(scraped)} totalt.",
-        "success",
-    )
-    return redirect(url_for("admin.manage_employees"))
-
-
-@admin.route("/upload-ansinitet", methods=["POST"])
-@admin_required
-def upload_ansinitet_pdf():
-    """Upload a new ansinitet.pdf, save it, then immediately sync employee data."""
-    from app.utils.pdf.employee_scraper import scrape_employees
-
-    if "pdf_file" not in request.files or not request.files["pdf_file"].filename:
-        flash("Ingen fil valgt.", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    pdf_file = request.files["pdf_file"]
-    if not pdf_file.filename.lower().endswith(".pdf"):
-        flash("Kun PDF-filer er tillatt.", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
-    pdf_file.save(pdf_path)
-
-    try:
-        scraped = scrape_employees(pdf_path)
-    except Exception as e:
-        flash(f"PDF lagret, men feil ved lesing: {e}", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    try:
-        result = user_service.sync_employees_from_scrape(scraped)
-        msg = (
-            f"PDF lastet opp og synkronisert ({len(scraped)} ansatte i PDF): "
-            f"{result['added']} nye, {result['updated']} oppdatert, "
-            f"{result['unchanged']} uendret."
-        )
-        if result["removed_from_list"]:
-            msg += f" {result['removed_from_list']} ikke lenger på lista."
-        flash(msg, "success")
-    except Exception as e:
-        flash(f"PDF lagret, men feil ved synkronisering: {e}", "danger")
-
-    return redirect(url_for("admin.manage_employees"))
-
-
-@admin.route("/sync-employees", methods=["POST"])
-@admin_required
-def sync_employees():
-    """Re-import PDF, adding new stubs and updating changed HR data on existing users."""
-    from app.utils.pdf.employee_scraper import scrape_employees
-
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
-    if not os.path.exists(pdf_path):
-        flash(f"PDF ikke funnet: {pdf_path}", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    try:
-        scraped = scrape_employees(pdf_path)
-    except Exception as e:
-        flash(f"Feil ved lesing av PDF: {e}", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    try:
-        result = user_service.sync_employees_from_scrape(scraped)
-        msg = (
-            f"Synkronisering fullført av {len(scraped)} ansatte: "
-            f"{result['added']} nye, {result['updated']} oppdatert, "
-            f"{result['unchanged']} uendret."
-        )
-        if result["removed_from_list"]:
-            msg += f" {result['removed_from_list']} ikke lenger på lista."
-        flash(msg, "success")
-    except Exception as e:
-        flash(f"Feil ved synkronisering: {e}", "danger")
-
-    return redirect(url_for("admin.manage_employees"))
-
-
-@admin.route("/add-employee", methods=["POST"])
-@admin_required
-def add_employee():
-    """Manually create a stub user for an employee not in the PDF."""
-    rullenummer = request.form.get("rullenummer", "").strip()
-    etternavn = request.form.get("etternavn", "").strip()
-    fornavn = request.form.get("fornavn", "").strip()
-    stasjoneringssted = request.form.get("stasjoneringssted", "").strip() or None
-    ans_dato = request.form.get("ans_dato", "").strip() or None
-    fodt_dato = request.form.get("fodt_dato", "").strip() or None
-    seniority_nr_raw = request.form.get("seniority_nr", "").strip()
-    seniority_nr = int(seniority_nr_raw) if seniority_nr_raw.isdigit() else None
-
-    if not rullenummer or not etternavn or not fornavn:
-        flash("Rullenummer, etternavn og fornavn er påkrevd.", "danger")
-        return redirect(url_for("admin.manage_employees"))
-
-    success, message = user_service.create_stub_user(
-        rullenummer=rullenummer,
-        etternavn=etternavn,
-        fornavn=fornavn,
-        stasjoneringssted=stasjoneringssted,
-        ans_dato=ans_dato,
-        fodt_dato=fodt_dato,
-        seniority_nr=seniority_nr,
-    )
-    flash(message, "success" if success else "danger")
-    return redirect(url_for("admin.manage_employees"))
-
-
-@admin.route("/cleanup-missing-stubs", methods=["POST"])
-@admin_required
-def cleanup_missing_stubs():
-    """Delete all unregistered stubs absent from the current seniority PDF."""
-    success, message, count = user_service.delete_missing_stubs()
-    flash(message, "success" if success else "danger")
-    return redirect(url_for("admin.manage_employees"))
-
-
-@admin.route("/reset-to-stub/<int:user_id>", methods=["POST"])
-@admin_required
-def reset_to_stub(user_id):
-    """Reset a registered user back to stub state, keeping their favorites."""
-    if user_id == current_user.id:
-        flash("Du kan ikke tilbakestille din egen konto.", "danger")
-        return redirect(url_for("admin.manage_employees"))
-    success, message = user_service.reset_user_to_stub(user_id)
-    if success:
-        cache.clear()  # evict stale data-tour-seen from this user's cached pages
-    flash(message, "success" if success else "danger")
-    return redirect(url_for("admin.manage_employees"))
-
-
-@admin.route("/delete-employee/<int:user_id>", methods=["POST"])
-@admin_required
-def delete_employee(user_id):
-    """Delete a stub user. Registered users cannot be deleted via this route."""
-    db_session = get_db_session()
-    try:
-        user = db_session.query(DBUser).filter_by(id=user_id).first()
-        if not user:
-            flash("Bruker ikke funnet.", "danger")
-            return redirect(url_for("admin.manage_employees"))
-        if (user.is_stub or 0) != 1:
-            flash("Kun stub-brukere kan slettes via denne siden.", "danger")
-            return redirect(url_for("admin.manage_employees"))
-    finally:
-        db_session.close()
-
-    success, message = db_utils.delete_user(user_id)
-    flash(message, "success" if success else "danger")
-    return redirect(url_for("admin.manage_employees"))

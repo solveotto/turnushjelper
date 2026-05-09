@@ -62,51 +62,81 @@ def create_app():
             from app.utils.pdf_downloads import get_pdf_downloads
             from app.utils.turnus_helpers import get_user_turnus_set
             from flask import url_for
-            db_session = get_db_session()
-            try:
-                db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
-                has_min_turnus = False
-                if db_user and db_user.rullenummer:
-                    active_ts = db_session.query(TurnusSet).filter_by(is_active=1).first()
-                    if active_ts:
-                        has_min_turnus = db_session.query(Innplassering).filter_by(
-                            turnus_set_id=active_ts.id,
-                            rullenummer=str(db_user.rullenummer),
-                        ).first() is not None
 
-                turnus_set = get_user_turnus_set()
-                pdf_downloads = []
-                if turnus_set:
-                    year_id = turnus_set["year_identifier"].lower()
-                    cache_key = f"pdf_downloads_{year_id}"
-                    pdf_downloads = cache.get(cache_key)
-                    if pdf_downloads is None:
-                        raw = get_pdf_downloads(AppConfig.turnusfiler_dir, year_id)
-                        pdf_downloads = [
-                            {
-                                "display_name": item["display_name"],
-                                "url": url_for(
-                                    "static",
-                                    filename=f'turnusfiler/{year_id}/pdf/{item["filename"]}',
-                                ),
-                            }
-                            for item in raw
-                        ]
-                        cache.set(cache_key, pdf_downloads, timeout=300)
+            # Tour flags — read from DB columns, cached 60s per user.
+            # Only one key differs from the old session key name:
+            # has_seen_tour → has_seen_turnusliste_tour (DB column).
+            tour_cache_key = f"tour_state_{current_user.id}"
+            tour_state = cache.get(tour_cache_key)
+            if tour_state is None:
+                db_session = get_db_session()
+                try:
+                    db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
+                    if db_user:
+                        tour_state = {
+                            "has_seen_tour": db_user.has_seen_turnusliste_tour or 0,
+                            "has_seen_favorites_tour": db_user.has_seen_favorites_tour or 0,
+                            "has_seen_mintur_tour": db_user.has_seen_mintur_tour or 0,
+                            "has_seen_compare_tour": db_user.has_seen_compare_tour or 0,
+                            "has_seen_welcome": db_user.has_seen_welcome or 0,
+                            "has_seen_soknadsskjema_tour": db_user.has_seen_soknadsskjema_tour or 0,
+                        }
+                    else:
+                        tour_state = {
+                            "has_seen_tour": 0, "has_seen_favorites_tour": 0,
+                            "has_seen_mintur_tour": 0, "has_seen_compare_tour": 0,
+                            "has_seen_welcome": 0, "has_seen_soknadsskjema_tour": 0,
+                        }
+                finally:
+                    db_session.close()
+                cache.set(tour_cache_key, tour_state, timeout=60)
 
-                return {
-                    "has_seen_tour": session.get('has_seen_tour', 0),
-                    "has_seen_favorites_tour": session.get('has_seen_favorites_tour', 0),
-                    "has_seen_mintur_tour": session.get('has_seen_mintur_tour', 0),
-                    "has_seen_compare_tour": session.get('has_seen_compare_tour', 0),
-                    "has_seen_welcome": session.get('has_seen_welcome', 0),
-                    "has_seen_soknadsskjema_tour": session.get('has_seen_soknadsskjema_tour', 0),
-                    "has_min_turnus": has_min_turnus,
-                    "pdf_downloads": pdf_downloads,
-                    "global_turnus_set": turnus_set,
-                }
-            finally:
-                db_session.close()
+            # has_min_turnus — cached 60s per user.
+            min_turnus_key = f"has_min_turnus_{current_user.id}"
+            has_min_turnus = cache.get(min_turnus_key)
+            if has_min_turnus is None:
+                db_session = get_db_session()
+                try:
+                    db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
+                    has_min_turnus = False
+                    if db_user and db_user.rullenummer:
+                        active_ts = db_session.query(TurnusSet).filter_by(is_active=1).first()
+                        if active_ts:
+                            has_min_turnus = db_session.query(Innplassering).filter_by(
+                                turnus_set_id=active_ts.id,
+                                rullenummer=str(db_user.rullenummer),
+                            ).first() is not None
+                finally:
+                    db_session.close()
+                cache.set(min_turnus_key, has_min_turnus, timeout=60)
+
+            # PDF downloads — cached per turnus set.
+            turnus_set = get_user_turnus_set()
+            pdf_downloads = []
+            if turnus_set:
+                year_id = turnus_set["year_identifier"].lower()
+                pdf_cache_key = f"pdf_downloads_{year_id}"
+                pdf_downloads = cache.get(pdf_cache_key)
+                if pdf_downloads is None:
+                    raw = get_pdf_downloads(AppConfig.turnusfiler_dir, year_id)
+                    pdf_downloads = [
+                        {
+                            "display_name": item["display_name"],
+                            "url": url_for(
+                                "static",
+                                filename=f'turnusfiler/{year_id}/pdf/{item["filename"]}',
+                            ),
+                        }
+                        for item in raw
+                    ]
+                    cache.set(pdf_cache_key, pdf_downloads, timeout=300)
+
+            return {
+                **tour_state,
+                "has_min_turnus": has_min_turnus,
+                "pdf_downloads": pdf_downloads,
+                "global_turnus_set": turnus_set,
+            }
         return {
             "has_seen_tour": 0,
             "has_seen_favorites_tour": 0,
