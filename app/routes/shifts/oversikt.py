@@ -1,14 +1,27 @@
-from flask import render_template
+import uuid
+
+from flask import render_template, session
 from flask_login import current_user, login_required
 
+from app.extensions import cache
 from app.routes.shifts import shifts
 from app.services.innplassering_service import get_innplassering_for_user
 from app.utils import db_utils, df_utils
 from app.utils.turnus_helpers import get_user_turnus_set, iter_turnus_days
 
 
+def _oversikt_cache_key():
+    """Per-user, per-turnus-set cache key for the /oversikt response."""
+    ts = get_user_turnus_set()
+    ts_id = ts["id"] if ts else "none"
+    if session.get("_flashes"):
+        return f"view/oversikt/{current_user.get_id()}/{ts_id}/flash/{uuid.uuid4()}"
+    return f"view/oversikt/{current_user.get_id()}/{ts_id}"
+
+
 @shifts.route("/oversikt")
 @login_required
+@cache.cached(timeout=300, key_prefix=_oversikt_cache_key)
 def oversikt():
     # Get user's selected turnus set
     user_turnus_set = get_user_turnus_set()

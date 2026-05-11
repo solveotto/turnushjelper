@@ -53,6 +53,7 @@ def toggle_favorite():
                 # Invalidate the cached turnusliste page so the next full load reflects the change
                 from app.extensions import cache as _cache
                 _cache.delete(f"view/turnusliste/{user_id}/{turnus_set_id}")
+                _cache.delete(f"view/oversikt/{user_id}/{turnus_set_id}")
                 return {"status": "success", "message": message, "favorites": updated, "positions": positions}
 
             if favorite:
