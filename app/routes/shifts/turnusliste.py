@@ -66,7 +66,9 @@ def turnusliste():
 def switch_user_year(turnus_set_id):
     """Allow user to switch which year they're viewing (stored in session)"""
     # Invalidate cached page for the previous turnus set before switching
+    from app.routes.shifts.oversikt import _oversikt_cache_key
     cache.delete(_turnusliste_cache_key())
+    cache.delete(_oversikt_cache_key())
     # Store user's choice in their session
     session["user_selected_turnus_set"] = turnus_set_id
 
