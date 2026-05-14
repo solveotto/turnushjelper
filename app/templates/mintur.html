@@ -489,11 +489,19 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
+                                <button class="nav-link small py-1 px-3" id="calOutlookWebTab"
+                                        data-bs-toggle="tab" data-bs-target="#calOutlookWebPane"
+                                        type="button" role="tab"
+                                        aria-controls="calOutlookWebPane" aria-selected="false">
+                                    Outlook Web
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
                                 <button class="nav-link small py-1 px-3" id="calOutlookTab"
                                         data-bs-toggle="tab" data-bs-target="#calOutlookPane"
                                         type="button" role="tab"
                                         aria-controls="calOutlookPane" aria-selected="false">
-                                    Outlook
+                                    Outlook Desktop
                                 </button>
                             </li>
                         </ul>
@@ -522,7 +530,28 @@
                                 </ol>
                             </div>
 
-                            <!-- Outlook -->
+                            <!-- Outlook Web -->
+                            <div class="tab-pane fade" id="calOutlookWebPane"
+                                 role="tabpanel" aria-labelledby="calOutlookWebTab">
+                                <p class="text-muted text-uppercase fw-semibold mb-1"
+                                   style="font-size:.7rem;letter-spacing:.06em">Opprett ny kalender (valgfritt)</p>
+                                <ol class="mb-3 ps-3">
+                                    <li>Klikk <em>Legg til kalender</em> i venstre sidemeny</li>
+                                    <li>Velg <em>Opprett tom kalender</em></li>
+                                    <li>Skriv inn <code>[navn på kalender]</code> og klikk <em>Lagre</em></li>
+                                </ol>
+                                <p class="text-muted text-uppercase fw-semibold mb-1"
+                                   style="font-size:.7rem;letter-spacing:.06em">Importer filen</p>
+                                <ol class="ps-3 mb-0">
+                                    <li>Klikk <em>Legg til kalender</em> i venstre sidemeny</li>
+                                    <li>Velg <em>Last opp fra fil</em></li>
+                                    <li>Klikk <em>Bla gjennom</em> og velg den nedlastede <code>.ics</code>-filen</li>
+                                    <li>Under <em>Legg til i kalender</em>: velg hvilken kalender du vil bruke</li>
+                                    <li>Klikk <em>Importer</em></li>
+                                </ol>
+                            </div>
+
+                            <!-- Outlook Desktop -->
                             <div class="tab-pane fade" id="calOutlookPane"
                                  role="tabpanel" aria-labelledby="calOutlookTab">
                                 <p class="text-muted text-uppercase fw-semibold mb-1"
