@@ -18,6 +18,8 @@ import sys
 import os
 import subprocess
 import tempfile
+import json
+import urllib.request
 from datetime import datetime
 
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -34,6 +36,7 @@ SSH_REMOTE_PATH = os.getenv('HOME_BACKUP_PATH', '')
 SSH_KEY = os.getenv('HOME_BACKUP_SSH_KEY', os.path.expanduser('~/.ssh/backup_key'))
 SSH_PORT = os.getenv('HOME_BACKUP_PORT', '3125')
 KEEP_COUNT = int(os.getenv('OFFSITE_KEEP_COUNT', '14'))
+SLACK_WEBHOOK_URL = os.getenv('SLACK_WEBHOOK_URL', '')
 
 
 def log(message):
@@ -46,6 +49,21 @@ def log(message):
             f.write(entry + '\n')
     except Exception as e:
         print(f"Warning: could not write to log: {e}")
+
+
+def notify_slack(success, message):
+    if not SLACK_WEBHOOK_URL:
+        return
+    if success:
+        text = f":white_check_mark: *Off-site backup succeeded* (turnushjelper)\n{message}"
+    else:
+        text = f":warning: *Off-site backup failed* (turnushjelper)\n```{message}```"
+    payload = json.dumps({"text": text}).encode()
+    try:
+        req = urllib.request.Request(SLACK_WEBHOOK_URL, data=payload, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as e:
+        log(f"Warning: could not send Slack notification: {e}")
 
 
 def _ssh_e_arg():
@@ -141,11 +159,13 @@ def run():
 
         log("Off-site backup complete")
         log('=' * 60)
+        notify_slack(True, f"Dump: {dump_name} ({size_kb:.1f} KB)")
         return True
 
     except Exception as e:
         log(f"ERROR: {e}")
         log('=' * 60)
+        notify_slack(False, str(e))
         return False
 
     finally:
