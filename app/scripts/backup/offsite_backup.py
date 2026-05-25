@@ -38,6 +38,12 @@ SSH_PORT = os.getenv('HOME_BACKUP_PORT', '3125')
 KEEP_COUNT = int(os.getenv('OFFSITE_KEEP_COUNT', '14'))
 SLACK_WEBHOOK_URL = os.getenv('SLACK_WEBHOOK_URL', '')
 
+DO_HOST = os.getenv('DO_BACKUP_HOST', '')
+DO_USER = os.getenv('DO_BACKUP_USER', '')
+DO_PATH = os.getenv('DO_BACKUP_PATH', '')
+DO_KEY  = os.getenv('DO_BACKUP_SSH_KEY', os.path.expanduser('~/.ssh/do_backup_key'))
+DO_PORT = os.getenv('DO_BACKUP_PORT', '22')
+
 
 def log(message):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -100,6 +106,35 @@ def remote_cleanup():
         log(f"Warning: remote cleanup issue: {result.stderr.strip()}")
 
 
+def _do_ssh_e_arg():
+    return f"ssh -i {DO_KEY} -p {DO_PORT} -o StrictHostKeyChecking=no -o BatchMode=yes"
+
+
+def _do_rsync_up(local_path, remote_name):
+    dest = f"{DO_USER}@{DO_HOST}:{DO_PATH}/{remote_name}"
+    result = subprocess.run(
+        ['rsync', '-e', _do_ssh_e_arg(), '--timeout=60', local_path, dest],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"rsync to DO failed: {result.stderr.strip()}")
+
+
+def _do_remote_cleanup():
+    cmd = (
+        f"ls -1t {DO_PATH}/backup_*.sql 2>/dev/null | tail -n +{KEEP_COUNT + 1} | xargs -r rm -f; "
+        f"ls -1t {DO_PATH}/env_* 2>/dev/null | tail -n +{KEEP_COUNT + 1} | xargs -r rm -f"
+    )
+    result = subprocess.run(
+        ['ssh', '-i', DO_KEY, '-p', DO_PORT,
+         '-o', 'StrictHostKeyChecking=no', '-o', 'BatchMode=yes',
+         f"{DO_USER}@{DO_HOST}", cmd],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        log(f"Warning: DO remote cleanup issue: {result.stderr.strip()}")
+
+
 def create_dump(path):
     cmd = [
         'mysqldump',
@@ -158,8 +193,30 @@ def run():
         log(f"Remote cleanup done (keeping last {KEEP_COUNT} of each)")
 
         log("Off-site backup complete")
+        notify_slack(True, f"Dump: {dump_name} ({size_kb:.1f} KB) | Home: ok")
+
+        # DigitalOcean warm standby
+        do_ok = None
+        if all([DO_HOST, DO_USER, DO_PATH]):
+            try:
+                log("Uploading to DO...")
+                _do_rsync_up(tmp_dump, dump_name)
+                log(f"Uploaded {dump_name} to DO")
+                if os.path.exists(ENV_FILE):
+                    _do_rsync_up(ENV_FILE, env_name)
+                    log(f"Uploaded {env_name} to DO")
+                _do_remote_cleanup()
+                log("DO cleanup done")
+                do_ok = True
+            except Exception as e:
+                do_ok = False
+                log(f"ERROR (DO): {e}")
+                notify_slack(False, f"DO upload failed: {e}")
+        else:
+            log("DO vars not set — skipping DO upload")
+
+        log(f"DO destination: {'ok' if do_ok else ('skipped' if do_ok is None else 'FAILED')}")
         log('=' * 60)
-        notify_slack(True, f"Dump: {dump_name} ({size_kb:.1f} KB)")
         return True
 
     except Exception as e:

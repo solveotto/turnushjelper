@@ -80,8 +80,10 @@ def login():
 
 
 @auth.route("/logout")
-@login_required
 def logout():
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login"))
+
     duration = None
     login_at_str = session.get('login_at')
     if login_at_str:
@@ -93,9 +95,8 @@ def logout():
     from app.services.activity_service import log_event
     log_event(current_user.id, 'logout', session_duration_seconds=duration)
 
-    # Clear turnus set choice on logout
-    session.pop("user_selected_turnus_set", None)
     logout_user()
+    session.clear()
     return render_template("logout.html")
 
 

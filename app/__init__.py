@@ -2,7 +2,6 @@ import logging
 
 from flask import Flask, session
 from flask_login import current_user
-from flask_session import Session
 
 from app.database import get_db_session
 from app.extensions import cache, limiter, login_manager, mail
@@ -46,14 +45,9 @@ def create_app():
             pass
         return None
 
-    # Configure server-side session storage
-    app.config["SESSION_TYPE"] = "filesystem"
-    app.config["SESSION_FILE_DIR"] = AppConfig.sessions_dir
-    app.config["SESSION_PERMANENT"] = False
-    app.config["SESSION_USE_SIGNER"] = True
-    app.config["SESSION_KEY_PREFIX"] = "session:"
-
-    Session(app)
+    # Configure SQLAlchemy-backed session storage
+    from app.utils.sa_session_interface import SqlAlchemySessionInterface
+    app.session_interface = SqlAlchemySessionInterface()
 
     @app.context_processor
     def inject_tour_state():
