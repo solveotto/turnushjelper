@@ -1,7 +1,7 @@
 import bcrypt
 from datetime import datetime
 from flask_login import UserMixin
-from sqlalchemy import Column, Integer, String, DateTime, UniqueConstraint, func, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, LargeBinary, UniqueConstraint, func, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base, get_db_session
@@ -125,6 +125,14 @@ class Innplassering(Base):
     __table_args__ = (
         UniqueConstraint("turnus_set_id", "rullenummer", name="uq_innplassering_turnus_rullenr"),
     )
+
+
+class FlaskSessionModel(Base):
+    __tablename__ = 'flask_sessions'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(255), unique=True, nullable=False, index=True)
+    data = Column(LargeBinary, nullable=False)
+    expiry = Column(DateTime, nullable=False, index=True)
 
 
 # ── Flask-Login User Wrapper ───────────────────────────────────────────
