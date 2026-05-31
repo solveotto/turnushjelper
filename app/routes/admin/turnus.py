@@ -158,7 +158,7 @@ def handle_pdf_upload(pdf_file, year_id):
 
         # Create turnusfiler directory
         turnusfiler_dir = os.path.join(
-            AppConfig.static_dir, "turnusfiler", year_id.lower()
+            AppConfig.static_dir, "turnusfiler", year_id.lower(), "pdf"
         )
         os.makedirs(turnusfiler_dir, exist_ok=True)
 
@@ -230,7 +230,7 @@ def refresh_turnus_set(turnus_set_id):
         from app.utils.shift_stats import Turnus
 
         # Find the original PDF
-        turnusfiler_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version)
+        turnusfiler_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version, "pdf")
         pdf_path = os.path.join(turnusfiler_dir, f"turnuser_{year_id}.pdf")
 
         if not os.path.exists(pdf_path):
@@ -257,7 +257,8 @@ def refresh_turnus_set(turnus_set_id):
 
         # Regenerate statistics JSON
         stats = Turnus(turnus_json_path)
-        df_json_path = os.path.join(turnusfiler_dir, f"turnus_stats_{year_id}.json")
+        version_dir = os.path.dirname(turnusfiler_dir)
+        df_json_path = os.path.join(version_dir, f"turnus_stats_{year_id}.json")
         stats.stats_df.to_json(df_json_path)
 
         # Update shift names in DB (preserving favorites)

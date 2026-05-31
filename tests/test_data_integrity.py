@@ -23,7 +23,7 @@ _JSON_PATH = os.path.join(
     _ROOT, "app", "static", "turnusfiler", "r26", "turnus_schedule_R26.json"
 )
 _PDF_PATH = os.path.join(
-    _ROOT, "app", "static", "turnusfiler", "r26", "turnuser_R26.pdf"
+    _ROOT, "app", "static", "turnusfiler", "r26", "pdf", "turnuser_R26.pdf"
 )
 
 # ---------------------------------------------------------------------------

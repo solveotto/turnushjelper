@@ -1,0 +1,87 @@
+{
+  "dobbelt_tur": [
+    {
+      "first_shift": "3116",
+      "second_shift": "3117"
+    },
+    {
+      "first_shift": "3139",
+      "second_shift": "3140"
+    },
+    {
+      "first_shift": "3141",
+      "second_shift": "3142"
+    },
+    {
+      "first_shift": "5017-",
+      "second_shift": "5018"
+    },
+    {
+      "first_shift": "5019",
+      "second_shift": "5020"
+    },
+    {
+      "first_shift": "5037",
+      "second_shift": "5038"
+    },
+    {
+      "first_shift": "5055",
+      "second_shift": "5056"
+    },
+    {
+      "first_shift": "5403",
+      "second_shift": "5404"
+    },
+    {
+      "first_shift": "5403-M",
+      "second_shift": "5404"
+    },
+    {
+      "first_shift": "5407",
+      "second_shift": "5408"
+    },
+    {
+      "first_shift": "5411",
+      "second_shift": "5412"
+    },
+    {
+      "first_shift": "5413",
+      "second_shift": "5414"
+    },
+    {
+      "first_shift": "5425",
+      "second_shift": "5426"
+    },
+    {
+      "first_shift": "5433",
+      "second_shift": "5434"
+    },
+    {
+      "first_shift": "5437",
+      "second_shift": "5438"
+    }
+  ],
+  "delt_dagsverk": [
+    "1234",
+    "3030",
+    "3144",
+    "5435",
+    "3031",
+    "3122",
+    "3018-",
+    "5436",
+    "5415",
+    "12345",
+    "1641",
+    "1634",
+    "5423",
+    "7466",
+    "5424",
+    "1351",
+    "5040",
+    "1632",
+    "1353",
+    "5406",
+    "1266"
+  ]
+}
