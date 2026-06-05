@@ -4,7 +4,7 @@ from flask import Flask, session
 from flask_login import current_user
 
 from app.database import get_db_session
-from app.extensions import cache, limiter, login_manager, mail
+from app.extensions import cache, csrf, limiter, login_manager, mail
 from app.models import DBUser, User
 from app.services.user_service import init_default_admin
 from config import AppConfig
@@ -29,6 +29,7 @@ def create_app():
     # Initialize Flask extensions
     mail.init_app(app)
     cache.init_app(app)
+    csrf.init_app(app)
     limiter.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"

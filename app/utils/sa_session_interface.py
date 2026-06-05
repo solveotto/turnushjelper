@@ -138,6 +138,23 @@ class SqlAlchemySessionInterface(SessionInterface):
                 samesite=self.get_cookie_samesite(app),
             )
 
+    def regenerate(self, session: FlaskSession) -> None:
+        """Assign a new session ID, deleting the old DB row. Call on login to prevent fixation."""
+        old_sid = session.sid
+        if old_sid:
+            from app.models import FlaskSessionModel
+            db = SessionLocal()
+            try:
+                db.query(FlaskSessionModel).filter_by(session_id=old_sid).delete()
+                db.commit()
+            except Exception:
+                db.rollback()
+                logger.exception("Session regeneration delete failed")
+            finally:
+                db.close()
+        session.sid = self._generate_sid()
+        session.modified = True
+
     def _delete_expired(self) -> None:
         from app.models import FlaskSessionModel
 

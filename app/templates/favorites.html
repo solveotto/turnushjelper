@@ -227,7 +227,7 @@
 
 <script>
 function moveFavorite(shiftTitle, direction) {
-    fetch('/api/move-favorite', {
+    apiFetch('/api/move-favorite', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -292,7 +292,7 @@ function handlePositionKeydown(event, inputElement) {
 }
 
 function setFavoritePosition(shiftTitle, newPosition) {
-    fetch('/api/set-favorite-position', {
+    apiFetch('/api/set-favorite-position', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

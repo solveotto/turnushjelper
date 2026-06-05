@@ -10,7 +10,7 @@ import { ShiftTimelineModal } from './modules/shift-timeline.js';
 import { GuidedTour } from './modules/guided-tour.js';
 import { LazyTables } from './modules/lazy-tables.js';
 
-// NOT USED
+import './modules/utils.js'; // registers window.apiFetch
 // import { Utils, ScrollPosition } from './modules/utils.js';
 // import { ColorAdjustment } from './modules/color-adjustment.js';
 

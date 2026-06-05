@@ -600,7 +600,7 @@ block extra_css %}
             const btn = document.getElementById("modal-fav-btn");
             if (btn) btn.disabled = true;
 
-            fetch("/api/toggle_favorite", {
+            apiFetch("/api/toggle_favorite", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

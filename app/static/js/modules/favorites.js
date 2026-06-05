@@ -1,6 +1,8 @@
 // Favorites Module
 // Handles favorite toggle functionality
 
+import { apiFetch } from './utils.js';
+
 export class Favorites {
     constructor() {
         this.init();
@@ -66,7 +68,7 @@ export class Favorites {
         try {
             const requestData = { favorite: favorite, shift_title: shiftTitle };
 
-            const response = await fetch('/api/toggle_favorite', {
+            const response = await apiFetch('/api/toggle_favorite', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

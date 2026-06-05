@@ -148,3 +148,15 @@ export class ScrollPosition {
 // Make printTables available globally for backward compatibility
 window.printTables = Utils.printTables;
 window.disableSubmitButton = Utils.disableSubmitButton;
+
+export function apiFetch(url, options = {}) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const method = (options.method || 'GET').toUpperCase();
+    const headers = { ...options.headers };
+    if (method !== 'GET' && method !== 'HEAD' && csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    return fetch(url, { ...options, headers });
+}
+
+window.apiFetch = apiFetch;

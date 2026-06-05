@@ -318,7 +318,7 @@
         }
 
         function saveToServer(priorityStr) {
-            fetch('/api/soknadsskjema-choice', {
+            apiFetch('/api/soknadsskjema-choice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -364,7 +364,7 @@
             const turnusName = {{ turnus_name | tojson }};
             const turnusSetId = {{ turnus_set_id }};
 
-            fetch('/api/generate-turnusnokkel', {
+            apiFetch('/api/generate-turnusnokkel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ turnus_name: turnusName, turnus_set_id: turnusSetId })

@@ -50,6 +50,8 @@ def login():
                     form.username.data, db_user_data["id"], db_user_data["is_auth"]
                 )
                 flask_login_user(user)
+                from flask import current_app
+                current_app.session_interface.regenerate(session)
                 session['has_seen_tour'] = db_user_data.get('has_seen_turnusliste_tour', 0)
                 session['has_seen_favorites_tour'] = db_user_data.get('has_seen_favorites_tour', 0)
                 session['has_seen_mintur_tour'] = db_user_data.get('has_seen_mintur_tour', 0)

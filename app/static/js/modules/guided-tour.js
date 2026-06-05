@@ -3,6 +3,8 @@
 // and a separate help guide accessible from the dropdown menu.
 // Page detection is data-driven via [data-tour-page] attributes.
 
+import { apiFetch } from './utils.js';
+
 export class GuidedTour {
     constructor() {
         this.driver = null;
@@ -167,7 +169,7 @@ export class GuidedTour {
 
     async markSeen(name) {
         try {
-            const response = await fetch('/api/mark-tour-seen', {
+            const response = await apiFetch('/api/mark-tour-seen', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tour_name: name }),

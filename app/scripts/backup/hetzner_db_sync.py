@@ -84,6 +84,7 @@ def create_dump(path):
         f'-u{AppConfig.MYSQL_USER}',
         f'-p{AppConfig.MYSQL_PASSWORD}',
         '--no-tablespaces',
+        f'--ignore-table={AppConfig.MYSQL_DATABASE}.flask_sessions',
         AppConfig.MYSQL_DATABASE,
     ]
     with open(path, 'w') as f:

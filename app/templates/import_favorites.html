@@ -715,7 +715,7 @@ function loadPreview(sourceIds) {
         requestBody.source_turnus_set_ids = sourceIds;
     }
 
-    fetch('/api/import-favorites-preview', {
+    apiFetch('/api/import-favorites-preview', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -904,7 +904,7 @@ function loadInnplasseringPreview() {
     matchesContainer.innerHTML = '';
     importActions.style.display = 'none';
 
-    fetch('/api/import-favorites-preview', {
+    apiFetch('/api/import-favorites-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ innplassering_source_ids: sourceIds, top_n: topN })
@@ -955,7 +955,7 @@ function importSelected() {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Importerer...';
 
-    fetch('/api/import-favorites-confirm', {
+    apiFetch('/api/import-favorites-confirm', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
