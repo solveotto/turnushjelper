@@ -1,6 +1,6 @@
 """
 Cleanup script to delete unverified user accounts after X days
-Should be run via scheduled task (Windows Task Scheduler or PythonAnywhere)
+Schedule via cron on Hetzner.
 """
 
 import sys
@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timedelta
 
 # Add project root to path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
 from app.utils.db_utils import SessionLocal, DBUser, EmailVerificationToken, Favorites

@@ -2,17 +2,15 @@
 Cleanup script to delete page_view activity events older than RETENTION_DAYS.
 Other event types (login, logout, favorite_add, favorite_remove) are kept forever.
 
-Run via scheduled task (PythonAnywhere scheduled tasks or cron):
-    python app/scripts/cleanup_activity_log.py
-
-PythonAnywhere: set up a daily scheduled task pointing to this file.
+Schedule via cron on Hetzner:
+    python scripts/cleanup_activity_log.py
 """
 
 import sys
 import os
 from datetime import datetime, timedelta, timezone
 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
 from app.database import get_db_session

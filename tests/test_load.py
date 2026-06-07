@@ -7,7 +7,7 @@ Two modes:
 
 Usage:
   pytest tests/test_load.py -v                       # local
-  LOAD_TEST_URL=https://x.pythonanywhere.com pytest tests/test_load.py -v  # remote
+  LOAD_TEST_URL=https://hetzner.turnushjelper.no pytest tests/test_load.py -v  # remote
 """
 
 import os

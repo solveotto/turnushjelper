@@ -2,8 +2,8 @@
 """Import shift assignment data from an Innplassering PDF into the database.
 
 Usage:
-    python app/scripts/import_innplassering.py --year R26
-    python app/scripts/import_innplassering.py --year R26 --pdf-path custom/path.pdf
+    python scripts/import_innplassering.py --year R26
+    python scripts/import_innplassering.py --year R26 --pdf-path custom/path.pdf
 """
 
 import argparse
@@ -11,7 +11,7 @@ import os
 import sys
 
 # Add project root to path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 os.environ.setdefault("DB_TYPE", "sqlite")

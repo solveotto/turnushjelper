@@ -5,7 +5,7 @@ Check for orphaned favorites before adding foreign keys
 import sys
 import os
 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
 from app.utils.db_utils import get_db_session, Favorites, DBUser, TurnusSet
@@ -53,7 +53,7 @@ def check_orphaned_favorites():
         if total_orphaned > 0:
             print(f"\n⚠ TOTAL ORPHANED RECORDS: {total_orphaned}")
             print("\nYou must clean these up before adding foreign keys.")
-            print("Run the cleanup script: python app/scripts/db_cleanup_orphaned_favorites.py")
+            print("Run the cleanup script: python scripts/db_cleanup_orphaned_favorites.py")
             return False
         else:
             print("\n✓ Database is clean - safe to add foreign keys!")

@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Daily MySQL Database Backup Script for PythonAnywhere
-This script is designed to be run by PythonAnywhere's scheduled tasks feature.
+Daily MySQL Database Backup Script
 
-Schedule: Daily at 2:00 AM (or your preferred time)
-Command: python /home/solveottooren/shift_rotation_organizer/app/scripts/backup/daily_mysql_backup.py
+Schedule via cron on Hetzner:
+  0 2 * * * /home/deploy/turnushjelper/venv/bin/python /home/deploy/turnushjelper/scripts/backup/daily_mysql_backup.py
 
 Features:
 - Creates daily backups with timestamps
 - Keeps last 7 days of backups (configurable)
 - Logs all operations
-- Sends status to log file
 """
 
 import sys
@@ -19,14 +17,15 @@ import subprocess
 from datetime import datetime, timedelta
 import glob
 
-# Add project root to path (go up 4 levels: backup -> scripts -> app -> project_root)
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Add project root to path (go up 3 levels: backup -> scripts -> project_root)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
 from config import AppConfig
 
 # Configuration
-BACKUP_DIR = os.path.join(project_root, 'backups')
+# Backups live alongside the project dir, not inside it, so they survive a fresh checkout
+BACKUP_DIR = os.path.join(os.path.dirname(project_root), 'backups')
 KEEP_DAYS = 7  # Number of days to keep backups
 LOG_FILE = os.path.join(project_root, 'app', 'logs', 'backup.log')
 
@@ -35,7 +34,6 @@ def log_message(message):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     log_entry = f"[{timestamp}] {message}\n"
     
-    # Print to console (visible in PythonAnywhere scheduled task logs)
     print(log_entry.strip())
     
     # Write to log file
@@ -116,7 +114,7 @@ def create_backup():
             f'-h{host}',
             f'-u{user}',
             f'-p{password}',
-            '--no-tablespaces',  # Required for PythonAnywhere
+            '--no-tablespaces',
             database
         ]
         
@@ -164,8 +162,7 @@ def create_backup():
             return False
             
     except FileNotFoundError:
-        log_message("✗ mysqldump command not found!")
-        log_message("Make sure this script is run on PythonAnywhere server")
+        log_message("✗ mysqldump command not found — install mysql-client")
         log_message("=" * 60)
         return False
         
