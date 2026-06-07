@@ -26,7 +26,8 @@ from config import AppConfig
 # Configuration
 # Backups live alongside the project dir, not inside it, so they survive a fresh checkout
 BACKUP_DIR = os.path.join(os.path.dirname(project_root), 'backups')
-KEEP_DAYS = 7  # Number of days to keep backups
+KEEP_DAYS = 7   # Delete backups older than this
+MIN_BACKUPS = 3  # Always keep at least this many most-recent, regardless of age
 LOG_FILE = os.path.join(project_root, 'app', 'logs', 'backup.log')
 
 def log_message(message):
@@ -45,36 +46,38 @@ def log_message(message):
         print(f"Warning: Could not write to log file: {e}")
 
 def cleanup_old_backups():
-    """Remove backups older than KEEP_DAYS"""
+    """Remove backups older than KEEP_DAYS, always keeping the MIN_BACKUPS most recent."""
     try:
-        cutoff_date = datetime.now() - timedelta(days=KEEP_DAYS)
         backup_pattern = os.path.join(BACKUP_DIR, 'backup_*.sql')
+        # Sort newest-first — filenames are YYYYMMDD_HHMMSS so lexicographic order works
+        all_backups = sorted(glob.glob(backup_pattern), reverse=True)
 
-        all_backups = glob.glob(backup_pattern)
-        if len(all_backups) <= 3:
-            log_message(f"Skipping cleanup: only {len(all_backups)} backup(s) exist (minimum 3 kept)")
+        if len(all_backups) <= MIN_BACKUPS:
+            log_message(f"Skipping cleanup: only {len(all_backups)} backup(s) exist")
             return
 
+        cutoff_date = datetime.now() - timedelta(days=KEEP_DAYS)
         deleted_count = 0
-        for backup_file in all_backups:
-            # Extract date from filename (backup_YYYYMMDD_HHMMSS.sql)
+
+        # The MIN_BACKUPS newest are always kept; only consider the rest for deletion
+        for backup_file in all_backups[MIN_BACKUPS:]:
             try:
                 basename = os.path.basename(backup_file)
                 date_str = basename.split('_')[1]  # YYYYMMDD
                 file_date = datetime.strptime(date_str, '%Y%m%d')
-                
+
                 if file_date < cutoff_date:
                     os.remove(backup_file)
                     deleted_count += 1
                     log_message(f"Deleted old backup: {basename}")
             except (ValueError, IndexError) as e:
                 log_message(f"Warning: Could not parse date from {basename}: {e}")
-        
+
         if deleted_count > 0:
             log_message(f"Cleaned up {deleted_count} old backup(s)")
         else:
             log_message("No old backups to clean up")
-            
+
     except Exception as e:
         log_message(f"Error during cleanup: {e}")
 
