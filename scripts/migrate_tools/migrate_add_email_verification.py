@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add project root to path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
 
 from app.utils.db_utils import engine, SessionLocal, DBUser

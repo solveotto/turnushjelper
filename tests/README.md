@@ -12,8 +12,8 @@ venv/bin/pytest tests/test_auth_routes.py -v
 # Run load tests with output
 venv/bin/pytest tests/test_load.py -v -s
 
-# Load test against PythonAnywhere
-LOAD_TEST_URL=https://yourapp.pythonanywhere.com venv/bin/pytest tests/test_load.py -v -s
+# Load test against live server
+LOAD_TEST_URL=https://hetzner.turnushjelper.no venv/bin/pytest tests/test_load.py -v -s
 ```
 
 ## Project Structure
@@ -156,4 +156,4 @@ The following areas are **not yet covered** and are candidates for future tests:
 - **Shift routes** — shift listing, filtering
 - **Main routes** — landing page, static pages
 - **CSRF protection** — currently disabled in tests
-- **Remote-mode load tests** — require a running PythonAnywhere deployment
+- **Remote-mode load tests** — require a running server (`LOAD_TEST_URL` env var)

@@ -4,15 +4,15 @@ Test the backup system before scheduling
 Runs a series of checks to verify everything is configured correctly
 
 Usage:
-    python app/scripts/backup/test_backup_system.py
+    python scripts/backup/test_backup_system.py
 """
 
 import sys
 import os
 import subprocess
 
-# Add project root to path (go up 4 levels: backup -> scripts -> app -> project_root)
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Add project root to path (go up 3 levels: backup -> scripts -> project_root)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
 from config import AppConfig
@@ -86,8 +86,7 @@ def test_mysqldump_available():
             return False
             
     except FileNotFoundError:
-        print_check("mysqldump available", False, "Command not found")
-        print("  ℹ Note: This test may fail on Windows. It should work on PythonAnywhere.")
+        print_check("mysqldump available", False, "Command not found — install mysql-client")
         return False
 
 def test_mysql_connection():
@@ -125,8 +124,7 @@ def test_mysql_connection():
             return False
             
     except FileNotFoundError:
-        print_check("MySQL connection", False, "mysql command not found")
-        print("  ℹ Note: This test may fail on Windows. It should work on PythonAnywhere.")
+        print_check("MySQL connection", False, "mysql command not found — install mysql-client")
         return False
     except Exception as e:
         print_check("MySQL connection", False, str(e))
@@ -193,7 +191,7 @@ def test_backup_script_exists():
     """Test 6: Check if backup script exists"""
     print_header("Test 6: Backup Script")
     
-    backup_script = os.path.join(project_root, 'app', 'scripts', 'backup', 'daily_mysql_backup.py')
+    backup_script = os.path.join(project_root, 'scripts', 'backup', 'daily_mysql_backup.py')
     
     if os.path.exists(backup_script):
         print_check("Backup script exists", True, backup_script)
@@ -204,7 +202,7 @@ def test_backup_script_exists():
             return True
         else:
             print_check("Script permissions", False, "Not executable")
-            print("  ℹ Run: chmod +x app/scripts/backup/daily_mysql_backup.py")
+            print("  ℹ Run: chmod +x scripts/backup/daily_mysql_backup.py")
             return False
     else:
         print_check("Backup script exists", False, "File not found")
@@ -219,7 +217,7 @@ def run_test_backup():
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "daily_mysql_backup",
-            os.path.join(project_root, 'app', 'scripts', 'backup', 'daily_mysql_backup.py')
+            os.path.join(project_root, 'scripts', 'backup', 'daily_mysql_backup.py')
         )
         backup_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(backup_module)
@@ -289,8 +287,8 @@ def main():
     if passed == total:
         print("\n✓ All tests passed! Ready to schedule daily backups.")
         print("\nNext steps:")
-        print("1. Test the backup manually: python app/scripts/backup/daily_mysql_backup.py")
-        print("2. Set up scheduled task on PythonAnywhere (see README.md)")
+        print("1. Test the backup manually: python scripts/backup/daily_mysql_backup.py")
+        print("2. Set up cron job on Hetzner (see README.md)")
         
         # Ask if user wants to run test backup
         if sys.platform != 'win32':  # Only on Unix-like systems

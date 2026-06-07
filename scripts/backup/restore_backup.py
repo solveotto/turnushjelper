@@ -4,7 +4,7 @@ Restore MySQL Database from Backup
 Interactive script to restore database from backup files
 
 Usage:
-    python app/scripts/backup/restore_backup.py
+    python scripts/backup/restore_backup.py
 """
 
 import sys
@@ -14,7 +14,7 @@ import glob
 from datetime import datetime
 
 # Add project root to path (go up 4 levels: backup -> scripts -> app -> project_root)
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
 from config import AppConfig

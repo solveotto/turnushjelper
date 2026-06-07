@@ -3,7 +3,7 @@
 Interactive restore: download backups from home server back to this machine.
 
 Run manually after a server wipe or to inspect available backups:
-  python app/scripts/backup/restore_from_offsite.py
+  python scripts/backup/restore_from_offsite.py
 
 Requires the same HOME_BACKUP_* env vars as offsite_backup.py.
 """
@@ -13,7 +13,7 @@ import os
 import subprocess
 from datetime import datetime
 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
 SSH_HOST = os.getenv('HOME_BACKUP_HOST', '')

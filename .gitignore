@@ -6,6 +6,7 @@ instance/
 # Bytt tunrusfiler med denne hvis du vil ha med .json filer
 app/static/turnusfiler/**/*.pdf
 app/static/turnusfiler/**/*.png
+app/static/turnusfiler/**/double_shifts_*.json
 nul
 General/
 .metadata

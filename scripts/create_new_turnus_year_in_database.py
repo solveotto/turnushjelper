@@ -21,8 +21,8 @@ FEATURES:
 
 USAGE:
     Command Line:
-        python app/scripts/create_new_turnus_year_in_database.py R23 "OSL Train Shifts 2023"
-        python app/scripts/create_new_turnus_year_in_database.py R24 "OSL Train Shifts 2024" --json-path custom/path.json
+        python scripts/create_new_turnus_year_in_database.py R23 "OSL Train Shifts 2023"
+        python scripts/create_new_turnus_year_in_database.py R24 "OSL Train Shifts 2024" --json-path custom/path.json
     
     From scripts directory:
         python create_new_turnus_year_in_database.py R23 "OSL Train Shifts 2023"
@@ -45,10 +45,10 @@ DATABASE OPERATIONS:
 
 EXAMPLES:
     # Basic usage (files in turnusfiler directory)
-    python app/scripts/create_new_turnus_year_in_database.py R23 "OSL Train Shifts 2023"
+    python scripts/create_new_turnus_year_in_database.py R23 "OSL Train Shifts 2023"
     
     # With custom file paths
-    python app/scripts/create_new_turnus_year_in_database.py R24 "OSL Train Shifts 2024" \\
+    python scripts/create_new_turnus_year_in_database.py R24 "OSL Train Shifts 2024" \\
         --json-path /path/to/turnus_schedule_R24.json \\
         --df-path /path/to/turnus_stats_R24.json
 
@@ -69,7 +69,7 @@ import time
 import argparse
 
 # Add the project root to Python path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Now we can import from app
