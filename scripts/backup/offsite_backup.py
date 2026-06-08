@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Off-site backup: MySQL dump + .env → home Ubuntu server via rsync/SSH.
+Off-site backup: MySQL dump → home Ubuntu server via rsync/SSH.
 
 Schedule via cron on Hetzner (10 min after daily_mysql_backup.py):
   10 2 * * * /home/deploy/turnushjelper/venv/bin/python /home/deploy/turnushjelper/scripts/backup/offsite_backup.py
@@ -12,6 +12,8 @@ Required env vars (add to .env):
   HOME_BACKUP_SSH_KEY   Path to SSH private key (~/.ssh/backup_key)
   HOME_BACKUP_PORT      SSH port (default: 3125)
   OFFSITE_KEEP_COUNT    How many remote backups to retain (default: 14)
+
+Note: .env is backed up manually when changed — not included here.
 """
 
 import sys
@@ -28,7 +30,6 @@ sys.path.insert(0, project_root)
 from config import AppConfig
 
 LOG_FILE = os.path.join(project_root, 'app', 'logs', 'offsite_backup.log')
-ENV_FILE = os.path.join(project_root, '.env')
 
 SSH_HOST = os.getenv('HOME_BACKUP_HOST', '')
 SSH_USER = os.getenv('HOME_BACKUP_USER', '')
@@ -90,10 +91,8 @@ def run_ssh(remote_cmd):
 
 
 def remote_cleanup():
-    # Delete oldest sql and env files beyond KEEP_COUNT
     cmd = (
-        f"ls -1t {SSH_REMOTE_PATH}/backup_*.sql 2>/dev/null | tail -n +{KEEP_COUNT + 1} | xargs -r rm -f; "
-        f"ls -1t {SSH_REMOTE_PATH}/env_* 2>/dev/null | tail -n +{KEEP_COUNT + 1} | xargs -r rm -f"
+        f"ls -1t {SSH_REMOTE_PATH}/backup_*.sql 2>/dev/null | tail -n +{KEEP_COUNT + 1} | xargs -r rm -f"
     )
     result = run_ssh(cmd)
     if result.returncode != 0:
@@ -134,7 +133,6 @@ def run():
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     dump_name = f'backup_{timestamp}.sql'
-    env_name = f'env_{timestamp}'
     tmp_dump = os.path.join(tempfile.gettempdir(), dump_name)
 
     try:
@@ -146,13 +144,6 @@ def run():
         log(f"Uploading {dump_name}...")
         rsync_up(tmp_dump, dump_name)
         log(f"Uploaded {dump_name}")
-
-        if not os.path.exists(ENV_FILE):
-            log(f"Warning: .env not found at {ENV_FILE} — skipping env backup")
-        else:
-            log(f"Uploading .env as {env_name}...")
-            rsync_up(ENV_FILE, env_name)
-            log(f"Uploaded {env_name}")
 
         remote_cleanup()
         log(f"Remote cleanup done (keeping last {KEEP_COUNT} of each)")

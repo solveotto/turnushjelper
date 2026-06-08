@@ -53,11 +53,6 @@ def list_remote_dumps():
     return [os.path.basename(f) for f in result.stdout.strip().splitlines()]
 
 
-def remote_file_exists(name):
-    result = run_ssh(f"test -f {SSH_REMOTE_PATH}/{name} && echo yes")
-    return result.stdout.strip() == 'yes'
-
-
 def main():
     for var, val in [
         ('HOME_BACKUP_HOST', SSH_HOST),
@@ -97,10 +92,8 @@ def main():
         sys.exit(1)
 
     dump_name = dumps[idx]
-    env_name = dump_name.replace('backup_', 'env_').replace('.sql', '')
 
     print(f"\nSelected:  {dump_name}")
-    print(f"Env file:  {env_name}")
     print()
     confirm = input("Type RESTORE to confirm download: ").strip()
     if confirm != 'RESTORE':
@@ -108,26 +101,14 @@ def main():
         sys.exit(0)
 
     local_sql = os.path.join(project_root, dump_name)
-    local_env = os.path.join(project_root, env_name + '.restored')
 
     print(f"\nDownloading {dump_name}...")
     rsync_down(dump_name, local_sql)
     print(f"  Saved: {local_sql}")
 
-    has_env = remote_file_exists(env_name)
-    if has_env:
-        print(f"Downloading {env_name}...")
-        rsync_down(env_name, local_env)
-        print(f"  Saved: {local_env}")
-    else:
-        print(f"No matching env backup found for this date — skipping.")
-        local_env = None
-
     print("\n--- Recovery steps ---")
     print(f"  1. Restore DB:   mysql -u USER -p DATABASE < {dump_name}")
-    if local_env:
-        print(f"  2. Restore .env: cp {local_env} {os.path.join(project_root, '.env')}")
-    print(f"  3. Migrations:   alembic upgrade head")
+    print(f"  2. Migrations:   alembic upgrade head")
 
 
 if __name__ == '__main__':
