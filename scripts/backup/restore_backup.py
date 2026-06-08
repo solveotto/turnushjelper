@@ -19,7 +19,7 @@ sys.path.insert(0, project_root)
 
 from config import AppConfig
 
-BACKUP_DIR = os.path.join(project_root, 'backups')
+BACKUP_DIR = os.path.join(os.path.dirname(project_root), 'backups')
 
 def list_backups():
     """List all available backup files"""
