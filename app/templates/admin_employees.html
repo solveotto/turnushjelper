@@ -16,6 +16,7 @@
         <form method="POST"
               action="{{ url_for('admin.delete_employee', user_id=emp.id) }}"
               onsubmit="return confirm('Slette stub-bruker {{ emp.name }}?{% if missing %} NB: kan dukke opp igjen på neste PDF.{% endif %}')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-danger" title="Slett">
                 <i class="bi bi-trash"></i>
             </button>
@@ -25,6 +26,7 @@
         <form method="POST"
               action="{{ url_for('admin.reset_to_stub', user_id=emp.id) }}"
               onsubmit="return confirm('Tilbakestille {{ emp.username }} til stub-bruker? Kontoen slettes, men favoritter beholdes.{% if missing %} Anbefalt fremfor full sletting — brukeren kan være midlertidig borte fra listen.{% endif %}')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-warning"
                     title="Slett konto, behold favoritter">
                 <i class="bi bi-person-slash"></i>
@@ -33,6 +35,7 @@
         <form method="POST"
               action="{{ url_for('admin.delete_user', user_id=emp.id) }}"
               onsubmit="return confirm('Slette bruker {{ emp.username }} og ALLE favoritter permanent?{% if missing %} OBS: brukeren mangler bare fra siste PDF — vurder å bruke tilbakestilling i stedet.{% endif %} Denne handlingen kan ikke angres.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-danger"
                     title="Slett bruker og alle favoritter">
                 <i class="bi bi-trash"></i>
@@ -116,6 +119,7 @@
                                     action="{{ url_for('admin.upload_ansinitet_pdf') }}"
                                     enctype="multipart/form-data"
                                 >
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div class="input-group">
                                         <input
                                             type="file"
@@ -159,6 +163,7 @@
                                                 );
                                             "
                                         >
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button
                                                 type="submit"
                                                 class="btn btn-warning btn-sm"
@@ -191,6 +196,7 @@
                                                 );
                                             "
                                         >
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button
                                                 type="submit"
                                                 class="btn btn-outline-secondary btn-sm"
@@ -226,6 +232,7 @@
                 </div>
                 <div class="card-body">
                     <form id="add-employee-form" method="POST" action="{{ url_for('admin.add_employee') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="row g-2">
                             <div class="col-md-1">
                                 <label class="form-label mb-1">Nr.</label>
@@ -379,6 +386,7 @@
                         <form method="POST"
                               action="{{ url_for('admin.cleanup_missing_stubs') }}"
                               onsubmit="return confirm('Slette {{ cleanup_count }} uregistrerte stub-brukere som mangler fra ansattlisten? Registrerte brukere berøres ikke.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-warning btn-sm">
                                 <i class="bi bi-trash me-1"></i>
                                 Rydd opp ({{ cleanup_count }} stubs)
@@ -469,6 +477,7 @@
                                         <form method="POST"
                                               action="{{ url_for('admin.delete_user', user_id=u.id) }}"
                                               onsubmit="return confirm('Slette systembruker {{ u.username }}?')">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Slett">
                                                 <i class="bi bi-trash"></i>
                                             </button>

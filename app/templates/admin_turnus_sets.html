@@ -165,6 +165,7 @@
                                     <td>
                                         {% if not turnus_set.is_active %}
                                         <form method="POST" action="{{ url_for('admin.switch_turnus_set') }}" style="display: inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <input type="hidden" name="turnus_set_id" value="{{ turnus_set.id }}">
                                             <button type="submit" class="btn btn-sm btn-primary"
                                                     onclick="return confirm('Sett {{ turnus_set.year_identifier | display_name }} som aktivt turnussett?')">
@@ -175,6 +176,7 @@
 
                                         <form method="POST" action="{{ url_for('admin.refresh_turnus_set', turnus_set_id=turnus_set.id) }}"
                                               style="display: inline;" onsubmit="return confirm('Dette vil skrape PDF-en på nytt og oppdatere vaktnavn. Favoritter blir bevart. Fortsette?')">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-sm btn-warning">
                                                 <i class="bi bi-arrow-clockwise"></i> Oppdater
                                             </button>
@@ -182,6 +184,7 @@
 
                                         <form method="POST" action="{{ url_for('admin.delete_turnus_set', turnus_set_id=turnus_set.id) }}"
                                               style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier | display_name }}? Dette vil også slette alle tilknyttede vakter og favoritter.')">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="bi bi-trash"></i> Slett
                                             </button>

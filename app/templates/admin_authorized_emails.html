@@ -29,6 +29,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin.add_authorized_email') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
@@ -66,6 +67,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin.bulk_add_authorized_emails') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="emails_bulk" class="form-label">
                                 E-postadresser (én per linje)
@@ -122,6 +124,7 @@ bruker3@eksempel.no"></textarea>
                                                   action="{{ url_for('admin.delete_authorized_email', email_id=email.id) }}"
                                                   style="display: inline;"
                                                   onsubmit="return confirm('Fjerne denne e-posten fra autorisert liste?')">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <button type="submit" class="btn btn-sm btn-danger">
                                                     <i class="bi bi-trash"></i> Fjern
                                                 </button>

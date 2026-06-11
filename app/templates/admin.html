@@ -140,6 +140,7 @@
                     </p>
                     <form method="POST" action="{{ url_for('admin.create_test_user') }}" class="mt-auto"
                           onsubmit="return confirm('Opprett/tilbakestill testbruker med tilfeldige favoritter?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-outline-warning w-100">
                             <i class="bi bi-person-fill-gear"></i> Opprett testbruker
                         </button>
@@ -189,6 +190,7 @@
                     </p>
                     <form method="POST" action="{{ url_for('admin.reset_tour') }}" class="mt-auto"
                           onsubmit="return confirm('Er du sikker? Omvisningen vil starte på nytt for alle brukere.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-outline-secondary w-100">
                             <i class="bi bi-arrow-repeat"></i> Tilbakestill omvisning
                         </button>
