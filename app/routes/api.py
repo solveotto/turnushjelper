@@ -796,21 +796,21 @@ def soknadsskjema_choice():
         db_session.close()
 
 
-@api.route("/check-rullenummer")
+@api.route("/check-medlemsnummer")
 @limiter.limit("30 per hour")
-def check_rullenummer():
-    """Return whether a rullenummer is a valid unactivated stub.
+def check_medlemsnummer():
+    """Return whether an NLF-medlemsnummer is a valid unactivated stub.
 
     Response shape:
         {found: true}
         {found: false, reason: "already_registered"}
         {found: false, reason: "not_authorized"}
     """
-    rullenummer = (request.args.get("rullenummer") or "").strip()
-    if not rullenummer:
+    medlemsnummer = (request.args.get("medlemsnummer") or "").strip()
+    if not medlemsnummer:
         return jsonify({"found": False, "reason": "not_authorized"})
 
-    stub = user_service.get_user_by_rullenummer(rullenummer)
+    stub = user_service.get_user_by_medlemsnummer(medlemsnummer)
     if stub is None:
         return jsonify({"found": False, "reason": "not_authorized"})
     if stub["is_stub"] != 1:

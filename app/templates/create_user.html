@@ -4,10 +4,31 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 {% endblock %}
 
+{% macro text_field(field, icon, hint=None, suffix=None) %}
+<div class="form-group-modern">
+    <div class="input-wrapper">
+        <i class="bi bi-{{ icon }} input-icon"></i>
+        {{ field(class="form-control-modern" + (" is-invalid" if field.errors else ""), placeholder=" ") }}
+        <label class="floating-label">{{ field.label.text }}{% if suffix %} <span class="text-muted">{{ suffix }}</span>{% endif %}</label>
+    </div>
+    {% if hint %}
+    <small class="form-hint">{{ hint }}</small>
+    {% endif %}
+    {% if field.errors %}
+        <div class="error-message">
+            {% for error in field.errors %}
+                <i class="bi bi-exclamation-circle"></i>
+                {{ error }}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6 col-xl-5">
+        <div class="col-md-10 col-lg-8 col-xl-7">
             <div class="modern-card">
                 <div class="card-header-modern">
                     <div class="header-content">
@@ -38,55 +59,55 @@
                     <form method="POST" class="modern-form">
                         {{ form.hidden_tag() }}
 
-                        <div class="form-group-modern">
-                            <div class="input-wrapper">
-                                <i class="bi bi-person input-icon"></i>
-                                {{ form.username(class="form-control-modern" + (" is-invalid" if form.username.errors else ""), placeholder=" ") }}
-                                <label class="floating-label">{{ form.username.label.text }}</label>
-                            </div>
-                            {% if form.username.errors %}
-                                <div class="error-message">
-                                    {% for error in form.username.errors %}
-                                        <i class="bi bi-exclamation-circle"></i>
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group-modern">
-                            <div class="input-wrapper">
-                                <i class="bi bi-lock input-icon"></i>
-                                {{ form.password(class="form-control-modern" + (" is-invalid" if form.password.errors else ""), placeholder=" ") }}
-                                <label class="floating-label">{{ form.password.label.text }}</label>
-                            </div>
-                            {% if form.password.errors %}
-                                <div class="error-message">
-                                    {% for error in form.password.errors %}
-                                        <i class="bi bi-exclamation-circle"></i>
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group-modern">
-                            <div class="input-wrapper">
-                                <i class="bi bi-shield-lock input-icon"></i>
-                                {{ form.confirm_password(class="form-control-modern" + (" is-invalid" if form.confirm_password.errors else ""), placeholder=" ") }}
-                                <label class="floating-label">{{ form.confirm_password.label.text }}</label>
-                            </div>
-                            {% if form.confirm_password.errors %}
-                                <div class="error-message">
-                                    {% for error in form.confirm_password.errors %}
-                                        <i class="bi bi-exclamation-circle"></i>
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
                         <div class="form-group-modern checkbox-group">
+                            <div class="custom-checkbox-modern">
+                                {{ form.is_stub(class="form-check-input-modern") }}
+                                <label class="form-check-label-modern" for="{{ form.is_stub.id }}">
+                                    <span class="checkmark"></span>
+                                    <i class="bi bi-person-dash"></i>
+                                    {{ form.is_stub.label.text }}
+                                </label>
+                            </div>
+                            <small class="form-hint">En stub er en forhåndsopprettet medlemskonto uten innlogging — medlemmet registrerer seg selv med NLF-medlemsnummeret sitt</small>
+                        </div>
+
+                        <div id="credentials-fields">
+                            {{ text_field(form.username, 'person', hint='Påkrevd for vanlig bruker') }}
+                            {{ text_field(form.email, 'envelope', suffix='(valgfritt)') }}
+                            {{ text_field(form.password, 'lock') }}
+                            {{ text_field(form.confirm_password, 'shield-lock') }}
+                        </div>
+
+                        {{ text_field(form.name, 'person-vcard', hint='Format: Etternavn, Fornavn — påkrevd for stub') }}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ text_field(form.medlemsnummer, 'hash', hint='Påkrevd for stub') }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ text_field(form.rullenummer, 'hash', suffix='(valgfritt)') }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ text_field(form.stasjoneringssted, 'geo-alt', suffix='(valgfritt)') }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ text_field(form.seniority_nr, 'sort-numeric-down', suffix='(valgfritt)') }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ text_field(form.ans_dato, 'calendar3', hint='DD.MM.YYYY') }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ text_field(form.fodt_dato, 'calendar3', hint='DD.MM.YYYY') }}
+                            </div>
+                        </div>
+
+                        <div class="form-group-modern checkbox-group" id="is-auth-group">
                             <div class="custom-checkbox-modern">
                                 {{ form.is_auth(class="form-check-input-modern") }}
                                 <label class="form-check-label-modern" for="{{ form.is_auth.id }}">
@@ -110,4 +131,18 @@
         </div>
     </div>
 </div>
+<script>
+    // Hide the credentials block when creating a stub (server-side
+    // validation is authoritative; this is progressive enhancement).
+    const stubToggle = document.getElementById("{{ form.is_stub.id }}");
+    const credentials = document.getElementById("credentials-fields");
+    const isAuthGroup = document.getElementById("is-auth-group");
+    function toggleCredentials() {
+        const stub = stubToggle.checked;
+        credentials.style.display = stub ? "none" : "";
+        isAuthGroup.style.display = stub ? "none" : "";
+    }
+    stubToggle.addEventListener("change", toggleCredentials);
+    toggleCredentials();
+</script>
 {% endblock %}

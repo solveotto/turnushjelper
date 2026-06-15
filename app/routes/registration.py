@@ -24,13 +24,13 @@ def register():
     if form.validate_on_submit():
         email = (form.email.data or "").lower()
         username = (form.username.data or "").strip()
-        rullenummer = (form.rullenummer.data or "").strip()
+        medlemsnummer = (form.medlemsnummer.data or "").strip()
 
-        # Check if rullenummer exists as an unactivated stub
-        stub = user_service.get_user_by_rullenummer(rullenummer)
+        # Check if medlemsnummer exists as an unactivated stub
+        stub = user_service.get_user_by_medlemsnummer(medlemsnummer)
         if not stub or stub["is_stub"] != 1:
             flash(
-                "Dette rullenummeret er ikke autorisert. Kontakt en administrator.",
+                "Dette NLF-medlemsnummeret er ikke autorisert. Kontakt en administrator.",
                 "danger",
             )
             return render_template("register.html", form=form)

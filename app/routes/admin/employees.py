@@ -1,6 +1,15 @@
 import os
+from datetime import datetime
 
-from flask import current_app, flash, redirect, render_template, request, url_for
+from flask import (
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_login import current_user
 
 from app.database import get_db_session
@@ -10,6 +19,13 @@ from app.models import DBUser
 from app.routes.admin import admin
 from app.services import user_service
 from app.utils import db_utils
+
+
+def _member_excel_path():
+    """Storage path for the uploaded NLF member list."""
+    return os.path.join(
+        current_app.root_path, "static", "turnusfiler", "medlemsliste.xlsx"
+    )
 
 
 @admin.route("/employees")
@@ -24,8 +40,8 @@ def manage_employees():
     system_list     = []
 
     for emp in employees:
-        if not emp.get("rullenummer"):
-            # No rullenummer → admin / system account
+        if not emp.get("rullenummer") and not emp.get("medlemsnummer"):
+            # No identifiers → admin / system account
             system_list.append(emp)
         elif emp.get("seniority_nr"):
             # Has seniority_nr → matched to current PDF
@@ -33,9 +49,14 @@ def manage_employees():
                 registered_list.append(emp)
             else:
                 stub_list.append(emp)
-        else:
+        elif emp.get("is_registered"):
+            registered_list.append(emp)
+        elif emp.get("rullenummer"):
             # Has rullenummer but no seniority_nr → not on current PDF
             not_on_list.append(emp)
+        else:
+            # Medlemsnummer-only stub from the member list import
+            stub_list.append(emp)
 
     pdf_path = os.path.join(
         current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
@@ -47,6 +68,16 @@ def manage_employees():
         from app.utils.pdf.employee_scraper import scrape_pdf_date
         pdf_date = scrape_pdf_date(pdf_path)
 
+    excel_path = _member_excel_path()
+    excel_exists = os.path.exists(excel_path)
+    excel_date = None
+    if excel_exists:
+        excel_date = datetime.fromtimestamp(os.path.getmtime(excel_path)).strftime(
+            "%d.%m.%Y %H:%M"
+        )
+
+    member_report = session.pop("medlemsliste_report", None)
+
     return render_template(
         "admin_employees.html",
         page_name="Ansattliste",
@@ -56,7 +87,57 @@ def manage_employees():
         system_list=system_list,
         pdf_exists=pdf_exists,
         pdf_date=pdf_date,
+        excel_exists=excel_exists,
+        excel_date=excel_date,
+        member_report=member_report,
     )
+
+
+@admin.route("/upload-medlemsliste", methods=["POST"])
+@admin_required
+def upload_member_excel():
+    """Upload the NLF member list (xlsx) and sync medlemsnummer into users."""
+    from app.utils.member_excel import parse_member_excel
+
+    if "excel_file" not in request.files or not request.files["excel_file"].filename:
+        flash("Ingen fil valgt.", "danger")
+        return redirect(url_for("admin.manage_employees"))
+
+    excel_file = request.files["excel_file"]
+    if not excel_file.filename.lower().endswith(".xlsx"):
+        flash("Kun Excel-filer (.xlsx) er tillatt.", "danger")
+        return redirect(url_for("admin.manage_employees"))
+
+    excel_path = _member_excel_path()
+    excel_file.save(excel_path)
+
+    try:
+        members = parse_member_excel(excel_path)
+    except Exception as e:
+        flash(f"Fil lagret, men feil ved lesing: {e}", "danger")
+        return redirect(url_for("admin.manage_employees"))
+
+    try:
+        report = user_service.sync_members_from_excel(members)
+    except Exception as e:
+        flash(f"Fil lagret, men feil ved synkronisering: {e}", "danger")
+        return redirect(url_for("admin.manage_employees"))
+
+    msg = (
+        f"Medlemsliste importert ({report['total_rows']} rader): "
+        f"{report['matched']} koblet, {report['created']} nye stubber, "
+        f"{report['unchanged']} uendret."
+    )
+    if report["deleted_stubs"]:
+        msg += f" {report['deleted_stubs']} stubber slettet."
+    if report["skipped_invalid"]:
+        msg += f" {report['skipped_invalid']} ugyldige rader hoppet over."
+    if report["conflicts"]:
+        msg += f" {len(report['conflicts'])} konflikter."
+    flash(msg, "warning" if report["conflicts"] else "success")
+
+    session["medlemsliste_report"] = report
+    return redirect(url_for("admin.manage_employees"))
 
 
 @admin.route("/import-employees", methods=["POST"])
@@ -78,30 +159,15 @@ def import_employees():
         flash(f"Feil ved lesing av PDF: {e}", "danger")
         return redirect(url_for("admin.manage_employees"))
 
-    imported = 0
-    skipped = 0
-    for emp in scraped:
-        if not emp.get("rullenummer"):
-            skipped += 1
-            continue
-        success, _msg = user_service.create_stub_user(
-            rullenummer=emp["rullenummer"],
-            etternavn=emp["etternavn"],
-            fornavn=emp["fornavn"],
-            stasjoneringssted=emp.get("stasjoneringssted"),
-            ans_dato=emp.get("ans_dato"),
-            fodt_dato=emp.get("fodt_dato"),
-            seniority_nr=emp.get("seniority_nr"),
+    try:
+        result = user_service.sync_employees_from_scrape(scraped)
+        flash(
+            f"Importert {result['added']} nye, {result['updated']} oppdatert, "
+            f"{result['unchanged']} uendret av {len(scraped)} totalt.",
+            "success",
         )
-        if success:
-            imported += 1
-        else:
-            skipped += 1
-
-    flash(
-        f"Importert {imported} nye, hoppet over {skipped} eksisterende av {len(scraped)} totalt.",
-        "success",
-    )
+    except Exception as e:
+        flash(f"Feil ved import: {e}", "danger")
     return redirect(url_for("admin.manage_employees"))
 
 
@@ -138,6 +204,8 @@ def upload_ansinitet_pdf():
             f"{result['added']} nye, {result['updated']} oppdatert, "
             f"{result['unchanged']} uendret."
         )
+        if result["merged_by_name"]:
+            msg += f" {result['merged_by_name']} koblet til medlemsliste på navn."
         if result["removed_from_list"]:
             msg += f" {result['removed_from_list']} ikke lenger på lista."
         flash(msg, "success")
@@ -173,6 +241,8 @@ def sync_employees():
             f"{result['added']} nye, {result['updated']} oppdatert, "
             f"{result['unchanged']} uendret."
         )
+        if result["merged_by_name"]:
+            msg += f" {result['merged_by_name']} koblet til medlemsliste på navn."
         if result["removed_from_list"]:
             msg += f" {result['removed_from_list']} ikke lenger på lista."
         flash(msg, "success")
@@ -185,8 +255,9 @@ def sync_employees():
 @admin.route("/add-employee", methods=["POST"])
 @admin_required
 def add_employee():
-    """Manually create a stub user for an employee not in the PDF."""
-    rullenummer = request.form.get("rullenummer", "").strip()
+    """Manually create a stub user for an employee not in the member list."""
+    medlemsnummer = request.form.get("medlemsnummer", "").strip()
+    rullenummer = request.form.get("rullenummer", "").strip() or None
     etternavn = request.form.get("etternavn", "").strip()
     fornavn = request.form.get("fornavn", "").strip()
     stasjoneringssted = request.form.get("stasjoneringssted", "").strip() or None
@@ -195,14 +266,15 @@ def add_employee():
     seniority_nr_raw = request.form.get("seniority_nr", "").strip()
     seniority_nr = int(seniority_nr_raw) if seniority_nr_raw.isdigit() else None
 
-    if not rullenummer or not etternavn or not fornavn:
-        flash("Rullenummer, etternavn og fornavn er påkrevd.", "danger")
+    if not medlemsnummer or not etternavn or not fornavn:
+        flash("NLF-medlemsnummer, etternavn og fornavn er påkrevd.", "danger")
         return redirect(url_for("admin.manage_employees"))
 
     success, message = user_service.create_stub_user(
-        rullenummer=rullenummer,
         etternavn=etternavn,
         fornavn=fornavn,
+        medlemsnummer=medlemsnummer,
+        rullenummer=rullenummer,
         stasjoneringssted=stasjoneringssted,
         ans_dato=ans_dato,
         fodt_dato=fodt_dato,

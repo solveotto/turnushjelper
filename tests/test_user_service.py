@@ -104,3 +104,208 @@ class TestCreateTestUser:
         fav_count = db_session.query(Favorites).filter_by(user_id=user.id).count()
         # Should be exactly 5 (min(5, 6)), not 10 (accumulated from 2 calls)
         assert fav_count == 5
+
+
+class TestGetUserByMedlemsnummer:
+    def test_found(self, patch_db, db_session):
+        from app.models import DBUser
+        db_session.add(DBUser(
+            username="__stub_m60011", password="x", name="Nordmann, Ola",
+            medlemsnummer="60011", is_stub=1,
+        ))
+        db_session.commit()
+        user = user_service.get_user_by_medlemsnummer("60011")
+        assert user is not None
+        assert user["medlemsnummer"] == "60011"
+        assert user["is_stub"] == 1
+
+    def test_not_found(self, patch_db):
+        assert user_service.get_user_by_medlemsnummer("99999") is None
+
+    def test_int_argument(self, patch_db, db_session):
+        from app.models import DBUser
+        db_session.add(DBUser(
+            username="__stub_m60012", password="x", medlemsnummer="60012", is_stub=1,
+        ))
+        db_session.commit()
+        assert user_service.get_user_by_medlemsnummer(60012) is not None
+
+
+class TestCreateStubUserMedlemsnummer:
+    def test_create_with_medlemsnummer(self, patch_db, db_session):
+        from app.models import DBUser
+        success, msg = user_service.create_stub_user(
+            etternavn="Nordmann", fornavn="Ola", medlemsnummer="60013",
+        )
+        assert success is True
+        stub = db_session.query(DBUser).filter_by(medlemsnummer="60013").first()
+        assert stub.username == "__stub_m60013"
+        assert stub.is_stub == 1
+        assert stub.rullenummer is None
+
+    def test_rullenummer_is_optional_extra(self, patch_db, db_session):
+        from app.models import DBUser
+        success, _ = user_service.create_stub_user(
+            etternavn="Nordmann", fornavn="Kari",
+            medlemsnummer="60014", rullenummer="12345",
+        )
+        assert success is True
+        stub = db_session.query(DBUser).filter_by(medlemsnummer="60014").first()
+        assert stub.rullenummer == "12345"
+        assert stub.username == "__stub_m60014"
+
+    def test_missing_medlemsnummer_fails(self, patch_db):
+        success, msg = user_service.create_stub_user(
+            etternavn="Nordmann", fornavn="Ola", medlemsnummer="",
+        )
+        assert success is False
+        assert "NLF-medlemsnummer" in msg
+
+    def test_duplicate_medlemsnummer_fails(self, patch_db):
+        user_service.create_stub_user(
+            etternavn="A", fornavn="B", medlemsnummer="60015",
+        )
+        success, msg = user_service.create_stub_user(
+            etternavn="C", fornavn="D", medlemsnummer="60015",
+        )
+        assert success is False
+        assert "finnes allerede" in msg
+
+
+class TestAdminCreateUser:
+    def test_full_user_without_medlemsnummer(self, patch_db, db_session):
+        from app.models import DBUser
+        success, msg = user_service.admin_create_user(
+            username="sysadmin", password="secret123", is_auth=1,
+        )
+        assert success is True
+        user = db_session.query(DBUser).filter_by(username="sysadmin").first()
+        assert user.is_auth == 1
+        assert user.is_stub == 0
+        assert user.email_verified == 1
+        assert user.medlemsnummer is None
+
+    def test_full_user_with_all_fields(self, patch_db, db_session):
+        from app.models import DBUser
+        success, _ = user_service.admin_create_user(
+            username="member1", password="secret123", email="M1@Test.com",
+            name="Nordmann, Ola", medlemsnummer="60016", rullenummer="111",
+            stasjoneringssted="OSLO", ans_dato="01.01.2020",
+            fodt_dato="02.02.1990", seniority_nr=7,
+        )
+        assert success is True
+        user = db_session.query(DBUser).filter_by(username="member1").first()
+        assert user.email == "m1@test.com"
+        assert user.medlemsnummer == "60016"
+        assert user.seniority_nr == 7
+
+    def test_stub_requires_medlemsnummer(self, patch_db):
+        success, msg = user_service.admin_create_user(
+            name="Nordmann, Ola", is_stub=1,
+        )
+        assert success is False
+        assert "NLF-medlemsnummer" in msg
+
+    def test_stub_requires_name(self, patch_db):
+        success, msg = user_service.admin_create_user(
+            medlemsnummer="60017", is_stub=1,
+        )
+        assert success is False
+        assert "Navn" in msg
+
+    def test_stub_created_with_generated_username(self, patch_db, db_session):
+        from app.models import DBUser
+        success, _ = user_service.admin_create_user(
+            name="Nordmann, Ola", medlemsnummer="60018", is_stub=1,
+        )
+        assert success is True
+        stub = db_session.query(DBUser).filter_by(medlemsnummer="60018").first()
+        assert stub.username == "__stub_m60018"
+        assert stub.is_stub == 1
+        assert stub.email is None
+        assert stub.email_verified == 0
+
+    def test_duplicate_medlemsnummer_fails(self, patch_db):
+        user_service.admin_create_user(
+            name="A, B", medlemsnummer="60019", is_stub=1,
+        )
+        success, msg = user_service.admin_create_user(
+            username="other", password="secret123", medlemsnummer="60019",
+        )
+        assert success is False
+        assert "finnes allerede" in msg
+
+    def test_non_stub_requires_credentials(self, patch_db):
+        success, msg = user_service.admin_create_user(name="A, B")
+        assert success is False
+        assert "Brukernavn og passord" in msg
+
+
+class TestUpdateUserFullFields:
+    def _make_user(self, db_session, **kwargs):
+        from app.models import DBUser
+        defaults = dict(username="edituser", password="x", is_auth=0)
+        defaults.update(kwargs)
+        user = DBUser(**defaults)
+        db_session.add(user)
+        db_session.commit()
+        return user
+
+    def test_update_all_fields(self, patch_db, db_session):
+        from app.models import DBUser
+        user = self._make_user(db_session)
+        success, _ = user_service.update_user(
+            user_id=user.id, username="renamed", email="new@test.com",
+            name="Etter, For", medlemsnummer="60020", rullenummer="222",
+            stasjoneringssted="OSL", ans_dato="01.01.2021",
+            fodt_dato="03.03.1993", seniority_nr=9,
+            is_auth=1, email_verified=1, is_stub=0,
+        )
+        assert success is True
+        db_session.expire_all()
+        updated = db_session.query(DBUser).filter_by(id=user.id).first()
+        assert updated.username == "renamed"
+        assert updated.email == "new@test.com"
+        assert updated.name == "Etter, For"
+        assert updated.medlemsnummer == "60020"
+        assert updated.rullenummer == "222"
+        assert updated.stasjoneringssted == "OSL"
+        assert updated.seniority_nr == 9
+        assert updated.is_auth == 1
+
+    def test_unset_fields_untouched(self, patch_db, db_session):
+        from app.models import DBUser
+        user = self._make_user(
+            db_session, name="Keep, Me", medlemsnummer="60021",
+            stasjoneringssted="OSL",
+        )
+        success, _ = user_service.update_user(user_id=user.id, username="edituser")
+        assert success is True
+        db_session.expire_all()
+        updated = db_session.query(DBUser).filter_by(id=user.id).first()
+        assert updated.name == "Keep, Me"
+        assert updated.medlemsnummer == "60021"
+        assert updated.stasjoneringssted == "OSL"
+
+    def test_explicit_none_clears(self, patch_db, db_session):
+        from app.models import DBUser
+        user = self._make_user(db_session, medlemsnummer="60022", name="Clear, Me")
+        success, _ = user_service.update_user(
+            user_id=user.id, username="edituser",
+            medlemsnummer=None, name=None,
+        )
+        assert success is True
+        db_session.expire_all()
+        updated = db_session.query(DBUser).filter_by(id=user.id).first()
+        assert updated.medlemsnummer is None
+        assert updated.name is None
+
+    def test_medlemsnummer_conflict(self, patch_db, db_session):
+        from app.models import DBUser
+        self._make_user(db_session, username="owner", medlemsnummer="60023")
+        user = self._make_user(db_session, username="claimer")
+        success, msg = user_service.update_user(
+            user_id=user.id, username="claimer", medlemsnummer="60023",
+        )
+        assert success is False
+        assert "allerede i bruk" in msg

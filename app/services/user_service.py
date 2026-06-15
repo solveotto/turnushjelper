@@ -170,6 +170,7 @@ def get_all_users():
                 "username": user.username,
                 "email": user.email,
                 "rullenummer": user.rullenummer,
+                "medlemsnummer": user.medlemsnummer,
                 "is_auth": user.is_auth,
                 "email_verified": user.email_verified,
                 "created_at": user.created_at,
@@ -192,7 +193,15 @@ def get_user_by_id(user_id):
                 "username": user.username,
                 "email": user.email,
                 "rullenummer": user.rullenummer,
+                "medlemsnummer": user.medlemsnummer,
+                "name": user.name,
                 "is_auth": user.is_auth,
+                "email_verified": user.email_verified or 0,
+                "is_stub": user.is_stub or 0,
+                "stasjoneringssted": user.stasjoneringssted,
+                "ans_dato": user.ans_dato,
+                "fodt_dato": user.fodt_dato,
+                "seniority_nr": user.seniority_nr,
             }
         return None
     finally:
@@ -225,10 +234,115 @@ def create_user(username, password, is_auth=0):
         db_session.close()
 
 
-def update_user(
-    user_id, username, email=None, rullenummer=None, password=None, is_auth=None
+def admin_create_user(
+    username=None,
+    password=None,
+    email=None,
+    is_auth=0,
+    name=None,
+    rullenummer=None,
+    medlemsnummer=None,
+    stasjoneringssted=None,
+    ans_dato=None,
+    fodt_dato=None,
+    seniority_nr=None,
+    is_stub=0,
 ):
-    """Update an existing user"""
+    """Create a user with the full attribute set from the admin UI.
+
+    ``is_stub=1``: a member stub — requires name + NLF-medlemsnummer;
+    username/password are generated (reserved prefix + unusable hash).
+    ``is_stub=0``: a real account — requires username + password;
+    medlemsnummer optional (admin/system accounts have none).
+    """
+    db_session = get_db_session()
+    try:
+        medlemsnummer = normalize_medlemsnummer(medlemsnummer) or None
+        rullenummer = str(rullenummer).strip() if rullenummer else None
+        name = (name or "").strip() or None
+
+        if is_stub:
+            if not name:
+                return False, "Navn er påkrevd for en stub-bruker"
+            if not medlemsnummer:
+                return False, "NLF-medlemsnummer er påkrevd for en stub-bruker"
+            username = f"__stub_m{medlemsnummer}"
+            password_hash = hash_password(secrets.token_hex(32))
+            email = None
+            email_verified = 0
+        else:
+            if not username or not password:
+                return False, "Brukernavn og passord er påkrevd"
+            password_hash = hash_password(password)
+            email_verified = 1
+
+        if db_session.query(DBUser).filter_by(username=username).first():
+            return False, "Brukernavnet finnes allerede"
+        if email and db_session.query(DBUser).filter_by(email=email.lower()).first():
+            return False, "E-postadressen finnes allerede"
+        if medlemsnummer and (
+            db_session.query(DBUser).filter_by(medlemsnummer=medlemsnummer).first()
+        ):
+            return False, "NLF-medlemsnummeret finnes allerede"
+        if rullenummer and (
+            db_session.query(DBUser).filter_by(rullenummer=rullenummer).first()
+        ):
+            return False, "Rullenummeret finnes allerede"
+
+        new_user = DBUser(
+            username=username,
+            password=password_hash,
+            email=email.lower() if email else None,
+            is_auth=is_auth,
+            name=name,
+            rullenummer=rullenummer,
+            medlemsnummer=medlemsnummer,
+            stasjoneringssted=stasjoneringssted or None,
+            ans_dato=ans_dato or None,
+            fodt_dato=fodt_dato or None,
+            seniority_nr=seniority_nr,
+            is_stub=1 if is_stub else 0,
+            email_verified=email_verified,
+            created_at=func.now(),
+        )
+        db_session.add(new_user)
+        db_session.commit()
+        return True, "Stub opprettet" if is_stub else "Bruker opprettet"
+    except Exception as e:
+        db_session.rollback()
+        logger.error("Error creating user: %s", e)
+        return False, f"Feil ved oppretting: {e}"
+    finally:
+        db_session.close()
+
+
+# Sentinel for update_user: distinguishes "not provided" from an explicit
+# None (which clears the column).
+_UNSET = object()
+
+
+def update_user(
+    user_id,
+    username,
+    email=None,
+    rullenummer=_UNSET,
+    password=None,
+    is_auth=_UNSET,
+    name=_UNSET,
+    medlemsnummer=_UNSET,
+    email_verified=_UNSET,
+    stasjoneringssted=_UNSET,
+    ans_dato=_UNSET,
+    fodt_dato=_UNSET,
+    seniority_nr=_UNSET,
+    is_stub=_UNSET,
+):
+    """Update an existing user.
+
+    Fields left as ``_UNSET`` are untouched; passing ``None`` explicitly
+    clears the column. ``email=None`` and ``password=None``/falsy keep their
+    legacy meaning of "leave unchanged".
+    """
     db_session = get_db_session()
     try:
         user = db_session.query(DBUser).filter_by(id=user_id).first()
@@ -249,15 +363,59 @@ def update_user(
             if existing_email:
                 return False, "E-postadressen finnes allerede"
 
+        if medlemsnummer is not _UNSET and medlemsnummer is not None:
+            medlemsnummer = normalize_medlemsnummer(medlemsnummer) or None
+        if (
+            medlemsnummer is not _UNSET
+            and medlemsnummer is not None
+            and medlemsnummer != (user.medlemsnummer or "")
+        ):
+            taken = (
+                db_session.query(DBUser)
+                .filter(
+                    DBUser.medlemsnummer == medlemsnummer,
+                    DBUser.id != user_id,
+                )
+                .first()
+            )
+            if taken:
+                return False, "NLF-medlemsnummeret er allerede i bruk av en annen bruker"
+
+        if (
+            rullenummer is not _UNSET
+            and rullenummer is not None
+            and str(rullenummer) != (user.rullenummer or "")
+        ):
+            taken = (
+                db_session.query(DBUser)
+                .filter(
+                    DBUser.rullenummer == str(rullenummer),
+                    DBUser.id != user_id,
+                )
+                .first()
+            )
+            if taken:
+                return False, "Rullenummeret er allerede i bruk av en annen bruker"
+
         user.username = username
         if email is not None:
             user.email = email.lower()
-        if rullenummer is not None:
-            user.rullenummer = rullenummer
         if password:
             user.password = hash_password(password)
-        if is_auth is not None:
-            user.is_auth = is_auth
+        for attr, val in [
+            ("rullenummer", rullenummer),
+            ("is_auth", is_auth),
+            ("name", name),
+            ("medlemsnummer", medlemsnummer),
+            ("email_verified", email_verified),
+            ("stasjoneringssted", stasjoneringssted),
+            ("ans_dato", ans_dato),
+            ("fodt_dato", fodt_dato),
+            ("seniority_nr", seniority_nr),
+            ("is_stub", is_stub),
+        ]:
+            if val is not _UNSET:
+                setattr(user, attr, val)
 
         db_session.commit()
         return True, "Bruker oppdatert"
@@ -335,21 +493,31 @@ def sync_employees_from_scrape(employees: list) -> dict:
     """Sync a scraped employee list into the database.
 
     For each record in the PDF:
-    - No existing user with that rullenummer → create stub
-    - Existing stub (is_stub=1)             → update HR fields if changed
-    - Existing registered user (is_stub=0)  → update HR fields if changed
-                                              (username/email/password untouched)
+    - Existing user with that rullenummer   → update HR fields if changed
+    - No rullenummer match, but exactly one user with the same name and no
+      rullenummer (e.g. created by the NLF member list import) → merge the
+      rullenummer + HR data into that user instead of creating a duplicate
+    - Otherwise → create stub
 
     After processing all PDF records, any DB user with a rullenummer that was
     NOT in the PDF has their seniority_nr cleared (set to NULL). This causes
     them to appear in the "not on list" section in the admin UI.
 
-    Returns ``{"added": int, "updated": int, "unchanged": int, "removed_from_list": int}``
+    Returns ``{"added": int, "updated": int, "unchanged": int,
+    "merged_by_name": int, "removed_from_list": int}``
     """
     db_session = get_db_session()
-    added = updated = unchanged = 0
+    added = updated = unchanged = merged_by_name = 0
     try:
         scraped_rullenummers = set()
+
+        # Users without a rullenummer, keyed by normalized name, so PDF rows
+        # can be merged into member-list users instead of duplicated.
+        by_name = {}
+        for u in db_session.query(DBUser).filter(DBUser.rullenummer.is_(None)).all():
+            if u.name:
+                by_name.setdefault(_normalize_name(u.name), []).append(u)
+        merged_ids = set()
 
         for emp in employees:
             rullenummer = str(emp.get("rullenummer", "")).strip()
@@ -367,6 +535,17 @@ def sync_employees_from_scrape(employees: list) -> dict:
             seniority_nr = emp.get("seniority_nr") or None
 
             user = db_session.query(DBUser).filter_by(rullenummer=rullenummer).first()
+
+            if user is None:
+                candidates = [
+                    u for u in by_name.get(_normalize_name(name), [])
+                    if u.id not in merged_ids
+                ]
+                if len(candidates) == 1:
+                    user = candidates[0]
+                    user.rullenummer = rullenummer
+                    merged_ids.add(user.id)
+                    merged_by_name += 1
 
             if user is None:
                 stub = DBUser(
@@ -421,16 +600,19 @@ def sync_employees_from_scrape(employees: list) -> dict:
 
         db_session.commit()
         logger.info(
-            "sync_employees: added=%d updated=%d unchanged=%d removed_from_list=%d",
+            "sync_employees: added=%d updated=%d unchanged=%d merged_by_name=%d "
+            "removed_from_list=%d",
             added,
             updated,
             unchanged,
+            merged_by_name,
             removed_from_list,
         )
         return {
             "added": added,
             "updated": updated,
             "unchanged": unchanged,
+            "merged_by_name": merged_by_name,
             "removed_from_list": removed_from_list,
         }
     except Exception as e:
@@ -441,33 +623,277 @@ def sync_employees_from_scrape(employees: list) -> dict:
         db_session.close()
 
 
+def normalize_medlemsnummer(value):
+    """Canonical form of an NLF-medlemsnummer: trimmed, and leading zeros
+    stripped for all-digit values so '068588' (as stored in the member list
+    export) and '68588' (as typed by the member) refer to the same number."""
+    value = str(value or "").strip()
+    if value.isdigit():
+        value = str(int(value))
+    return value
+
+
+def _normalize_name(name):
+    """Normalize an "Etternavn, Fornavn" name for matching: trim each part,
+    collapse internal whitespace, casefold."""
+    name = name or ""
+    if "," in name:
+        last, first = name.split(",", 1)
+        name = f"{last.strip()}, {first.strip()}"
+    return " ".join(name.split()).casefold()
+
+
+def sync_members_from_excel(members: list) -> dict:
+    """Sync the NLF member list (name + medlemsnummer) into the database.
+
+    Registered users (is_stub=0) are matched by exact normalized name and get
+    their medlemsnummer set — they are never deleted, and a differing existing
+    medlemsnummer is reported as a conflict, never overwritten.
+
+    Unregistered stubs (is_stub=1) are disposable: name mismatches and
+    duplicates are resolved by deleting the stub(s) and creating a fresh one
+    from the Excel row. Same-name duplicate stubs (e.g. from a PDF sync that
+    ran before the member list was imported) have their rullenummer/HR data
+    absorbed into the kept user before deletion. After processing, any
+    remaining stub without a medlemsnummer is deleted — it is not on the
+    member list and can never register.
+
+    Returns ``{"total_rows", "matched", "created", "unchanged",
+    "skipped_invalid", "deleted_stubs", "conflicts",
+    "registered_without_medlemsnummer"}``.
+    """
+    db_session = get_db_session()
+    matched = created = unchanged = skipped_invalid = deleted_stubs = 0
+    conflicts = []
+    try:
+        users = db_session.query(DBUser).all()
+        by_mnr = {u.medlemsnummer: u for u in users if u.medlemsnummer}
+        by_name = {}
+        for u in users:
+            if u.name:
+                by_name.setdefault(_normalize_name(u.name), []).append(u)
+
+        seen_mnr = set()
+        claimed_user_ids = set()
+        deleted_user_ids = set()
+
+        def delete_stub(stub):
+            nonlocal deleted_stubs
+            db_session.query(Favorites).filter_by(user_id=stub.id).delete()
+            db_session.delete(stub)
+            deleted_user_ids.add(stub.id)
+            if stub.medlemsnummer:
+                by_mnr.pop(stub.medlemsnummer, None)
+            deleted_stubs += 1
+            # Flush now: SQLAlchemy orders INSERTs before DELETEs within a
+            # flush, which would violate the unique medlemsnummer index when
+            # a replacement stub reuses the deleted stub's number.
+            db_session.flush()
+
+        def create_member_stub(name, mnr):
+            nonlocal created
+            stub = DBUser(
+                username=f"__stub_m{mnr}",
+                password=hash_password(secrets.token_hex(32)),
+                name=name,
+                medlemsnummer=mnr,
+                is_stub=1,
+                email_verified=0,
+                is_auth=0,
+            )
+            db_session.add(stub)
+            by_mnr[mnr] = stub
+            created += 1
+
+        def absorb_twins(target, norm):
+            """Merge HR data (rullenummer, station, dates, seniority) from
+            same-name duplicate stubs — typically created by a PDF sync that
+            ran before the member list was imported — into the kept user,
+            then delete the duplicates."""
+            twins = [
+                u for u in by_name.get(norm, [])
+                if u.id != target.id
+                and (u.is_stub or 0) == 1
+                and u.id not in deleted_user_ids
+                and u.id not in claimed_user_ids
+            ]
+            for twin in twins:
+                for attr in ("rullenummer", "stasjoneringssted", "ans_dato",
+                             "fodt_dato", "seniority_nr"):
+                    if getattr(target, attr) in (None, "") and getattr(
+                        twin, attr
+                    ) not in (None, ""):
+                        setattr(target, attr, getattr(twin, attr))
+                delete_stub(twin)
+
+        for member in members:
+            name = (member.get("name") or "").strip()
+            mnr = str(member.get("medlemsnummer") or "").strip()
+            if not name or not mnr.isdigit():
+                skipped_invalid += 1
+                continue
+            mnr = normalize_medlemsnummer(mnr)
+
+            if mnr in seen_mnr:
+                conflicts.append(
+                    {"name": name, "medlemsnummer": mnr,
+                     "reason": "Duplikat medlemsnummer i Excel-fila"}
+                )
+                continue
+            seen_mnr.add(mnr)
+            norm = _normalize_name(name)
+
+            owner = by_mnr.get(mnr)
+            if owner is not None:
+                if _normalize_name(owner.name) == norm:
+                    claimed_user_ids.add(owner.id)
+                    absorb_twins(owner, norm)
+                    unchanged += 1
+                    continue
+                if (owner.is_stub or 0) == 0:
+                    conflicts.append(
+                        {"name": name, "medlemsnummer": mnr,
+                         "reason": f"Medlemsnummeret tilhører registrert bruker "
+                                   f"'{owner.name or owner.username}' (id {owner.id})"}
+                    )
+                    continue
+                # A stub holds the number under a different name — replace it.
+                delete_stub(owner)
+
+            candidates = [
+                u for u in by_name.get(norm, [])
+                if u.id not in claimed_user_ids and u.id not in deleted_user_ids
+            ]
+            registered = [u for u in candidates if (u.is_stub or 0) == 0]
+            stub_twins = [u for u in candidates if (u.is_stub or 0) == 1]
+
+            if registered:
+                target = registered[0]
+                if len(registered) > 1:
+                    conflicts.append(
+                        {"name": name, "medlemsnummer": mnr,
+                         "reason": "Flere registrerte brukere med samme navn: "
+                                   + ", ".join(str(u.id) for u in registered)}
+                    )
+                    continue
+                if target.medlemsnummer and target.medlemsnummer != mnr:
+                    conflicts.append(
+                        {"name": name, "medlemsnummer": mnr,
+                         "reason": f"Registrert bruker (id {target.id}) har allerede "
+                                   f"medlemsnummer {target.medlemsnummer}"}
+                    )
+                    continue
+                target.medlemsnummer = mnr
+                by_mnr[mnr] = target
+                claimed_user_ids.add(target.id)
+                absorb_twins(target, norm)
+                matched += 1
+            elif len(stub_twins) == 1:
+                # Keep the stub (and its rullenummer/HR data from the PDF).
+                stub = stub_twins[0]
+                stub.medlemsnummer = mnr
+                by_mnr[mnr] = stub
+                claimed_user_ids.add(stub.id)
+                matched += 1
+            elif stub_twins:
+                for stub in stub_twins:
+                    delete_stub(stub)
+                create_member_stub(name, mnr)
+            else:
+                create_member_stub(name, mnr)
+
+        # Stubs without a medlemsnummer are not on the member list and can
+        # never register — drop them.
+        leftover = (
+            db_session.query(DBUser)
+            .filter(DBUser.is_stub == 1, DBUser.medlemsnummer.is_(None))
+            .all()
+        )
+        for stub in leftover:
+            if stub.id not in deleted_user_ids:
+                delete_stub(stub)
+
+        registered_without = [
+            {"id": u.id, "name": u.name, "username": u.username}
+            for u in users
+            if (u.is_stub or 0) == 0
+            and u.id not in deleted_user_ids
+            and u.medlemsnummer is None
+            and u.id not in claimed_user_ids
+            and u.name
+        ][:50]
+
+        db_session.commit()
+        logger.info(
+            "sync_members: matched=%d created=%d unchanged=%d invalid=%d "
+            "deleted_stubs=%d conflicts=%d",
+            matched, created, unchanged, skipped_invalid,
+            deleted_stubs, len(conflicts),
+        )
+        return {
+            "total_rows": len(members),
+            "matched": matched,
+            "created": created,
+            "unchanged": unchanged,
+            "skipped_invalid": skipped_invalid,
+            "deleted_stubs": deleted_stubs,
+            "conflicts": conflicts,
+            "registered_without_medlemsnummer": registered_without,
+        }
+    except Exception as e:
+        db_session.rollback()
+        logger.error("Error syncing members from Excel: %s", e)
+        raise
+    finally:
+        db_session.close()
+
+
+def _user_identity_dict(user):
+    """Shared dict shape for identity lookups (rullenummer/medlemsnummer)."""
+    return {
+        "id": user.id,
+        "rullenummer": user.rullenummer,
+        "medlemsnummer": user.medlemsnummer,
+        "name": user.name,
+        "stasjoneringssted": user.stasjoneringssted,
+        "ans_dato": user.ans_dato,
+        "fodt_dato": user.fodt_dato,
+        "seniority_nr": user.seniority_nr,
+        "is_stub": user.is_stub or 0,
+        "email": user.email,
+        "username": user.username,
+    }
+
+
 def get_user_by_rullenummer(rullenummer):
     """Get user by rullenummer"""
     db_session = get_db_session()
     try:
         user = db_session.query(DBUser).filter_by(rullenummer=str(rullenummer)).first()
-        if user:
-            return {
-                "id": user.id,
-                "rullenummer": user.rullenummer,
-                "name": user.name,
-                "stasjoneringssted": user.stasjoneringssted,
-                "ans_dato": user.ans_dato,
-                "fodt_dato": user.fodt_dato,
-                "seniority_nr": user.seniority_nr,
-                "is_stub": user.is_stub or 0,
-                "email": user.email,
-                "username": user.username,
-            }
-        return None
+        return _user_identity_dict(user) if user else None
+    finally:
+        db_session.close()
+
+
+def get_user_by_medlemsnummer(medlemsnummer):
+    """Get user by NLF-medlemsnummer"""
+    db_session = get_db_session()
+    try:
+        user = (
+            db_session.query(DBUser)
+            .filter_by(medlemsnummer=normalize_medlemsnummer(medlemsnummer))
+            .first()
+        )
+        return _user_identity_dict(user) if user else None
     finally:
         db_session.close()
 
 
 def create_stub_user(
-    rullenummer,
     etternavn,
     fornavn,
+    medlemsnummer,
+    rullenummer=None,
     stasjoneringssted=None,
     ans_dato=None,
     fodt_dato=None,
@@ -475,22 +901,38 @@ def create_stub_user(
 ):
     """Create a stub user for an employee who hasn't registered yet.
 
-    Uses a reserved username prefix ``__stub_<rullenummer>`` and a random
-    unusable password so the account cannot be logged into directly.
+    NLF-medlemsnummer is the required identifier; rullenummer is optional
+    HR data. Uses a reserved username prefix ``__stub_m<medlemsnummer>``
+    and a random unusable password so the account cannot be logged into
+    directly.
     """
     db_session = get_db_session()
     try:
+        medlemsnummer = normalize_medlemsnummer(medlemsnummer)
+        if not medlemsnummer:
+            return False, "NLF-medlemsnummer er påkrevd"
+
         existing = (
-            db_session.query(DBUser).filter_by(rullenummer=str(rullenummer)).first()
+            db_session.query(DBUser).filter_by(medlemsnummer=medlemsnummer).first()
         )
         if existing:
-            return False, "Rullenummer finnes allerede"
+            return False, "NLF-medlemsnummeret finnes allerede"
+
+        if rullenummer:
+            existing_rnr = (
+                db_session.query(DBUser)
+                .filter_by(rullenummer=str(rullenummer))
+                .first()
+            )
+            if existing_rnr:
+                return False, "Rullenummeret finnes allerede"
 
         stub = DBUser(
-            username=f"__stub_{rullenummer}",
+            username=f"__stub_m{medlemsnummer}",
             password=hash_password(secrets.token_hex(32)),
             name=f"{etternavn}, {fornavn}",
-            rullenummer=str(rullenummer),
+            medlemsnummer=medlemsnummer,
+            rullenummer=str(rullenummer) if rullenummer else None,
             is_stub=1,
             email_verified=0,
             is_auth=0,
@@ -501,7 +943,7 @@ def create_stub_user(
         )
         db_session.add(stub)
         db_session.commit()
-        logger.info("Stub user created for rullenummer %s", rullenummer)
+        logger.info("Stub user created for medlemsnummer %s", medlemsnummer)
         return True, "Stub opprettet"
     except Exception as e:
         db_session.rollback()
@@ -583,6 +1025,7 @@ def get_all_stub_users():
                 {
                     "id": u.id,
                     "rullenummer": u.rullenummer,
+                    "medlemsnummer": u.medlemsnummer,
                     "name": u.name,
                     "etternavn": etternavn,
                     "fornavn": fornavn,
@@ -606,8 +1049,10 @@ def delete_missing_stubs():
     """Delete all unregistered stub users that are no longer on the current PDF.
 
     Targets only rows where ``is_stub=1`` AND ``seniority_nr IS NULL``
-    AND ``rullenummer IS NOT NULL``.  Registered users missing from the list
-    (is_stub=0) are left completely untouched.
+    AND ``rullenummer IS NOT NULL`` AND ``medlemsnummer IS NULL``.
+    Stubs with a medlemsnummer are kept — they are on the NLF member list
+    and must remain available for self-registration. Registered users
+    missing from the list (is_stub=0) are left completely untouched.
 
     Returns ``(bool, str, int)`` — success, message, number deleted.
     """
@@ -621,6 +1066,7 @@ def delete_missing_stubs():
                 DBUser.is_stub == 1,
                 DBUser.seniority_nr.is_(None),
                 DBUser.rullenummer.isnot(None),
+                DBUser.medlemsnummer.is_(None),
             )
             .all()
         )
@@ -643,7 +1089,8 @@ def reset_user_to_stub(user_id):
     """Reset a registered user back to stub state, preserving all their favorites.
 
     Clears email, replaces password with a random unusable hash, resets
-    username to ``__stub_<rullenummer>``, and sets is_stub=1.
+    username to ``__stub_m<medlemsnummer>`` (or ``__stub_<rullenummer>``
+    for legacy users without one), and sets is_stub=1.
     The user row and all Favorites rows are kept intact.
 
     Returns ``(bool, str)``.
@@ -655,10 +1102,13 @@ def reset_user_to_stub(user_id):
             return False, "Bruker ikke funnet"
         if (user.is_stub or 0) == 1:
             return False, "Bruker er allerede en stub"
-        if not user.rullenummer:
-            return False, "Kan ikke tilbakestille bruker uten rullenummer"
+        if not user.medlemsnummer and not user.rullenummer:
+            return False, "Kan ikke tilbakestille bruker uten NLF-medlemsnummer"
 
-        user.username = f"__stub_{user.rullenummer}"
+        if user.medlemsnummer:
+            user.username = f"__stub_m{user.medlemsnummer}"
+        else:
+            user.username = f"__stub_{user.rullenummer}"
         user.email = None
         user.password = hash_password(secrets.token_hex(32))
         user.is_stub = 1
@@ -731,6 +1181,7 @@ def get_user_detail(user_id):
             "username": user.username,
             "email": user.email,
             "rullenummer": user.rullenummer,
+            "medlemsnummer": user.medlemsnummer,
             "name": user.name,
             "etternavn": etternavn,
             "fornavn": fornavn,

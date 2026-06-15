@@ -69,8 +69,8 @@
                                     <i class="bi bi-info-circle-fill"></i>
                                     <span
                                         ><strong>Merk:</strong> Kun autoriserte
-                                        rullenummer kan registrere seg. Kontakt
-                                        en administrator hvis du trenger
+                                        NLF-medlemsnummer kan registrere seg.
+                                        Kontakt en administrator hvis du trenger
                                         tilgang.</span
                                     >
                                 </div>
@@ -112,23 +112,23 @@
                                     <div class="input-wrapper">
                                         <i class="bi bi-hash input-icon"></i>
                                         {{
-                                        form.rullenummer(class="form-control-modern"
+                                        form.medlemsnummer(class="form-control-modern"
                                         + (" is-invalid" if
-                                        form.rullenummer.errors else ""),
-                                        placeholder=" ", id="rullenummer") }}
+                                        form.medlemsnummer.errors else ""),
+                                        placeholder=" ", id="medlemsnummer") }}
                                         <label class="floating-label"
-                                            >{{ form.rullenummer.label.text
+                                            >{{ form.medlemsnummer.label.text
                                             }}</label
                                         >
                                     </div>
                                     <div
-                                        id="rullenummer-preview"
+                                        id="medlemsnummer-preview"
                                         class="mt-1 small"
                                     ></div>
-                                    {% if form.rullenummer.errors %}
+                                    {% if form.medlemsnummer.errors %}
                                     <div class="error-message">
-                                        {% for error in form.rullenummer.errors
-                                        %}
+                                        {% for error in
+                                        form.medlemsnummer.errors %}
                                         <i class="bi bi-exclamation-circle"></i>
                                         {{ error }} {% endfor %}
                                     </div>
@@ -296,11 +296,11 @@
 
         <script>
             document
-                .getElementById("rullenummer")
+                .getElementById("medlemsnummer")
                 .addEventListener("blur", async function () {
                     const val = this.value.trim();
                     const preview = document.getElementById(
-                        "rullenummer-preview",
+                        "medlemsnummer-preview",
                     );
                     if (!val) {
                         preview.innerHTML = "";
@@ -308,15 +308,15 @@
                     }
                     try {
                         const res = await fetch(
-                            `/api/check-rullenummer?rullenummer=${encodeURIComponent(val)}`,
+                            `/api/check-medlemsnummer?medlemsnummer=${encodeURIComponent(val)}`,
                         );
                         const data = await res.json();
                         if (data.found) {
-                            preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> Rullenummeret er gyldig.</span>`;
+                            preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> NLF-medlemsnummeret er gyldig.</span>`;
                         } else if (data.reason === "already_registered") {
-                            preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette rullenummeret er allerede registrert.</span>`;
+                            preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette NLF-medlemsnummeret er allerede registrert.</span>`;
                         } else {
-                            preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Rullenummeret ble ikke funnet.</span>`;
+                            preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> NLF-medlemsnummeret ble ikke funnet.</span>`;
                         }
                     } catch (e) {
                         preview.innerHTML = "";

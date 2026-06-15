@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, PasswordField, SubmitField, FloatField, IntegerField, BooleanField, FileField, TextAreaField
-from wtforms.validators import DataRequired, Length, NumberRange, EqualTo, ValidationError, Email, Optional
+from wtforms.validators import DataRequired, Length, NumberRange, EqualTo, ValidationError, Email, Optional, Regexp
 from flask_wtf.file import FileAllowed
 
 class LoginForm(FlaskForm):
@@ -9,19 +9,56 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Logg inn')
 # Admin Forms
 class CreateUserForm(FlaskForm):
-    username = StringField('Brukernavn', validators=[DataRequired(), Length(min=3, max=50)])
-    password = PasswordField('Passord', validators=[DataRequired(), Length(min=6)])
-    confirm_password = PasswordField('Bekreft passord', validators=[DataRequired(), EqualTo('password')])
+    is_stub = BooleanField('Opprett som stub (medlem uten konto)')
+    username = StringField('Brukernavn', validators=[Optional(), Length(min=3, max=50)])
+    password = PasswordField('Passord', validators=[Optional(), Length(min=6)])
+    confirm_password = PasswordField('Bekreft passord', validators=[EqualTo('password', message='Passordene må være like')])
+    email = StringField('E-postadresse', validators=[Optional(), Email(message='Vennligst oppgi en gyldig e-postadresse'), Length(max=255)])
+    name = StringField('Navn (Etternavn, Fornavn)', validators=[Optional(), Length(max=255)])
+    medlemsnummer = StringField('NLF-medlemsnummer', validators=[Optional(), Length(max=20)])
+    rullenummer = StringField('Rullenummer', validators=[Optional(), Length(max=50)])
+    stasjoneringssted = StringField('Stasjoneringssted', validators=[Optional(), Length(max=100)])
+    ans_dato = StringField('Ansettelsesdato', validators=[Optional(), Regexp(r'^\d{2}\.\d{2}\.\d{4}$', message='Bruk formatet DD.MM.YYYY')])
+    fodt_dato = StringField('Fødselsdato', validators=[Optional(), Regexp(r'^\d{2}\.\d{2}\.\d{4}$', message='Bruk formatet DD.MM.YYYY')])
+    seniority_nr = IntegerField('Ansiennitetsnr.', validators=[Optional(), NumberRange(min=0)])
     is_auth = BooleanField('Administratorrettigheter')
     submit = SubmitField('Opprett bruker')
 
+    def validate_username(self, field):
+        if not self.is_stub.data and not (field.data or "").strip():
+            raise ValidationError('Brukernavn er påkrevd for en vanlig bruker.')
+
+    def validate_password(self, field):
+        if not self.is_stub.data and not field.data:
+            raise ValidationError('Passord er påkrevd for en vanlig bruker.')
+
+    def validate_confirm_password(self, field):
+        if self.password.data and not field.data:
+            raise ValidationError('Vennligst bekreft passordet.')
+
+    def validate_name(self, field):
+        if self.is_stub.data and not (field.data or "").strip():
+            raise ValidationError('Navn er påkrevd for en stub-bruker.')
+
+    def validate_medlemsnummer(self, field):
+        if self.is_stub.data and not (field.data or "").strip():
+            raise ValidationError('NLF-medlemsnummer er påkrevd for en stub-bruker.')
+
 class EditUserForm(FlaskForm):
     username = StringField('Brukernavn', validators=[DataRequired(), Length(min=3, max=50)])
+    name = StringField('Navn (Etternavn, Fornavn)', validators=[Optional(), Length(max=255)])
     email = StringField('E-postadresse', validators=[Optional(), Email(message='Vennligst oppgi en gyldig e-postadresse'), Length(max=255)])
-    rullenummer = StringField('Rullenummer', validators=[Length(max=50)])
+    medlemsnummer = StringField('NLF-medlemsnummer', validators=[Optional(), Length(max=20)])
+    rullenummer = StringField('Rullenummer', validators=[Optional(), Length(max=50)])
+    stasjoneringssted = StringField('Stasjoneringssted', validators=[Optional(), Length(max=100)])
+    ans_dato = StringField('Ansettelsesdato', validators=[Optional(), Regexp(r'^\d{2}\.\d{2}\.\d{4}$', message='Bruk formatet DD.MM.YYYY')])
+    fodt_dato = StringField('Fødselsdato', validators=[Optional(), Regexp(r'^\d{2}\.\d{2}\.\d{4}$', message='Bruk formatet DD.MM.YYYY')])
+    seniority_nr = IntegerField('Ansiennitetsnr.', validators=[Optional(), NumberRange(min=0)])
     password = PasswordField('Nytt passord (la stå tomt for å beholde nåværende)')
     confirm_password = PasswordField('Bekreft nytt passord')
     is_auth = BooleanField('Administratorrettigheter')
+    email_verified = BooleanField('E-post verifisert')
+    is_stub = BooleanField('Stub-bruker (ikke registrert)')
     submit = SubmitField('Oppdater bruker')
 
     def validate_confirm_password(self, field):
@@ -70,9 +107,9 @@ class RegisterForm(FlaskForm):
         Length(min=2, max=255, message='Brukernavn må være mellom 2 og 255 tegn')
     ])
 
-    rullenummer = StringField('Rullenummer', validators=[
+    medlemsnummer = StringField('NLF-medlemsnummer', validators=[
         DataRequired(),
-        Length(min=1, max=50, message='Rullenummer er påkrevd')
+        Length(min=1, max=20, message='NLF-medlemsnummer er påkrevd')
     ])
 
     email = StringField('E-postadresse', validators=[

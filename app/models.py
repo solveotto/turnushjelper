@@ -14,6 +14,7 @@ class DBUser(Base):
     __tablename__ = 'users'
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     rullenummer: Mapped[int] = mapped_column(String(10), nullable=True)
+    medlemsnummer = Column(String(20), nullable=True, unique=True, index=True)
     name = Column(String(255), nullable=True)
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)

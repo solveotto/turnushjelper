@@ -225,6 +225,132 @@
                 </div>
             </div>
 
+            <!-- NLF medlemsliste (Excel) -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">NLF medlemsliste (Excel)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Lagret fil:
+                        <code>app/static/turnusfiler/medlemsliste.xlsx</code>
+                        {% if excel_exists %}
+                        <span class="badge bg-success ms-2"
+                            ><i class="bi bi-check-circle"></i> Funnet</span
+                        >
+                        {% if excel_date %}
+                        <span class="badge bg-secondary ms-1"
+                            ><i class="bi bi-calendar3 me-1"></i>{{ excel_date }}</span
+                        >
+                        {% endif %}
+                        {% else %}
+                        <span class="badge bg-danger ms-2"
+                            ><i class="bi bi-x-circle"></i> Ikke lastet
+                            opp</span
+                        >
+                        {% endif %}
+                    </p>
+                    <p class="text-muted small mb-2">
+                        Excel-fil med kolonnene <code>Navn</code> og
+                        <code>Medlemsnr</code>. NLF-medlemsnummeret er påkrevd
+                        for registrering. Eksisterende brukere kobles på navn;
+                        nye medlemmer får en stub-konto. Uregistrerte stubber
+                        som ikke står på medlemslisten slettes.
+                    </p>
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.upload_member_excel') }}"
+                        enctype="multipart/form-data"
+                        onsubmit="return confirm('Importere medlemslisten? Uregistrerte stubber som ikke står på listen slettes.')"
+                    >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="input-group" style="max-width: 480px">
+                            <input
+                                type="file"
+                                class="form-control form-control-sm"
+                                name="excel_file"
+                                accept=".xlsx"
+                                required
+                            />
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-cloud-upload"></i>
+                                Last opp og importer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if member_report %}
+            <!-- Member list import report -->
+            <div class="card mb-4 {{ 'border-warning' if member_report.conflicts else 'border-success' }}">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clipboard-data me-1"></i>
+                        Importrapport — medlemsliste
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap mb-3">
+                        <span class="badge bg-secondary">{{ member_report.total_rows }} rader</span>
+                        <span class="badge bg-primary">{{ member_report.matched }} koblet</span>
+                        <span class="badge bg-success">{{ member_report.created }} nye stubber</span>
+                        <span class="badge bg-light text-dark">{{ member_report.unchanged }} uendret</span>
+                        {% if member_report.deleted_stubs %}
+                        <span class="badge bg-danger">{{ member_report.deleted_stubs }} stubber slettet</span>
+                        {% endif %}
+                        {% if member_report.skipped_invalid %}
+                        <span class="badge bg-warning text-dark">{{ member_report.skipped_invalid }} ugyldige rader</span>
+                        {% endif %}
+                    </div>
+
+                    {% if member_report.conflicts %}
+                    <h6 class="text-danger">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Konflikter ({{ member_report.conflicts|length }})
+                    </h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr><th>Navn</th><th>Medlemsnr</th><th>Årsak</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for c in member_report.conflicts %}
+                                <tr class="table-danger">
+                                    <td>{{ c.name }}</td>
+                                    <td><code>{{ c.medlemsnummer }}</code></td>
+                                    <td>{{ c.reason }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if member_report.registered_without_medlemsnummer %}
+                    <h6 class="text-warning">
+                        <i class="bi bi-person-exclamation me-1"></i>
+                        Registrerte brukere uten NLF-medlemsnummer
+                        ({{ member_report.registered_without_medlemsnummer|length }})
+                    </h6>
+                    <p class="text-muted small mb-2">
+                        Disse ble ikke funnet i medlemslisten (navnet kan avvike).
+                        Sett medlemsnummeret manuelt via Rediger.
+                    </p>
+                    <ul class="small mb-0">
+                        {% for u in member_report.registered_without_medlemsnummer %}
+                        <li>
+                            <a href="{{ url_for('admin.edit_user', user_id=u.id) }}">
+                                {{ u.name or u.username }}</a>
+                            <span class="text-muted">({{ u.username }})</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Manual Add Form -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -240,9 +366,14 @@
                                        name="seniority_nr" placeholder="1" />
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label mb-1">Rullenr. <span class="text-danger">*</span></label>
+                                <label class="form-label mb-1">NLF-medlemsnr. <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control form-control-sm"
-                                       name="rullenummer" required placeholder="12345" />
+                                       name="medlemsnummer" required placeholder="68588" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1">Rullenr.</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="rullenummer" placeholder="12345" />
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label mb-1">Etternavn <span class="text-danger">*</span></label>
@@ -294,6 +425,7 @@
                                     <th>Nr.</th>
                                     <th>Etternavn</th>
                                     <th>For- og mellomnavn</th>
+                                    <th>NLF-medlemsnr.</th>
                                     <th>Rullenr.</th>
                                     <th>Brukernavn</th>
                                     <th>E-post</th>
@@ -307,7 +439,8 @@
                                     <td class="text-muted">{{ emp.seniority_nr or '-' }}</td>
                                     <td>{{ emp.etternavn or emp.name or '-' }}</td>
                                     <td>{{ emp.fornavn or '-' }}</td>
-                                    <td><code>{{ emp.rullenummer }}</code></td>
+                                    <td><code>{{ emp.medlemsnummer or '-' }}</code></td>
+                                    <td><code>{{ emp.rullenummer or '-' }}</code></td>
                                     <td>{{ emp.username }}</td>
                                     <td class="text-muted">{{ emp.email or '-' }}</td>
                                     <td>{{ emp.stasjoneringssted or '-' }}</td>
@@ -340,6 +473,7 @@
                                     <th>Nr.</th>
                                     <th>Etternavn</th>
                                     <th>For- og mellomnavn</th>
+                                    <th>NLF-medlemsnr.</th>
                                     <th>Rullenr.</th>
                                     <th>Stasjoneringssted</th>
                                     <th>Ans.dato</th>
@@ -353,7 +487,8 @@
                                     <td class="text-muted">{{ emp.seniority_nr or '-' }}</td>
                                     <td>{{ emp.etternavn or emp.name or '-' }}</td>
                                     <td>{{ emp.fornavn or '-' }}</td>
-                                    <td><code>{{ emp.rullenummer }}</code></td>
+                                    <td><code>{{ emp.medlemsnummer or '-' }}</code></td>
+                                    <td><code>{{ emp.rullenummer or '-' }}</code></td>
                                     <td>{{ emp.stasjoneringssted or '-' }}</td>
                                     <td>{{ emp.ans_dato or '-' }}</td>
                                     <td>{{ emp.fodt_dato or '-' }}</td>
@@ -381,7 +516,7 @@
                     </h5>
                     <div class="d-flex align-items-center gap-3">
                         <span class="text-muted small">Mangler i sist synkroniserte PDF</span>
-                        {% set cleanup_count = not_on_list | selectattr('is_stub') | list | length %}
+                        {% set cleanup_count = not_on_list | selectattr('is_stub') | rejectattr('medlemsnummer') | list | length %}
                         {% if cleanup_count %}
                         <form method="POST"
                               action="{{ url_for('admin.cleanup_missing_stubs') }}"
@@ -402,6 +537,7 @@
                                 <tr>
                                     <th>Etternavn</th>
                                     <th>For- og mellomnavn</th>
+                                    <th>NLF-medlemsnr.</th>
                                     <th>Rullenr.</th>
                                     <th>Status</th>
                                     <th>Brukernavn</th>
@@ -413,7 +549,8 @@
                                 <tr class="table-warning">
                                     <td>{{ emp.etternavn or emp.name or '-' }}</td>
                                     <td>{{ emp.fornavn or '-' }}</td>
-                                    <td><code>{{ emp.rullenummer }}</code></td>
+                                    <td><code>{{ emp.medlemsnummer or '-' }}</code></td>
+                                    <td><code>{{ emp.rullenummer or '-' }}</code></td>
                                     <td>
                                         {% if emp.is_registered %}
                                             <span class="badge bg-success">Registrert</span>
@@ -439,7 +576,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 text-muted">Systembrukere ({{ system_list|length }})</h5>
-                    <small class="text-muted">Kontoer uten rullenummer — administratorer o.l.</small>
+                    <small class="text-muted">Kontoer uten NLF-medlemsnummer og rullenummer — administratorer o.l.</small>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm mb-0">
