@@ -112,6 +112,8 @@ class RegisterForm(FlaskForm):
         Length(min=1, max=20, message='NLF-medlemsnummer er påkrevd')
     ])
 
+    rullenummer = StringField('Rullenummer', validators=[Optional(), Length(max=10)])
+
     email = StringField('E-postadresse', validators=[
         DataRequired(),
         Email(message='Vennligst oppgi en gyldig e-postadresse'),

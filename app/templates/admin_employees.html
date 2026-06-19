@@ -251,33 +251,68 @@
                         {% endif %}
                     </p>
                     <p class="text-muted small mb-2">
-                        Excel-fil med kolonnene <code>Navn</code> og
-                        <code>Medlemsnr</code>. NLF-medlemsnummeret er påkrevd
-                        for registrering. Eksisterende brukere kobles på navn;
-                        nye medlemmer får en stub-konto. Uregistrerte stubber
-                        som ikke står på medlemslisten slettes.
+                        Excel-fil med kolonnene <code>Navn</code> og <code>Medlemsnr</code>
+                        (påkrevd). Støtter også de ekstra kolonnene
+                        <code>Innmeldt</code>, <code>Født</code> og <code>Tjenestested</code>
+                        fra den utvidede NLF-eksporten — disse fylles automatisk inn på
+                        brukerne når de er tilstede. Eksisterende brukere kobles på navn;
+                        nye medlemmer får en stub-konto. Uregistrerte stubber som ikke
+                        står på listen slettes.
                     </p>
-                    <form
-                        method="POST"
-                        action="{{ url_for('admin.upload_member_excel') }}"
-                        enctype="multipart/form-data"
-                        onsubmit="return confirm('Importere medlemslisten? Uregistrerte stubber som ikke står på listen slettes.')"
-                    >
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="input-group" style="max-width: 480px">
-                            <input
-                                type="file"
-                                class="form-control form-control-sm"
-                                name="excel_file"
-                                accept=".xlsx"
-                                required
-                            />
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="bi bi-cloud-upload"></i>
-                                Last opp og importer
-                            </button>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="mb-2">
+                                    <i class="bi bi-upload text-primary me-1"></i>
+                                    Last opp ny fil
+                                </h6>
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('admin.upload_member_excel') }}"
+                                    enctype="multipart/form-data"
+                                    onsubmit="return confirm('Importere medlemslisten? Uregistrerte stubber som ikke står på listen slettes.')"
+                                >
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="input-group">
+                                        <input
+                                            type="file"
+                                            class="form-control form-control-sm"
+                                            name="excel_file"
+                                            accept=".xlsx"
+                                            required
+                                        />
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-cloud-upload"></i>
+                                            Last opp og importer
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                    </form>
+                        <div class="col-md-5">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="mb-2">
+                                    <i class="bi bi-arrow-repeat text-warning me-1"></i>
+                                    Bruk eksisterende fil
+                                </h6>
+                                <p class="text-muted small mb-2">
+                                    Kjør mot den allerede lagrede filen.
+                                </p>
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('admin.sync_members') }}"
+                                    onsubmit="return confirm('Synkronisere fra lagret medlemsliste? Uregistrerte stubber som ikke står på listen slettes.')"
+                                >
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-warning btn-sm"
+                                            {% if not excel_exists %}disabled{% endif %}>
+                                        <i class="bi bi-arrow-repeat"></i>
+                                        Synkroniser
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -293,9 +328,12 @@
                 <div class="card-body">
                     <div class="d-flex gap-2 flex-wrap mb-3">
                         <span class="badge bg-secondary">{{ member_report.total_rows }} rader</span>
-                        <span class="badge bg-primary">{{ member_report.matched }} koblet</span>
+                        <span class="badge bg-primary">{{ member_report.matched }} matchet</span>
                         <span class="badge bg-success">{{ member_report.created }} nye stubber</span>
                         <span class="badge bg-light text-dark">{{ member_report.unchanged }} uendret</span>
+                        {% if member_report.updated %}
+                        <span class="badge bg-info text-dark">{{ member_report.updated }} oppdatert</span>
+                        {% endif %}
                         {% if member_report.deleted_stubs %}
                         <span class="badge bg-danger">{{ member_report.deleted_stubs }} stubber slettet</span>
                         {% endif %}
@@ -327,25 +365,92 @@
                     </div>
                     {% endif %}
 
-                    {% if member_report.registered_without_medlemsnummer %}
-                    <h6 class="text-warning">
-                        <i class="bi bi-person-exclamation me-1"></i>
-                        Registrerte brukere uten NLF-medlemsnummer
-                        ({{ member_report.registered_without_medlemsnummer|length }})
+                    {% if member_report.updated_users %}
+                    <h6 class="text-info">
+                        <i class="bi bi-pencil-square me-1"></i>
+                        Oppdatert ({{ member_report.updated_users|length }})
                     </h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr><th>Navn</th><th>Status</th><th>Felter oppdatert</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for u in member_report.updated_users %}
+                                <tr class="table-info">
+                                    <td>{{ u.name }}</td>
+                                    <td>
+                                        {% if u.is_stub %}
+                                            <span class="badge bg-secondary">Stub</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Registrert</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ u.fields | join(', ') }}</code></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if member_report.not_on_list %}
+                    {% set stub_not_on_list = member_report.not_on_list | selectattr('is_stub') | list %}
+                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+                        <h6 class="text-warning mb-0">
+                            <i class="bi bi-person-exclamation me-1"></i>
+                            Ikke på medlemslisten ({{ member_report.not_on_list|length }})
+                        </h6>
+                        {% if stub_not_on_list %}
+                        <form method="POST"
+                              action="{{ url_for('admin.bulk_delete_stubs') }}"
+                              onsubmit="return confirm('Slette {{ stub_not_on_list|length }} stub-brukere som ikke er på medlemslisten? Registrerte brukere berøres ikke.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {% for u in stub_not_on_list %}
+                            <input type="hidden" name="user_ids" value="{{ u.id }}">
+                            {% endfor %}
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                <i class="bi bi-trash me-1"></i>
+                                Rydd opp ({{ stub_not_on_list|length }} stubs)
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
                     <p class="text-muted small mb-2">
-                        Disse ble ikke funnet i medlemslisten (navnet kan avvike).
-                        Sett medlemsnummeret manuelt via Rediger.
+                        Disse ble ikke funnet i medlemslisten (navnet kan avvike, eller
+                        de er ikke lenger medlem). Gjelder både stubber og registrerte
+                        brukere — vurder manuelt om de skal fjernes.
                     </p>
-                    <ul class="small mb-0">
-                        {% for u in member_report.registered_without_medlemsnummer %}
-                        <li>
-                            <a href="{{ url_for('admin.edit_user', user_id=u.id) }}">
-                                {{ u.name or u.username }}</a>
-                            <span class="text-muted">({{ u.username }})</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Navn</th>
+                                    <th>Status</th>
+                                    <th>Brukernavn</th>
+                                    <th>NLF-medlemsnr.</th>
+                                    <th>Handlinger</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in member_report.not_on_list %}
+                                <tr class="table-warning">
+                                    <td>{{ u.name or u.username }}</td>
+                                    <td>
+                                        {% if u.is_stub %}
+                                            <span class="badge bg-secondary">Stub</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Registrert</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted">{{ u.username }}</td>
+                                    <td><code>{{ u.medlemsnummer or '-' }}</code></td>
+                                    <td>{{ action_buttons(u, missing=true) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                     {% endif %}
                 </div>
             </div>

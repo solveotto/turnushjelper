@@ -816,4 +816,4 @@ def check_medlemsnummer():
     if stub["is_stub"] != 1:
         return jsonify({"found": False, "reason": "already_registered"})
 
-    return jsonify({"found": True})
+    return jsonify({"found": True, "rullenummer": stub.get("rullenummer")})

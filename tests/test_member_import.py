@@ -44,10 +44,12 @@ class TestParseMemberExcel:
             ("Hansen, Kari", 60011),
         ])
         members = parse_member_excel(path)
-        assert members == [
-            {"name": "Nordmann, Ola", "medlemsnummer": "60010"},
-            {"name": "Hansen, Kari", "medlemsnummer": "60011"},
-        ]
+        assert members[0]["name"] == "Nordmann, Ola"
+        assert members[0]["medlemsnummer"] == "60010"
+        assert members[0]["ans_dato"] is None
+        assert members[0]["fodt_dato"] is None
+        assert members[0]["stasjoneringssted"] is None
+        assert len(members) == 2
 
     def test_int_and_float_medlemsnr_to_str(self, tmp_path):
         path = make_xlsx(tmp_path / "m.xlsx", [("A, B", 60010.0)])
@@ -173,16 +175,19 @@ class TestSyncMembersFromExcel:
         assert survivors[0].medlemsnummer == "60016"
         assert survivors[0].username == "__stub_m60016"
 
-    def test_leftover_stubs_without_mnr_deleted(self, patch_db, db_session):
+    def test_leftover_stub_without_mnr_is_reported_not_deleted(self, patch_db, db_session):
         stale = add_user(db_session, "__stub_999", name="Borte, Vekk",
                          rullenummer="999", is_stub=1)
         stale_id = stale.id
         report = user_service.sync_members_from_excel(
             [{"name": "Ny, Person", "medlemsnummer": "60017"}]
         )
-        assert report["deleted_stubs"] == 1
+        assert report["deleted_stubs"] == 0
         db_session.expire_all()
-        assert db_session.query(DBUser).filter_by(id=stale_id).first() is None
+        assert db_session.query(DBUser).filter_by(id=stale_id).first() is not None
+        not_on_list = {u["name"]: u for u in report["not_on_list"]}
+        assert "Borte, Vekk" in not_on_list
+        assert not_on_list["Borte, Vekk"]["is_stub"] == 1
 
     def test_registered_users_absent_untouched_and_reported(self, patch_db, db_session):
         user = add_user(db_session, "borte", name="Borte, Bruker",
@@ -192,8 +197,40 @@ class TestSyncMembersFromExcel:
         )
         db_session.expire_all()
         assert db_session.get(DBUser, user.id) is not None
-        names = [u["name"] for u in report["registered_without_medlemsnummer"]]
-        assert "Borte, Bruker" in names
+        not_on_list = {u["name"]: u for u in report["not_on_list"]}
+        assert "Borte, Bruker" in not_on_list
+        assert not_on_list["Borte, Bruker"]["is_stub"] == 0
+
+    def test_stale_stub_with_mnr_no_longer_on_list_is_reported_not_deleted(self, patch_db, db_session):
+        # Stub from a previous run that has since fallen off the member list
+        # (e.g. left NLF) — must be surfaced for review, not silently
+        # deleted, even though it previously held a medlemsnummer.
+        stale = add_user(db_session, "__stub_m70099", name="Forlatt, Person",
+                         medlemsnummer="70099", is_stub=1)
+        stale_id = stale.id
+        report = user_service.sync_members_from_excel(
+            [{"name": "Ny, Person", "medlemsnummer": "70017"}]
+        )
+        assert report["deleted_stubs"] == 0
+        db_session.expire_all()
+        assert db_session.query(DBUser).filter_by(id=stale_id).first() is not None
+        not_on_list = {u["name"]: u for u in report["not_on_list"]}
+        assert "Forlatt, Person" in not_on_list
+        assert not_on_list["Forlatt, Person"]["medlemsnummer"] == "70099"
+
+    def test_registered_user_with_stale_mnr_reported_not_on_list(self, patch_db, db_session):
+        # A registered user keeping a stale medlemsnummer must NOT be
+        # auto-deleted, but must surface in the report for manual review.
+        user = add_user(db_session, "gammel", name="Gammel, Bruker",
+                        medlemsnummer="70100", email="gammel@test.com")
+        report = user_service.sync_members_from_excel(
+            [{"name": "Annen, Person", "medlemsnummer": "70101"}]
+        )
+        db_session.expire_all()
+        assert db_session.get(DBUser, user.id) is not None
+        not_on_list = {u["name"]: u for u in report["not_on_list"]}
+        assert "Gammel, Bruker" in not_on_list
+        assert not_on_list["Gammel, Bruker"]["medlemsnummer"] == "70100"
 
     def test_duplicate_mnr_in_excel_is_conflict(self, patch_db, db_session):
         report = user_service.sync_members_from_excel([
@@ -271,7 +308,7 @@ class TestExcelThenPdfMerge:
         )
         result = user_service.sync_employees_from_scrape([self.PDF_ROW])
         assert result["merged_by_name"] == 1
-        assert result["added"] == 0
+        assert result["skipped_unmatched"] == 0
 
         users = db_session.query(DBUser).filter_by(name="Nordmann, Ola").all()
         assert len(users) == 1
@@ -281,6 +318,9 @@ class TestExcelThenPdfMerge:
         assert users[0].seniority_nr == 4
 
     def test_pdf_sync_does_not_merge_ambiguous_names(self, patch_db, db_session):
+        # Ambiguous match (two same-name candidates) must not create a new
+        # user either — the PDF sync never creates users, it only enriches
+        # existing member-list users.
         user_service.sync_members_from_excel([
             {"name": "Nordmann, Ola", "medlemsnummer": "60051"},
         ])
@@ -288,7 +328,10 @@ class TestExcelThenPdfMerge:
                  email="tvilling@test.com")
         result = user_service.sync_employees_from_scrape([self.PDF_ROW])
         assert result["merged_by_name"] == 0
-        assert result["added"] == 1
+        assert result["skipped_unmatched"] == 1
+        assert db_session.query(DBUser).filter_by(
+            name="Nordmann, Ola"
+        ).count() == 2
 
     def test_excel_reimport_absorbs_pdf_duplicate_stubs(self, patch_db, db_session):
         # The broken state: Excel imported first, then the old PDF sync
@@ -330,15 +373,21 @@ class TestExcelThenPdfMerge:
         assert users[0].rullenummer == "555"
         assert users[0].seniority_nr == 4
 
-    def test_pdf_then_excel_still_works(self, patch_db, db_session):
+    def test_pdf_sync_skips_unmatched_row_with_no_db_write(self, patch_db, db_session):
+        # PDF entries with no corresponding member-list user are not on the
+        # NLF list — the sync must not create a stub for them.
         result = user_service.sync_employees_from_scrape([self.PDF_ROW])
-        assert result["added"] == 1
+        assert result["skipped_unmatched"] == 1
+        assert db_session.query(DBUser).filter_by(name="Nordmann, Ola").count() == 0
+
+        # A later member-list import creates the stub fresh, with no
+        # rullenummer — the skipped PDF data was never persisted.
         report = user_service.sync_members_from_excel(
             [{"name": "Nordmann, Ola", "medlemsnummer": "60054"}]
         )
-        assert report["matched"] == 1
+        assert report["created"] == 1
 
         users = db_session.query(DBUser).filter_by(name="Nordmann, Ola").all()
         assert len(users) == 1
         assert users[0].medlemsnummer == "60054"
-        assert users[0].rullenummer == "555"
+        assert users[0].rullenummer is None

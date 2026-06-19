@@ -35,6 +35,14 @@ def register():
             )
             return render_template("register.html", form=form)
 
+        # Rullenummer: use existing stub value if set, otherwise require user input
+        stub_rullenummer = stub.get("rullenummer")
+        submitted_rullenummer = (form.rullenummer.data or "").strip() or None
+        if not stub_rullenummer and not submitted_rullenummer:
+            flash("Rullenummer er påkrevd.", "danger")
+            return render_template("register.html", form=form)
+        rullenummer = stub_rullenummer or submitted_rullenummer
+
         # Check if email already registered
         if db_utils.get_user_by_email(email):
             flash("En konto med denne e-postadressen finnes allerede.", "warning")
@@ -54,13 +62,22 @@ def register():
             username=username,
             email=email,
             password=form.password.data,
+            rullenummer=rullenummer,
         )
 
         if success:
             # Generate and send verification token
             token = secrets.token_urlsafe(32)
             db_utils.create_verification_token(user_id, token)
-            email_utils.send_verification_email(email, token)
+            email_sent = email_utils.send_verification_email(email, token)
+
+            if not email_sent:
+                flash(
+                    "Konto opprettet, men vi klarte ikke å sende verifiserings-e-posten. "
+                    "Bruk skjemaet nedenfor for å sende den på nytt.",
+                    "warning",
+                )
+                return redirect(url_for("registration.resend_verification"))
 
             return render_template("register.html", form=form, show_success_modal=True)
         else:

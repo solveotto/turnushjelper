@@ -125,15 +125,22 @@ def upload_member_excel():
 
     msg = (
         f"Medlemsliste importert ({report['total_rows']} rader): "
-        f"{report['matched']} koblet, {report['created']} nye stubber, "
+        f"{report['matched']} matchet, {report['created']} nye stubber, "
         f"{report['unchanged']} uendret."
     )
+    if report["updated"]:
+        msg += f" {report['updated']} oppdatert."
     if report["deleted_stubs"]:
         msg += f" {report['deleted_stubs']} stubber slettet."
     if report["skipped_invalid"]:
         msg += f" {report['skipped_invalid']} ugyldige rader hoppet over."
     if report["conflicts"]:
         msg += f" {len(report['conflicts'])} konflikter."
+    if report["not_on_list"]:
+        msg += (
+            f" {len(report['not_on_list'])} brukere er ikke på medlemslisten "
+            f"— vurder fjerning."
+        )
     flash(msg, "warning" if report["conflicts"] else "success")
 
     session["medlemsliste_report"] = report
@@ -143,7 +150,7 @@ def upload_member_excel():
 @admin.route("/import-employees", methods=["POST"])
 @admin_required
 def import_employees():
-    """Import employees from the seniority PDF into the stub-user table."""
+    """Enrich existing member-list users with rullenummer/HR data from the seniority PDF."""
     from app.utils.pdf.employee_scraper import scrape_employees
 
     pdf_path = os.path.join(
@@ -161,13 +168,69 @@ def import_employees():
 
     try:
         result = user_service.sync_employees_from_scrape(scraped)
-        flash(
-            f"Importert {result['added']} nye, {result['updated']} oppdatert, "
-            f"{result['unchanged']} uendret av {len(scraped)} totalt.",
-            "success",
+        msg = (
+            f"{result['updated']} oppdatert, {result['unchanged']} uendret "
+            f"av {len(scraped)} totalt."
         )
+        if result["merged_by_name"]:
+            msg += f" {result['merged_by_name']} koblet til medlemsliste på navn."
+        if result["merged_by_date"]:
+            msg += f" {result['merged_by_date']} koblet til medlemsliste på ansettelsesdato."
+        if result["skipped_unmatched"]:
+            msg += (
+                f" {result['skipped_unmatched']} ikke funnet på medlemslisten "
+                f"— hoppet over."
+            )
+        flash(msg, "success")
     except Exception as e:
         flash(f"Feil ved import: {e}", "danger")
+    return redirect(url_for("admin.manage_employees"))
+
+
+@admin.route("/sync-members", methods=["POST"])
+@admin_required
+def sync_members():
+    """Re-run member import on the already-stored medlemsliste.xlsx."""
+    from app.utils.member_excel import parse_member_excel
+
+    excel_path = _member_excel_path()
+    if not os.path.exists(excel_path):
+        flash("Ingen lagret medlemsliste funnet.", "danger")
+        return redirect(url_for("admin.manage_employees"))
+
+    try:
+        members = parse_member_excel(excel_path)
+    except Exception as e:
+        flash(f"Feil ved lesing av fil: {e}", "danger")
+        return redirect(url_for("admin.manage_employees"))
+
+    try:
+        report = user_service.sync_members_from_excel(members)
+    except Exception as e:
+        flash(f"Feil ved synkronisering: {e}", "danger")
+        return redirect(url_for("admin.manage_employees"))
+
+    msg = (
+        f"Medlemsliste synkronisert ({report['total_rows']} rader): "
+        f"{report['matched']} matchet, {report['created']} nye stubber, "
+        f"{report['unchanged']} uendret."
+    )
+    if report["updated"]:
+        msg += f" {report['updated']} oppdatert."
+    if report["deleted_stubs"]:
+        msg += f" {report['deleted_stubs']} stubber slettet."
+    if report["skipped_invalid"]:
+        msg += f" {report['skipped_invalid']} ugyldige rader hoppet over."
+    if report["conflicts"]:
+        msg += f" {len(report['conflicts'])} konflikter."
+    if report["not_on_list"]:
+        msg += (
+            f" {len(report['not_on_list'])} brukere er ikke på medlemslisten "
+            f"— vurder fjerning."
+        )
+    flash(msg, "warning" if report["conflicts"] else "success")
+
+    session["medlemsliste_report"] = report
     return redirect(url_for("admin.manage_employees"))
 
 
@@ -201,13 +264,19 @@ def upload_ansinitet_pdf():
         result = user_service.sync_employees_from_scrape(scraped)
         msg = (
             f"PDF lastet opp og synkronisert ({len(scraped)} ansatte i PDF): "
-            f"{result['added']} nye, {result['updated']} oppdatert, "
-            f"{result['unchanged']} uendret."
+            f"{result['updated']} oppdatert, {result['unchanged']} uendret."
         )
         if result["merged_by_name"]:
             msg += f" {result['merged_by_name']} koblet til medlemsliste på navn."
+        if result["merged_by_date"]:
+            msg += f" {result['merged_by_date']} koblet til medlemsliste på ansettelsesdato."
         if result["removed_from_list"]:
             msg += f" {result['removed_from_list']} ikke lenger på lista."
+        if result["skipped_unmatched"]:
+            msg += (
+                f" {result['skipped_unmatched']} ikke funnet på medlemslisten "
+                f"— hoppet over."
+            )
         flash(msg, "success")
     except Exception as e:
         flash(f"PDF lagret, men feil ved synkronisering: {e}", "danger")
@@ -218,7 +287,7 @@ def upload_ansinitet_pdf():
 @admin.route("/sync-employees", methods=["POST"])
 @admin_required
 def sync_employees():
-    """Re-import PDF, adding new stubs and updating changed HR data on existing users."""
+    """Re-import PDF, updating changed HR data on existing member-list users."""
     from app.utils.pdf.employee_scraper import scrape_employees
 
     pdf_path = os.path.join(
@@ -238,13 +307,19 @@ def sync_employees():
         result = user_service.sync_employees_from_scrape(scraped)
         msg = (
             f"Synkronisering fullført av {len(scraped)} ansatte: "
-            f"{result['added']} nye, {result['updated']} oppdatert, "
-            f"{result['unchanged']} uendret."
+            f"{result['updated']} oppdatert, {result['unchanged']} uendret."
         )
         if result["merged_by_name"]:
             msg += f" {result['merged_by_name']} koblet til medlemsliste på navn."
+        if result["merged_by_date"]:
+            msg += f" {result['merged_by_date']} koblet til medlemsliste på ansettelsesdato."
         if result["removed_from_list"]:
             msg += f" {result['removed_from_list']} ikke lenger på lista."
+        if result["skipped_unmatched"]:
+            msg += (
+                f" {result['skipped_unmatched']} ikke funnet på medlemslisten "
+                f"— hoppet over."
+            )
         flash(msg, "success")
     except Exception as e:
         flash(f"Feil ved synkronisering: {e}", "danger")
@@ -289,6 +364,19 @@ def add_employee():
 def cleanup_missing_stubs():
     """Delete all unregistered stubs absent from the current seniority PDF."""
     success, message, count = user_service.delete_missing_stubs()
+    flash(message, "success" if success else "danger")
+    return redirect(url_for("admin.manage_employees"))
+
+
+@admin.route("/bulk-delete-stubs", methods=["POST"])
+@admin_required
+def bulk_delete_stubs():
+    """Delete the stub users selected from the medlemsliste 'not on list' report."""
+    user_ids = [int(uid) for uid in request.form.getlist("user_ids") if uid.isdigit()]
+    if not user_ids:
+        flash("Ingen brukere valgt.", "danger")
+        return redirect(url_for("admin.manage_employees"))
+    success, message, count = user_service.delete_stub_users(user_ids)
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.manage_employees"))
 

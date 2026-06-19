@@ -135,6 +135,32 @@
                                     {% endif %}
                                 </div>
 
+                                <div
+                                    class="form-group-modern"
+                                    id="rullenummer-group"
+                                    {% if not form.rullenummer.data %}style="display:none"{% endif %}
+                                >
+                                    <div class="input-wrapper">
+                                        <i class="bi bi-person-badge input-icon"></i>
+                                        {{
+                                        form.rullenummer(class="form-control-modern"
+                                        + (" is-invalid" if form.rullenummer.errors
+                                        else ""), placeholder=" ", id="rullenummer") }}
+                                        <label class="floating-label"
+                                            >{{ form.rullenummer.label.text
+                                            }}</label
+                                        >
+                                    </div>
+                                    <small class="form-hint" id="rullenummer-hint"></small>
+                                    {% if form.rullenummer.errors %}
+                                    <div class="error-message">
+                                        {% for error in form.rullenummer.errors %}
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ error }} {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
                                 <div class="form-group-modern">
                                     <div class="input-wrapper">
                                         <i
@@ -299,11 +325,15 @@
                 .getElementById("medlemsnummer")
                 .addEventListener("blur", async function () {
                     const val = this.value.trim();
-                    const preview = document.getElementById(
-                        "medlemsnummer-preview",
-                    );
+                    const preview = document.getElementById("medlemsnummer-preview");
+                    const rullenummerGroup = document.getElementById("rullenummer-group");
+                    const rullenummerInput = document.getElementById("rullenummer");
+                    const rullenummerHint = document.getElementById("rullenummer-hint");
                     if (!val) {
                         preview.innerHTML = "";
+                        rullenummerGroup.style.display = "none";
+                        rullenummerInput.value = "";
+                        rullenummerInput.removeAttribute("readonly");
                         return;
                     }
                     try {
@@ -313,10 +343,25 @@
                         const data = await res.json();
                         if (data.found) {
                             preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> NLF-medlemsnummeret er gyldig.</span>`;
-                        } else if (data.reason === "already_registered") {
-                            preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette NLF-medlemsnummeret er allerede registrert.</span>`;
+                            rullenummerGroup.style.display = "";
+                            if (data.rullenummer) {
+                                rullenummerInput.value = data.rullenummer;
+                                rullenummerInput.setAttribute("readonly", true);
+                                rullenummerHint.textContent = "Rullenummer er hentet fra ansienitetslisten";
+                            } else {
+                                rullenummerInput.value = "";
+                                rullenummerInput.removeAttribute("readonly");
+                                rullenummerHint.textContent = "Oppgi ditt rullenummer";
+                            }
                         } else {
-                            preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> NLF-medlemsnummeret ble ikke funnet.</span>`;
+                            rullenummerGroup.style.display = "none";
+                            rullenummerInput.value = "";
+                            rullenummerInput.removeAttribute("readonly");
+                            if (data.reason === "already_registered") {
+                                preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette NLF-medlemsnummeret er allerede registrert.</span>`;
+                            } else {
+                                preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> NLF-medlemsnummeret ble ikke funnet.</span>`;
+                            }
                         }
                     } catch (e) {
                         preview.innerHTML = "";

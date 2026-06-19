@@ -1,6 +1,7 @@
 import logging
 import random
 import secrets
+from datetime import datetime, timedelta
 
 import bcrypt
 from sqlalchemy import func
@@ -492,37 +493,56 @@ def update_user_password(user_id, current_password, new_password):
 def sync_employees_from_scrape(employees: list) -> dict:
     """Sync a scraped employee list into the database.
 
-    For each record in the PDF:
+    This sync only enriches users that already exist because they're on the
+    NLF member list — it never creates new users. For each record in the PDF:
     - Existing user with that rullenummer   → update HR fields if changed
     - No rullenummer match, but exactly one user with the same name and no
       rullenummer (e.g. created by the NLF member list import) → merge the
-      rullenummer + HR data into that user instead of creating a duplicate
-    - Otherwise → create stub
+      rullenummer + HR data into that user
+    - Otherwise (no matching user at all) → skipped, no DB write
 
     After processing all PDF records, any DB user with a rullenummer that was
     NOT in the PDF has their seniority_nr cleared (set to NULL). This causes
     them to appear in the "not on list" section in the admin UI.
 
-    Returns ``{"added": int, "updated": int, "unchanged": int,
-    "merged_by_name": int, "removed_from_list": int}``
+    Returns ``{"updated": int, "unchanged": int, "merged_by_name": int,
+    "removed_from_list": int, "skipped_unmatched": int}``
     """
     db_session = get_db_session()
-    added = updated = unchanged = merged_by_name = 0
+    skipped_unmatched = updated = unchanged = merged_by_name = merged_by_date = 0
     try:
         scraped_rullenummers = set()
 
-        # Users without a rullenummer, keyed by normalized name, so PDF rows
-        # can be merged into member-list users instead of duplicated.
+        # Users without a rullenummer, keyed by normalized name, by
+        # (normalized_lastname, ans_dato, fodt_dato), and by ans_dato alone —
+        # so PDF rows can be merged into member-list users instead of duplicated.
         by_name = {}
+        by_lastname = {}
+        by_date = {}
         for u in db_session.query(DBUser).filter(DBUser.rullenummer.is_(None)).all():
             if u.name:
                 by_name.setdefault(_normalize_name(u.name), []).append(u)
+                if u.ans_dato and "," in u.name:
+                    last_norm = _normalize_name(u.name.split(",")[0].strip())
+                    by_lastname.setdefault(last_norm, []).append(u)
+            if u.ans_dato:
+                by_date.setdefault(u.ans_dato, []).append(u)
         merged_ids = set()
+        # Track rullenummers processed in this run to guard against duplicate
+        # rows in the PDF when autoflush=False would hide in-flight INSERTs.
+        processed_this_run = set()
 
         for emp in employees:
             rullenummer = str(emp.get("rullenummer", "")).strip()
             if not rullenummer:
                 continue
+            if rullenummer in processed_this_run:
+                logger.warning(
+                    "sync_employees: duplicate rullenummer %s in scraped data, skipping",
+                    rullenummer,
+                )
+                continue
+            processed_this_run.add(rullenummer)
 
             scraped_rullenummers.add(rullenummer)
 
@@ -547,23 +567,60 @@ def sync_employees_from_scrape(employees: list) -> dict:
                     merged_ids.add(user.id)
                     merged_by_name += 1
 
+            if user is None and etternavn and ans_dato:
+                last_norm = _normalize_name(etternavn)
+                try:
+                    pdf_date = datetime.strptime(ans_dato, "%d.%m.%Y")
+                    lastname_date_candidates = []
+                    for u in by_lastname.get(last_norm, []):
+                        if u.id in merged_ids:
+                            continue
+                        try:
+                            stub_date = datetime.strptime(u.ans_dato, "%d.%m.%Y")
+                            if abs((pdf_date - stub_date).days) <= 7:
+                                lastname_date_candidates.append(u)
+                        except ValueError:
+                            pass
+                    if len(lastname_date_candidates) == 1:
+                        user = lastname_date_candidates[0]
+                        user.rullenummer = rullenummer
+                        merged_ids.add(user.id)
+                        merged_by_date += 1
+                except ValueError:
+                    pass
+
+            if user is None and ans_dato:
+                date_candidates = [
+                    u for u in by_date.get(ans_dato, [])
+                    if u.id not in merged_ids
+                ]
+                if len(date_candidates) == 1:
+                    user = date_candidates[0]
+                    user.rullenummer = rullenummer
+                    merged_ids.add(user.id)
+                    merged_by_date += 1
+
             if user is None:
-                stub = DBUser(
-                    username=f"__stub_{rullenummer}",
-                    password=hash_password(secrets.token_hex(32)),
-                    name=name,
-                    rullenummer=rullenummer,
-                    is_stub=1,
-                    email_verified=0,
-                    is_auth=0,
-                    stasjoneringssted=stasjoneringssted,
-                    ans_dato=ans_dato,
-                    fodt_dato=fodt_dato,
-                    seniority_nr=seniority_nr,
-                )
-                db_session.add(stub)
-                added += 1
-            else:
+                username = f"__stub_{rullenummer}"
+                # Fallback: a user may already hold this username but have had
+                # their rullenummer cleared (e.g. absorbed by a member-list
+                # import and later re-processed). Reclaim instead of skipping.
+                user = db_session.query(DBUser).filter_by(username=username).first()
+                if user is not None:
+                    user.rullenummer = rullenummer
+                    # fall through to update block
+                else:
+                    # Not on the NLF member list — this sync only enriches
+                    # existing members with rullenummer/HR data, it never
+                    # creates new users.
+                    skipped_unmatched += 1
+                    logger.warning(
+                        "sync_employees: skipped rullenummer=%s name=%r pdf_ans_dato=%r",
+                        rullenummer, name, ans_dato,
+                    )
+                    continue
+
+            if user is not None:
                 changed = False
                 for attr, val in [
                     ("name", name),
@@ -600,20 +657,22 @@ def sync_employees_from_scrape(employees: list) -> dict:
 
         db_session.commit()
         logger.info(
-            "sync_employees: added=%d updated=%d unchanged=%d merged_by_name=%d "
-            "removed_from_list=%d",
-            added,
+            "sync_employees: updated=%d unchanged=%d merged_by_name=%d "
+            "merged_by_date=%d removed_from_list=%d skipped_unmatched=%d",
             updated,
             unchanged,
             merged_by_name,
+            merged_by_date,
             removed_from_list,
+            skipped_unmatched,
         )
         return {
-            "added": added,
             "updated": updated,
             "unchanged": unchanged,
             "merged_by_name": merged_by_name,
+            "merged_by_date": merged_by_date,
             "removed_from_list": removed_from_list,
+            "skipped_unmatched": skipped_unmatched,
         }
     except Exception as e:
         db_session.rollback()
@@ -650,21 +709,25 @@ def sync_members_from_excel(members: list) -> dict:
     their medlemsnummer set — they are never deleted, and a differing existing
     medlemsnummer is reported as a conflict, never overwritten.
 
-    Unregistered stubs (is_stub=1) are disposable: name mismatches and
-    duplicates are resolved by deleting the stub(s) and creating a fresh one
-    from the Excel row. Same-name duplicate stubs (e.g. from a PDF sync that
-    ran before the member list was imported) have their rullenummer/HR data
-    absorbed into the kept user before deletion. After processing, any
-    remaining stub without a medlemsnummer is deleted — it is not on the
-    member list and can never register.
+    Unregistered stubs (is_stub=1) are disposable during matching: name
+    mismatches and duplicates are resolved by deleting the conflicting
+    stub(s) and creating a fresh one from the Excel row. Same-name duplicate
+    stubs (e.g. from a PDF sync that ran before the member list was
+    imported) have their rullenummer/HR data absorbed into the kept user
+    before deletion.
+
+    Anyone — stub or registered — not claimed by a row in this run is never
+    auto-deleted; they are surfaced in ``not_on_list`` for manual review,
+    since a stub may just be a name-matching miss and a registered user may
+    have simply not been re-added yet.
 
     Returns ``{"total_rows", "matched", "created", "unchanged",
-    "skipped_invalid", "deleted_stubs", "conflicts",
-    "registered_without_medlemsnummer"}``.
+    "skipped_invalid", "deleted_stubs", "conflicts", "not_on_list"}``.
     """
     db_session = get_db_session()
-    matched = created = unchanged = skipped_invalid = deleted_stubs = 0
+    matched = created = unchanged = updated = skipped_invalid = deleted_stubs = 0
     conflicts = []
+    updated_users = []
     try:
         users = db_session.query(DBUser).all()
         by_mnr = {u.medlemsnummer: u for u in users if u.medlemsnummer}
@@ -690,7 +753,8 @@ def sync_members_from_excel(members: list) -> dict:
             # a replacement stub reuses the deleted stub's number.
             db_session.flush()
 
-        def create_member_stub(name, mnr):
+        def create_member_stub(name, mnr, ans_dato=None, fodt_dato=None,
+                               stasjoneringssted=None):
             nonlocal created
             stub = DBUser(
                 username=f"__stub_m{mnr}",
@@ -700,6 +764,9 @@ def sync_members_from_excel(members: list) -> dict:
                 is_stub=1,
                 email_verified=0,
                 is_auth=0,
+                ans_dato=ans_dato,
+                fodt_dato=fodt_dato,
+                stasjoneringssted=stasjoneringssted,
             )
             db_session.add(stub)
             by_mnr[mnr] = stub
@@ -743,19 +810,72 @@ def sync_members_from_excel(members: list) -> dict:
             seen_mnr.add(mnr)
             norm = _normalize_name(name)
 
+            # HR fields from the enriched NLF export (None when absent)
+            ans_dato = member.get("ans_dato")
+            fodt_dato = member.get("fodt_dato")
+            stasjoneringssted = member.get("stasjoneringssted")
+            hr_fields = [("ans_dato", ans_dato), ("fodt_dato", fodt_dato),
+                         ("stasjoneringssted", stasjoneringssted)]
+
             owner = by_mnr.get(mnr)
             if owner is not None:
                 if _normalize_name(owner.name) == norm:
                     claimed_user_ids.add(owner.id)
+                    fields_changed = []
+                    # NLF list is authoritative for stubs; non-destructive for
+                    # registered users (don't overwrite manually-set values).
+                    if (owner.is_stub or 0) == 1:
+                        for attr, val in hr_fields:
+                            if val is not None and getattr(owner, attr) != val:
+                                setattr(owner, attr, val)
+                                fields_changed.append(attr)
+                    else:
+                        for attr, val in hr_fields:
+                            if val is not None and not getattr(owner, attr):
+                                setattr(owner, attr, val)
+                                fields_changed.append(attr)
                     absorb_twins(owner, norm)
-                    unchanged += 1
+                    if fields_changed:
+                        updated += 1
+                        updated_users.append({
+                            "name": owner.name,
+                            "is_stub": owner.is_stub or 0,
+                            "fields": fields_changed,
+                        })
+                    else:
+                        unchanged += 1
                     continue
                 if (owner.is_stub or 0) == 0:
-                    conflicts.append(
-                        {"name": name, "medlemsnummer": mnr,
-                         "reason": f"Medlemsnummeret tilhører registrert bruker "
-                                   f"'{owner.name or owner.username}' (id {owner.id})"}
+                    # Check if it's the same person with a name variation
+                    # (e.g. middle name added in NLF). Compare last names only.
+                    owner_last = _normalize_name(
+                        (owner.name or "").split(",")[0].strip()
                     )
+                    nlf_last = _normalize_name(name.split(",")[0].strip())
+                    if owner_last and owner_last == nlf_last:
+                        # Same person — update name to NLF version and claim.
+                        old_name = owner.name
+                        owner.name = name
+                        claimed_user_ids.add(owner.id)
+                        fields_changed = ["name"] if old_name != name else []
+                        for attr, val in hr_fields:
+                            if val is not None and not getattr(owner, attr):
+                                setattr(owner, attr, val)
+                                fields_changed.append(attr)
+                        absorb_twins(owner, norm)
+                        matched += 1
+                        if fields_changed:
+                            updated_users.append({
+                                "name": name,
+                                "is_stub": owner.is_stub or 0,
+                                "fields": fields_changed,
+                            })
+                    else:
+                        conflicts.append(
+                            {"name": name, "medlemsnummer": mnr,
+                             "reason": f"Medlemsnummeret tilhører registrert bruker "
+                                       f"'{owner.name or owner.username}' (id {owner.id})"}
+                        )
                     continue
                 # A stub holds the number under a different name — replace it.
                 delete_stub(owner)
@@ -786,59 +906,66 @@ def sync_members_from_excel(members: list) -> dict:
                 target.medlemsnummer = mnr
                 by_mnr[mnr] = target
                 claimed_user_ids.add(target.id)
+                for attr, val in hr_fields:
+                    if val is not None and not getattr(target, attr):
+                        setattr(target, attr, val)
                 absorb_twins(target, norm)
                 matched += 1
             elif len(stub_twins) == 1:
-                # Keep the stub (and its rullenummer/HR data from the PDF).
                 stub = stub_twins[0]
                 stub.medlemsnummer = mnr
                 by_mnr[mnr] = stub
                 claimed_user_ids.add(stub.id)
+                for attr, val in hr_fields:
+                    if val is not None:
+                        setattr(stub, attr, val)
                 matched += 1
             elif stub_twins:
                 for stub in stub_twins:
                     delete_stub(stub)
-                create_member_stub(name, mnr)
+                create_member_stub(name, mnr, ans_dato=ans_dato,
+                                   fodt_dato=fodt_dato,
+                                   stasjoneringssted=stasjoneringssted)
             else:
-                create_member_stub(name, mnr)
+                create_member_stub(name, mnr, ans_dato=ans_dato,
+                                   fodt_dato=fodt_dato,
+                                   stasjoneringssted=stasjoneringssted)
 
-        # Stubs without a medlemsnummer are not on the member list and can
-        # never register — drop them.
-        leftover = (
-            db_session.query(DBUser)
-            .filter(DBUser.is_stub == 1, DBUser.medlemsnummer.is_(None))
-            .all()
-        )
-        for stub in leftover:
-            if stub.id not in deleted_user_ids:
-                delete_stub(stub)
-
-        registered_without = [
-            {"id": u.id, "name": u.name, "username": u.username}
+        # Anyone (stub or registered) not claimed by a row in this run is not
+        # on the current member list. Never auto-delete — surface for manual
+        # review instead.
+        not_on_list = [
+            {
+                "id": u.id,
+                "name": u.name,
+                "username": u.username,
+                "medlemsnummer": u.medlemsnummer,
+                "is_stub": u.is_stub or 0,
+            }
             for u in users
-            if (u.is_stub or 0) == 0
-            and u.id not in deleted_user_ids
-            and u.medlemsnummer is None
+            if u.id not in deleted_user_ids
             and u.id not in claimed_user_ids
             and u.name
-        ][:50]
+        ][:200]
 
         db_session.commit()
         logger.info(
-            "sync_members: matched=%d created=%d unchanged=%d invalid=%d "
-            "deleted_stubs=%d conflicts=%d",
-            matched, created, unchanged, skipped_invalid,
+            "sync_members: matched=%d created=%d updated=%d unchanged=%d "
+            "invalid=%d deleted_stubs=%d conflicts=%d",
+            matched, created, updated, unchanged, skipped_invalid,
             deleted_stubs, len(conflicts),
         )
         return {
             "total_rows": len(members),
             "matched": matched,
             "created": created,
+            "updated": updated,
+            "updated_users": updated_users,
             "unchanged": unchanged,
             "skipped_invalid": skipped_invalid,
             "deleted_stubs": deleted_stubs,
             "conflicts": conflicts,
-            "registered_without_medlemsnummer": registered_without,
+            "not_on_list": not_on_list,
         }
     except Exception as e:
         db_session.rollback()
@@ -953,7 +1080,7 @@ def create_stub_user(
         db_session.close()
 
 
-def activate_stub_user(user_id, username, email, password):
+def activate_stub_user(user_id, username, email, password, rullenummer=None):
     """Activate a stub user with real credentials.
 
     Returns ``(bool, str, user_id|None)`` — same shape as
@@ -983,6 +1110,8 @@ def activate_stub_user(user_id, username, email, password):
         user.password = hash_password(password)
         user.is_stub = 0
         user.email_verified = 0
+        if rullenummer and not user.rullenummer:
+            user.rullenummer = rullenummer
         db_session.commit()
         logger.info("Stub user %s activated as %s", user_id, username)
         return True, "Aktivert", user_id
@@ -1080,6 +1209,39 @@ def delete_missing_stubs():
     except Exception as e:
         db_session.rollback()
         logger.error("Error deleting missing stubs: %s", e)
+        return False, f"Feil ved sletting: {e}", 0
+    finally:
+        db_session.close()
+
+
+def delete_stub_users(user_ids):
+    """Bulk-delete specific stub users by id.
+
+    Used for the medlemsliste "not on list" review report's bulk-cleanup
+    button. Any id in ``user_ids`` belonging to a registered (non-stub)
+    user is silently skipped — this never deletes a registered account.
+
+    Returns ``(bool, str, int)`` — success, message, number deleted.
+    """
+    from app.models import Favorites as FavModel
+
+    db_session = get_db_session()
+    try:
+        targets = (
+            db_session.query(DBUser)
+            .filter(DBUser.id.in_(user_ids), DBUser.is_stub == 1)
+            .all()
+        )
+        count = len(targets)
+        for user in targets:
+            db_session.query(FavModel).filter_by(user_id=user.id).delete()
+            db_session.delete(user)
+        db_session.commit()
+        logger.info("delete_stub_users: deleted %d of %d requested ids", count, len(user_ids))
+        return True, f"{count} stub-brukere slettet.", count
+    except Exception as e:
+        db_session.rollback()
+        logger.error("Error bulk-deleting stub users: %s", e)
         return False, f"Feil ved sletting: {e}", 0
     finally:
         db_session.close()

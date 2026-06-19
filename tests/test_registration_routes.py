@@ -28,7 +28,7 @@ def no_email(monkeypatch):
     sent = []
     monkeypatch.setattr(
         "app.utils.email_utils.send_verification_email",
-        lambda email, token: sent.append((email, token)),
+        lambda email, token: sent.append((email, token)) or True,
     )
     return sent
 
@@ -40,6 +40,7 @@ class TestRegister:
         resp = client.post("/register", data={
             "username": "olanordmann",
             "medlemsnummer": "60011",
+            "rullenummer": "12345",
             "email": "ola@example.com",
             "password": "passord123",
             "confirm_password": "passord123",
@@ -89,7 +90,9 @@ class TestRegister:
 class TestCheckMedlemsnummerApi:
     def test_valid_stub_found(self, client, member_stub):
         resp = client.get("/api/check-medlemsnummer?medlemsnummer=60011")
-        assert resp.get_json() == {"found": True}
+        data = resp.get_json()
+        assert data["found"] is True
+        assert "rullenummer" in data
 
     def test_already_registered(self, client, member_stub, db_session):
         user = db_session.query(DBUser).filter_by(id=member_stub["id"]).first()
