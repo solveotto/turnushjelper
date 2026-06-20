@@ -38,6 +38,15 @@ def login():
                     )
                     return render_template("login.html", form=form)
 
+                # Block users flagged as not found on the NLF member list
+                if db_user_data.get("not_on_nlf_list") == 1:
+                    flash(
+                        "Kontoen din er midlertidig sperret fordi du ikke er funnet "
+                        "på NLF-listen. Kontakt en administrator.",
+                        "danger",
+                    )
+                    return render_template("login.html", form=form)
+
                 # Check email verification status
                 if db_user_data.get("email_verified") == 0:
                     flash(

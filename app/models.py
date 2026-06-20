@@ -34,6 +34,7 @@ class DBUser(Base):
     ans_dato = Column(String(20), nullable=True)   # stored as DD.MM.YYYY string
     fodt_dato = Column(String(20), nullable=True)  # stored as DD.MM.YYYY string
     seniority_nr = Column(Integer, nullable=True)
+    not_on_nlf_list = Column(Integer, nullable=True, default=0)
 
 
 class AuthorizedEmails(Base):

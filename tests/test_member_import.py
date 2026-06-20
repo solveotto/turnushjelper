@@ -184,10 +184,10 @@ class TestSyncMembersFromExcel:
         )
         assert report["deleted_stubs"] == 0
         db_session.expire_all()
-        assert db_session.query(DBUser).filter_by(id=stale_id).first() is not None
-        not_on_list = {u["name"]: u for u in report["not_on_list"]}
-        assert "Borte, Vekk" in not_on_list
-        assert not_on_list["Borte, Vekk"]["is_stub"] == 1
+        stale_user = db_session.query(DBUser).filter_by(id=stale_id).first()
+        assert stale_user is not None
+        assert stale_user.not_on_nlf_list == 1
+        assert report["flagged"] >= 1
 
     def test_registered_users_absent_untouched_and_reported(self, patch_db, db_session):
         user = add_user(db_session, "borte", name="Borte, Bruker",
@@ -196,15 +196,14 @@ class TestSyncMembersFromExcel:
             [{"name": "Annen, Person", "medlemsnummer": "60018"}]
         )
         db_session.expire_all()
-        assert db_session.get(DBUser, user.id) is not None
-        not_on_list = {u["name"]: u for u in report["not_on_list"]}
-        assert "Borte, Bruker" in not_on_list
-        assert not_on_list["Borte, Bruker"]["is_stub"] == 0
+        db_user = db_session.get(DBUser, user.id)
+        assert db_user is not None
+        # registered users without member identifiers are not flagged
+        assert db_user.not_on_nlf_list in (0, None)
 
     def test_stale_stub_with_mnr_no_longer_on_list_is_reported_not_deleted(self, patch_db, db_session):
         # Stub from a previous run that has since fallen off the member list
-        # (e.g. left NLF) — must be surfaced for review, not silently
-        # deleted, even though it previously held a medlemsnummer.
+        # (e.g. left NLF) — must not be deleted; persistent flag is set instead.
         stale = add_user(db_session, "__stub_m70099", name="Forlatt, Person",
                          medlemsnummer="70099", is_stub=1)
         stale_id = stale.id
@@ -213,24 +212,24 @@ class TestSyncMembersFromExcel:
         )
         assert report["deleted_stubs"] == 0
         db_session.expire_all()
-        assert db_session.query(DBUser).filter_by(id=stale_id).first() is not None
-        not_on_list = {u["name"]: u for u in report["not_on_list"]}
-        assert "Forlatt, Person" in not_on_list
-        assert not_on_list["Forlatt, Person"]["medlemsnummer"] == "70099"
+        stale_user = db_session.query(DBUser).filter_by(id=stale_id).first()
+        assert stale_user is not None
+        assert stale_user.not_on_nlf_list == 1
+        assert stale_user.medlemsnummer == "70099"
 
     def test_registered_user_with_stale_mnr_reported_not_on_list(self, patch_db, db_session):
         # A registered user keeping a stale medlemsnummer must NOT be
-        # auto-deleted, but must surface in the report for manual review.
+        # auto-deleted; the persistent flag is set instead.
         user = add_user(db_session, "gammel", name="Gammel, Bruker",
                         medlemsnummer="70100", email="gammel@test.com")
         report = user_service.sync_members_from_excel(
             [{"name": "Annen, Person", "medlemsnummer": "70101"}]
         )
         db_session.expire_all()
-        assert db_session.get(DBUser, user.id) is not None
-        not_on_list = {u["name"]: u for u in report["not_on_list"]}
-        assert "Gammel, Bruker" in not_on_list
-        assert not_on_list["Gammel, Bruker"]["medlemsnummer"] == "70100"
+        db_user = db_session.get(DBUser, user.id)
+        assert db_user is not None
+        assert db_user.not_on_nlf_list == 1
+        assert db_user.medlemsnummer == "70100"
 
     def test_duplicate_mnr_in_excel_is_conflict(self, patch_db, db_session):
         report = user_service.sync_members_from_excel([
@@ -314,8 +313,8 @@ class TestExcelThenPdfMerge:
         assert len(users) == 1
         assert users[0].medlemsnummer == "60050"
         assert users[0].rullenummer == "555"
-        assert users[0].stasjoneringssted == "OSLO"
         assert users[0].seniority_nr == 4
+        assert users[0].stasjoneringssted is None  # PDF sync no longer writes HR fields
 
     def test_pdf_sync_does_not_merge_ambiguous_names(self, patch_db, db_session):
         # Ambiguous match (two same-name candidates) must not create a new

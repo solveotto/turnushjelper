@@ -515,6 +515,89 @@
                 </div>
             </div>
 
+            <!-- NLF Review Table -->
+            {% if review_list %}
+            <div class="card mb-4 border-warning">
+                <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-25">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                            Til gjennomgang — ikke på NLF-liste ({{ review_list|length }})
+                        </h5>
+                        <small class="text-muted">Disse brukerne er i systemet men ble ikke funnet ved siste NLF-synkronisering. De er sperret fra innlogging.</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('admin.export_review_list') }}"
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-file-earmark-pdf"></i> Eksporter PDF
+                        </a>
+                        {% set review_stubs = review_list | selectattr('is_stub') | list %}
+                        {% if review_stubs %}
+                        <form method="POST"
+                              action="{{ url_for('admin.bulk_delete_review') }}"
+                              onsubmit="return confirm('Slette alle {{ review_stubs|length }} stub-brukere som ikke er på NLF-listen? Registrerte brukere berøres ikke.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i> Slett alle stubs ({{ review_stubs|length }})
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-sm mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Etternavn</th>
+                                    <th>For- og mellomnavn</th>
+                                    <th>Status</th>
+                                    <th>Rullenr.</th>
+                                    <th>NLF-nr.</th>
+                                    <th>Brukernavn</th>
+                                    <th>Ans.dato</th>
+                                    <th>Handlinger</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in review_list %}
+                                <tr>
+                                    <td>{{ emp.etternavn }}</td>
+                                    <td>{{ emp.fornavn }}</td>
+                                    <td>
+                                        {% if emp.is_registered %}
+                                            <span class="badge bg-success">Registrert</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Stub</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ emp.rullenummer or "—" }}</td>
+                                    <td>{{ emp.medlemsnummer or "—" }}</td>
+                                    <td>{{ emp.username }}</td>
+                                    <td>{{ emp.ans_dato or "—" }}</td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            <form method="POST"
+                                                  action="{{ url_for('admin.revert_nlf_review', user_id=emp.id) }}"
+                                                  onsubmit="return confirm('Gjenopprette {{ emp.name }} til normal status? Brukeren vil kunne logge inn igjen. NB: ved neste NLF-synkronisering kan brukeren bli flagget igjen hvis de fortsatt mangler fra listen.')">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-success"
+                                                        title="Gjenopprett">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </form>
+                                            {{ action_buttons(emp) }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Registered Users Table -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">

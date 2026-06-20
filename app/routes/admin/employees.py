@@ -1,3 +1,4 @@
+import io
 import os
 from datetime import datetime
 
@@ -7,6 +8,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     session,
     url_for,
 )
@@ -15,7 +17,7 @@ from flask_login import current_user
 from app.database import get_db_session
 from app.decorators import admin_required
 from app.extensions import cache
-from app.models import DBUser
+from app.models import DBUser, Favorites
 from app.routes.admin import admin
 from app.services import user_service
 from app.utils import db_utils
@@ -76,6 +78,7 @@ def manage_employees():
             "%d.%m.%Y %H:%M"
         )
 
+    review_list = [emp for emp in employees if emp.get("not_on_nlf_list")]
     member_report = session.pop("medlemsliste_report", None)
 
     return render_template(
@@ -85,6 +88,7 @@ def manage_employees():
         stub_list=stub_list,
         not_on_list=not_on_list,
         system_list=system_list,
+        review_list=review_list,
         pdf_exists=pdf_exists,
         pdf_date=pdf_date,
         excel_exists=excel_exists,
@@ -136,11 +140,10 @@ def upload_member_excel():
         msg += f" {report['skipped_invalid']} ugyldige rader hoppet over."
     if report["conflicts"]:
         msg += f" {len(report['conflicts'])} konflikter."
-    if report["not_on_list"]:
-        msg += (
-            f" {len(report['not_on_list'])} brukere er ikke på medlemslisten "
-            f"— vurder fjerning."
-        )
+    if report["flagged"]:
+        msg += f" {report['flagged']} brukere flagget som ikke på NLF-listen."
+    if report["unflagged"]:
+        msg += f" {report['unflagged']} brukere gjenopprettet (funnet på listen igjen)."
     flash(msg, "warning" if report["conflicts"] else "success")
 
     session["medlemsliste_report"] = report
@@ -223,11 +226,10 @@ def sync_members():
         msg += f" {report['skipped_invalid']} ugyldige rader hoppet over."
     if report["conflicts"]:
         msg += f" {len(report['conflicts'])} konflikter."
-    if report["not_on_list"]:
-        msg += (
-            f" {len(report['not_on_list'])} brukere er ikke på medlemslisten "
-            f"— vurder fjerning."
-        )
+    if report["flagged"]:
+        msg += f" {report['flagged']} brukere flagget som ikke på NLF-listen."
+    if report["unflagged"]:
+        msg += f" {report['unflagged']} brukere gjenopprettet (funnet på listen igjen)."
     flash(msg, "warning" if report["conflicts"] else "success")
 
     session["medlemsliste_report"] = report
@@ -414,3 +416,119 @@ def delete_employee(user_id):
     success, message = db_utils.delete_user(user_id)
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.manage_employees"))
+
+
+@admin.route("/revert-nlf-review/<int:user_id>", methods=["POST"])
+@admin_required
+def revert_nlf_review(user_id):
+    """Clear the not_on_nlf_list flag, restoring login access for the user."""
+    # flag will be re-set by next sync if user is still absent from NLF list
+    db_session = get_db_session()
+    try:
+        user = db_session.query(DBUser).filter_by(id=user_id).first()
+        if not user:
+            flash("Bruker ikke funnet.", "danger")
+            return redirect(url_for("admin.manage_employees"))
+        user.not_on_nlf_list = 0
+        db_session.commit()
+        flash("Brukeren er gjenopprettet til normal status.", "success")
+    except Exception as e:
+        db_session.rollback()
+        flash(f"Feil ved gjenoppretting: {e}", "danger")
+    finally:
+        db_session.close()
+    return redirect(url_for("admin.manage_employees"))
+
+
+@admin.route("/bulk-delete-review", methods=["POST"])
+@admin_required
+def bulk_delete_review():
+    """Delete all flagged stub users (not_on_nlf_list=1, is_stub=1)."""
+    db_session = get_db_session()
+    try:
+        targets = (
+            db_session.query(DBUser)
+            .filter(DBUser.not_on_nlf_list == 1, DBUser.is_stub == 1)
+            .all()
+        )
+        count = len(targets)
+        for u in targets:
+            db_session.query(Favorites).filter_by(user_id=u.id).delete()
+            db_session.delete(u)
+        db_session.commit()
+        flash(f"{count} stub-brukere slettet.", "success")
+    except Exception as e:
+        db_session.rollback()
+        flash(f"Feil ved sletting: {e}", "danger")
+    finally:
+        db_session.close()
+    return redirect(url_for("admin.manage_employees"))
+
+
+@admin.route("/export-review-list")
+@admin_required
+def export_review_list():
+    """Export the NLF-review list as a PDF."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    employees = user_service.get_all_stub_users()
+    review_list = [emp for emp in employees if emp.get("not_on_nlf_list")]
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=landscape(A4),
+        leftMargin=15 * mm,
+        rightMargin=15 * mm,
+        topMargin=15 * mm,
+        bottomMargin=15 * mm,
+    )
+    styles = getSampleStyleSheet()
+    elements = []
+    elements.append(Paragraph("Til gjennomgang — ikke på NLF-liste", styles["Heading1"]))
+    elements.append(Paragraph(
+        f"Generert: {datetime.now().strftime('%d.%m.%Y %H:%M')} — {len(review_list)} brukere",
+        styles["Normal"],
+    ))
+    elements.append(Spacer(1, 6 * mm))
+
+    headers = ["Etternavn", "Fornavn", "Status", "Rullenr.", "NLF-nr.", "Brukernavn", "Ans.dato"]
+    rows = [headers]
+    for emp in review_list:
+        rows.append([
+            emp.get("etternavn") or "",
+            emp.get("fornavn") or "",
+            "Registrert" if emp.get("is_registered") else "Stub",
+            emp.get("rullenummer") or "",
+            emp.get("medlemsnummer") or "",
+            emp.get("username") or "",
+            emp.get("ans_dato") or "",
+        ])
+
+    col_widths = [45 * mm, 55 * mm, 25 * mm, 22 * mm, 22 * mm, 45 * mm, 25 * mm]
+    table = Table(rows, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#343a40")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dee2e6")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    elements.append(table)
+
+    doc.build(elements)
+    buf.seek(0)
+    return send_file(
+        buf,
+        download_name="gjennomgang_nlf.pdf",
+        as_attachment=True,
+        mimetype="application/pdf",
+    )

@@ -70,6 +70,7 @@ def get_user_data(username_or_email):
                 "has_seen_compare_tour": result.has_seen_compare_tour or 0,
                 "has_seen_welcome": result.has_seen_welcome or 0,
                 "has_seen_soknadsskjema_tour": result.has_seen_soknadsskjema_tour or 0,
+                "not_on_nlf_list": result.not_on_nlf_list or 0,
             }
             return data
         else:
@@ -623,10 +624,6 @@ def sync_employees_from_scrape(employees: list) -> dict:
             if user is not None:
                 changed = False
                 for attr, val in [
-                    ("name", name),
-                    ("stasjoneringssted", stasjoneringssted),
-                    ("ans_dato", ans_dato),
-                    ("fodt_dato", fodt_dato),
                     ("seniority_nr", seniority_nr),
                 ]:
                     if getattr(user, attr) != val:
@@ -931,29 +928,28 @@ def sync_members_from_excel(members: list) -> dict:
                                    fodt_dato=fodt_dato,
                                    stasjoneringssted=stasjoneringssted)
 
-        # Anyone (stub or registered) not claimed by a row in this run is not
-        # on the current member list. Never auto-delete — surface for manual
-        # review instead.
-        not_on_list = [
-            {
-                "id": u.id,
-                "name": u.name,
-                "username": u.username,
-                "medlemsnummer": u.medlemsnummer,
-                "is_stub": u.is_stub or 0,
-            }
-            for u in users
-            if u.id not in deleted_user_ids
-            and u.id not in claimed_user_ids
-            and u.name
-        ][:200]
+        # Set/clear the persistent not_on_nlf_list flag using the pre-captured
+        # users list. A fresh query would incorrectly flag newly created stubs
+        # (they are not in claimed_user_ids but are legitimately new).
+        flagged = unflagged = 0
+        for u in users:
+            if u.id in deleted_user_ids:
+                continue
+            if u.id in claimed_user_ids:
+                if u.not_on_nlf_list:
+                    u.not_on_nlf_list = 0   # re-appeared on list — clear flag
+                    unflagged += 1
+            elif u.name and (u.medlemsnummer or u.rullenummer):
+                if not u.not_on_nlf_list:
+                    u.not_on_nlf_list = 1
+                    flagged += 1
 
         db_session.commit()
         logger.info(
             "sync_members: matched=%d created=%d updated=%d unchanged=%d "
-            "invalid=%d deleted_stubs=%d conflicts=%d",
+            "invalid=%d deleted_stubs=%d conflicts=%d flagged=%d unflagged=%d",
             matched, created, updated, unchanged, skipped_invalid,
-            deleted_stubs, len(conflicts),
+            deleted_stubs, len(conflicts), flagged, unflagged,
         )
         return {
             "total_rows": len(members),
@@ -965,7 +961,8 @@ def sync_members_from_excel(members: list) -> dict:
             "skipped_invalid": skipped_invalid,
             "deleted_stubs": deleted_stubs,
             "conflicts": conflicts,
-            "not_on_list": not_on_list,
+            "flagged": flagged,
+            "unflagged": unflagged,
         }
     except Exception as e:
         db_session.rollback()
@@ -1167,6 +1164,7 @@ def get_all_stub_users():
                     "email": u.email,
                     "username": u.username,
                     "is_registered": is_registered,
+                    "not_on_nlf_list": u.not_on_nlf_list or 0,
                 }
             )
         return result
