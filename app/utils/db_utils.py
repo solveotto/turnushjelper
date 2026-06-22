@@ -4,7 +4,7 @@ All models, database infrastructure, and service functions have been
 extracted into dedicated modules during Phase 3 refactoring:
 
   - app.database          — Base, engine, SessionLocal, get_db_session
-  - app.models            — DBUser, AuthorizedEmails, EmailVerificationToken, TurnusSet, Favorites, Shifts
+  - app.models            — DBUser, EmailVerificationToken, TurnusSet, Favorites, Shifts
   - app.services.turnus_service    — turnus set CRUD
   - app.services.user_service      — user management
   - app.services.favorites_service — favorites management
@@ -19,7 +19,7 @@ from app.database import Base, engine, SessionLocal, get_db_session  # noqa: F40
 
 # ORM models
 from app.models import (  # noqa: F401
-    DBUser, AuthorizedEmails, EmailVerificationToken,
+    DBUser, EmailVerificationToken,
     TurnusSet, Favorites, Shifts,
 )
 
@@ -39,7 +39,7 @@ from app.services.user_service import (  # noqa: F401
     delete_user, toggle_user_auth, update_user_password,
     get_user_by_rullenummer, get_user_by_medlemsnummer, create_stub_user,
     activate_stub_user, get_all_stub_users,
-    sync_employees_from_scrape, sync_members_from_excel, admin_create_user,
+    sync_employees_from_scrape, sync_members_from_excel,
 )
 
 # Favorites service
@@ -51,8 +51,7 @@ from app.services.favorites_service import (  # noqa: F401
 
 # Auth service
 from app.services.auth_service import (  # noqa: F401
-    is_email_authorized, add_authorized_email, get_all_authorized_emails,
-    delete_authorized_email, create_verification_token, verify_token,
+    create_verification_token, verify_token,
     can_send_verification_email, update_verification_sent_time,
     create_password_reset_token, verify_password_reset_token,
     reset_user_password, can_send_password_reset_email,

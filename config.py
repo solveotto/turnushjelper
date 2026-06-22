@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
@@ -84,6 +85,8 @@ class AppConfig:
     # Default admin credentials (used on first-time setup)
     DEFAULT_ADMIN_USERNAME = _env("DEFAULT_ADMIN_USERNAME", "admin")
     DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD", "admin")
+
+    PERMANENT_SESSION_LIFETIME = timedelta(days=_env_int("SESSION_LIFETIME_DAYS", 30))
 
     # Landing page: "mintur" shows Min Turnus, "turnusliste" redirects to /turnusliste
     LANDING_PAGE = _env("LANDING_PAGE", "turnusliste")

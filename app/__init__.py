@@ -1,6 +1,6 @@
 import logging
 
-from flask import Flask, session
+from flask import Flask, flash, jsonify, redirect, request, session, url_for
 from flask_login import current_user
 
 from app.database import get_db_session
@@ -147,6 +147,16 @@ def create_app():
     @app.template_filter('display_name')
     def display_name_filter(s):
         return s.replace('_', ' ') if s else s
+
+    from flask_wtf.csrf import CSRFError
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        if request.headers.get('X-CSRFToken'):
+            # API call via apiFetch — return JSON so the client can reload silently
+            return jsonify({'status': 'error', 'code': 'csrf_expired'}), 400
+        flash('Sesjonen din har utløpt, prøv igjen.', 'warning')
+        return redirect(request.referrer or url_for('shifts.turnusliste'))
 
     from app.routes.main import blueprints
 

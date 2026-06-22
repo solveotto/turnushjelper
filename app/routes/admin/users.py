@@ -3,41 +3,10 @@ from flask_login import current_user
 
 from app.decorators import admin_required
 from app.extensions import cache
-from app.forms import CreateUserForm, EditUserForm
+from app.forms import EditUserForm
 from app.routes.admin import admin
 from app.services import user_service
 from app.utils import db_utils
-
-
-@admin.route("/create_user", methods=["GET", "POST"])
-@admin_required
-def create_user():
-    form = CreateUserForm()
-    if form.validate_on_submit():
-        is_stub = 1 if form.is_stub.data else 0
-        success, message = db_utils.admin_create_user(
-            username=(form.username.data or "").strip() or None,
-            password=form.password.data or None,
-            email=(form.email.data or "").strip() or None,
-            is_auth=1 if form.is_auth.data else 0,
-            name=(form.name.data or "").strip() or None,
-            medlemsnummer=(form.medlemsnummer.data or "").strip() or None,
-            rullenummer=(form.rullenummer.data or "").strip() or None,
-            stasjoneringssted=(form.stasjoneringssted.data or "").strip() or None,
-            ans_dato=(form.ans_dato.data or "").strip() or None,
-            fodt_dato=(form.fodt_dato.data or "").strip() or None,
-            seniority_nr=form.seniority_nr.data,
-            is_stub=is_stub,
-        )
-        if success:
-            flash(message, "success")
-            if is_stub:
-                return redirect(url_for("admin.manage_employees"))
-            return redirect(url_for("admin.admin_dashboard"))
-        else:
-            flash(message, "danger")
-
-    return render_template("create_user.html", form=form, page_name="Create User")
 
 
 @admin.route("/edit_user/<int:user_id>", methods=["GET", "POST"])

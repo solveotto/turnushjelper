@@ -3,91 +3,9 @@ from datetime import datetime, timedelta
 
 from config import AppConfig
 from app.database import get_db_session
-from app.models import DBUser, AuthorizedEmails, EmailVerificationToken
+from app.models import DBUser, EmailVerificationToken
 
 logger = logging.getLogger(__name__)
-
-
-def is_email_authorized(email, rullenummer=None):
-    """Check if rullenummer is in the authorized list (email is ignored for authorization)"""
-    if not rullenummer:
-        return False
-    db_session = get_db_session()
-    try:
-        result = db_session.query(AuthorizedEmails).filter_by(rullenummer=rullenummer).first()
-        return result is not None
-    finally:
-        db_session.close()
-
-
-def add_authorized_email(email=None, added_by=None, notes='', rullenummer=None):
-    """Add a rullenummer (and optional email) to the authorized list"""
-    if not rullenummer:
-        return False, "Rullenummer er påkrevd"
-
-    db_session = get_db_session()
-    try:
-        existing = db_session.query(AuthorizedEmails).filter_by(rullenummer=rullenummer).first()
-        if existing:
-            return False, "Rullenummeret finnes allerede i autorisert liste"
-
-        new_entry = AuthorizedEmails(
-            email=email.lower() if email else None,
-            rullenummer=rullenummer,
-            added_by=added_by,
-            notes=notes
-        )
-        db_session.add(new_entry)
-        db_session.commit()
-        return True, "Rullenummer lagt til i autorisert liste"
-    except Exception as e:
-        db_session.rollback()
-        return False, f"Error adding entry: {e}"
-    finally:
-        db_session.close()
-
-
-def get_all_authorized_emails():
-    """Get all authorized emails with additional info"""
-    db_session = get_db_session()
-    try:
-        emails = db_session.query(AuthorizedEmails).order_by(AuthorizedEmails.added_at.desc()).all()
-        result = []
-        for email in emails:
-            user = db_session.query(DBUser).filter_by(email=email.email).first()
-            admin = db_session.query(DBUser).filter_by(id=email.added_by).first()
-
-            result.append({
-                'id': email.id,
-                'email': email.email,
-                'rullenummer': email.rullenummer,
-                'added_by': email.added_by,
-                'added_by_username': admin.username if admin else None,
-                'added_at': email.added_at,
-                'notes': email.notes,
-                'is_registered': user is not None
-            })
-        return result
-    finally:
-        db_session.close()
-
-
-def delete_authorized_email(email_id):
-    """Remove email from authorized list"""
-    db_session = get_db_session()
-    try:
-        email = db_session.query(AuthorizedEmails).filter_by(id=email_id).first()
-        if not email:
-            return False, "E-post ikke funnet"
-
-        db_session.delete(email)
-        db_session.commit()
-        return True, "E-post fjernet fra autorisert liste"
-    except Exception as e:
-        db_session.rollback()
-        return False, f"Error removing email: {e}"
-    finally:
-        db_session.close()
 
 
 def create_verification_token(user_id, token):

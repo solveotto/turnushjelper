@@ -117,6 +117,9 @@ def restore_backup(backup_file):
         if result.returncode == 0:
             print("\n✓ Database restored successfully!")
             print(f"Database '{database}' has been restored from {basename}")
+            print("\nNext steps:")
+            print("  1. alembic upgrade head   — re-applies any migrations missing from this backup")
+            print("  2. Restart the web server — clears in-memory cache and connection pool state")
             return True
         else:
             print(f"\n✗ Restore failed!")

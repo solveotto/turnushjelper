@@ -83,54 +83,6 @@ class TestEditUser:
         assert resp.status_code in (302, 403)
 
 
-class TestCreateUser:
-    def test_create_full_user(self, admin_client, db_session):
-        resp = admin_client.post("/admin/create_user", data={
-            "username": "nyansatt",
-            "password": "passord123",
-            "confirm_password": "passord123",
-            "email": "ny@example.com",
-            "name": "Ny, Ansatt",
-            "medlemsnummer": "60031",
-        }, follow_redirects=False)
-        assert resp.status_code == 302
-
-        user = db_session.query(DBUser).filter_by(username="nyansatt").first()
-        assert user is not None
-        assert user.medlemsnummer == "60031"
-        assert user.is_stub == 0
-        assert user.email_verified == 1
-
-    def test_create_stub(self, admin_client, db_session):
-        resp = admin_client.post("/admin/create_user", data={
-            "is_stub": "y",
-            "name": "Stub, Person",
-            "medlemsnummer": "60032",
-        }, follow_redirects=False)
-        assert resp.status_code == 302
-
-        stub = db_session.query(DBUser).filter_by(medlemsnummer="60032").first()
-        assert stub is not None
-        assert stub.username == "__stub_m60032"
-        assert stub.is_stub == 1
-
-    def test_stub_without_medlemsnummer_rejected(self, admin_client, db_session):
-        resp = admin_client.post("/admin/create_user", data={
-            "is_stub": "y",
-            "name": "Stub, Person",
-        })
-        assert resp.status_code == 200
-        assert "NLF-medlemsnummer".encode() in resp.data
-        assert db_session.query(DBUser).filter_by(name="Stub, Person").first() is None
-
-    def test_full_user_without_credentials_rejected(self, admin_client, db_session):
-        resp = admin_client.post("/admin/create_user", data={
-            "name": "Mangler, Alt",
-        })
-        assert resp.status_code == 200
-        assert db_session.query(DBUser).filter_by(name="Mangler, Alt").first() is None
-
-
 class TestUploadMemberExcel:
     @pytest.fixture(autouse=True)
     def excel_path(self, tmp_path, monkeypatch):

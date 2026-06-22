@@ -225,8 +225,10 @@
     </div>
 </div>
 
-<script>
-function moveFavorite(shiftTitle, direction) {
+<script type="module">
+import { apiFetch } from "{{ url_for('static', filename='js/modules/utils.js') }}";
+
+window.moveFavorite = function(shiftTitle, direction) {
     apiFetch('/api/move-favorite', {
         method: 'POST',
         headers: {
@@ -249,9 +251,9 @@ function moveFavorite(shiftTitle, direction) {
         console.error('Error:', error);
         alert('Feil ved flytting av favoritt');
     });
-}
+};
 
-function showPositionInput(displayElement) {
+window.showPositionInput = function(displayElement) {
     const input = displayElement.nextElementSibling;
     const currentPosition = displayElement.dataset.current;
     displayElement.style.display = 'none';
@@ -259,15 +261,15 @@ function showPositionInput(displayElement) {
     input.value = currentPosition;
     input.focus();
     input.select();
-}
+};
 
-function hidePositionInput(inputElement) {
+window.hidePositionInput = function(inputElement) {
     const display = inputElement.previousElementSibling;
     inputElement.style.display = 'none';
     display.style.display = 'inline';
-}
+};
 
-function handlePositionKeydown(event, inputElement) {
+window.handlePositionKeydown = function(event, inputElement) {
     if (event.key === 'Enter') {
         event.preventDefault();
         const shiftTitle = inputElement.dataset.shift;
@@ -276,22 +278,22 @@ function handlePositionKeydown(event, inputElement) {
 
         if (isNaN(newPosition) || newPosition < 1) {
             alert('Ugyldig posisjon');
-            hidePositionInput(inputElement);
+            window.hidePositionInput(inputElement);
             return;
         }
 
         if (newPosition === currentPosition) {
-            hidePositionInput(inputElement);
+            window.hidePositionInput(inputElement);
             return;
         }
 
-        setFavoritePosition(shiftTitle, newPosition);
+        window.setFavoritePosition(shiftTitle, newPosition);
     } else if (event.key === 'Escape') {
-        hidePositionInput(inputElement);
+        window.hidePositionInput(inputElement);
     }
-}
+};
 
-function setFavoritePosition(shiftTitle, newPosition) {
+window.setFavoritePosition = function(shiftTitle, newPosition) {
     apiFetch('/api/set-favorite-position', {
         method: 'POST',
         headers: {
@@ -314,6 +316,6 @@ function setFavoritePosition(shiftTitle, newPosition) {
         console.error('Error:', error);
         alert('Feil ved endring av posisjon');
     });
-}
+};
 </script>
 {% endblock %}

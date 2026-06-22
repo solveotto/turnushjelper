@@ -37,17 +37,6 @@ class DBUser(Base):
     not_on_nlf_list = Column(Integer, nullable=True, default=0)
 
 
-class AuthorizedEmails(Base):
-    __tablename__ = 'authorized_emails'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String(255), nullable=True)
-    rullenummer = Column(String(50), nullable=True)
-    added_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
-    added_at = Column(DateTime, default=func.now())
-    notes = Column(String(500))
-    __table_args__ = (UniqueConstraint('rullenummer', name='unique_rullenummer'),)
-
-
 class EmailVerificationToken(Base):
     __tablename__ = 'email_verification_tokens'
     id = Column(Integer, primary_key=True, autoincrement=True)

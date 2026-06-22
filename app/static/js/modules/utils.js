@@ -156,7 +156,16 @@ export function apiFetch(url, options = {}) {
     if (method !== 'GET' && method !== 'HEAD' && csrfToken) {
         headers['X-CSRFToken'] = csrfToken;
     }
-    return fetch(url, { ...options, headers });
+    return fetch(url, { ...options, headers }).then(async response => {
+        if (response.status === 400) {
+            const data = await response.clone().json().catch(() => null);
+            if (data?.code === 'csrf_expired') {
+                window.location.reload();
+                return new Promise(() => {});
+            }
+        }
+        return response;
+    });
 }
 
 window.apiFetch = apiFetch;

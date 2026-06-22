@@ -10,14 +10,14 @@
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 
     <div class="row g-4">
@@ -31,13 +31,14 @@
                             <i class="bi bi-people-fill fs-4 text-primary"></i>
                         </div>
                         <div>
-                            <h5 class="card-title mb-0">Ansattliste</h5>
+                            <h5 class="card-title mb-0">Brukermeny</h5>
                             <small class="text-muted">Brukere og registrering</small>
                         </div>
                     </div>
                     <ul class="list-unstyled text-muted small mb-3">
                         <li><i class="bi bi-check-circle text-success me-1"></i> {{ registered_count }} registrert</li>
-                        <li><i class="bi bi-hourglass-split text-warning me-1"></i> {{ pending_count }} venter på registrering</li>
+                        <li><i class="bi bi-hourglass-split text-warning me-1"></i> {{ pending_count }} venter på
+                            registrering</li>
                         <li><i class="bi bi-people text-secondary me-1"></i> {{ total_users }} totalt</li>
                     </ul>
                     <a href="{{ url_for('admin.manage_employees') }}" class="btn btn-primary mt-auto">
@@ -61,61 +62,16 @@
                         </div>
                     </div>
                     <ul class="list-unstyled text-muted small mb-3">
-                        <li><i class="bi bi-collection text-secondary me-1"></i> {{ turnus_sets|length }} turnussett</li>
+                        <li><i class="bi bi-collection text-secondary me-1"></i> {{ turnus_sets|length }} turnussett
+                        </li>
                         {% if active_set %}
-                            <li><i class="bi bi-play-circle text-success me-1"></i> Aktiv: {{ active_set.name }}</li>
+                        <li><i class="bi bi-play-circle text-success me-1"></i> Aktiv: {{ active_set.name }}</li>
                         {% else %}
-                            <li><i class="bi bi-slash-circle text-danger me-1"></i> Ingen aktiv turnus</li>
+                        <li><i class="bi bi-slash-circle text-danger me-1"></i> Ingen aktiv turnus</li>
                         {% endif %}
                     </ul>
                     <a href="{{ url_for('admin.manage_turnus_sets') }}" class="btn btn-info mt-auto">
                         <i class="bi bi-arrow-right-circle"></i> Administrer
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Autoriserte rullenummer -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
-                            <i class="bi bi-shield-check fs-4 text-warning"></i>
-                        </div>
-                        <div>
-                            <h5 class="card-title mb-0">Autoriserte rullenummer</h5>
-                            <small class="text-muted">Tidligere tilgangsliste (utgående)</small>
-                        </div>
-                    </div>
-                    <p class="text-muted small mb-3">
-                        Erstattet av ansattliste. Beholdes for bakoverkompatibilitet.
-                    </p>
-                    <a href="{{ url_for('admin.manage_authorized_emails') }}" class="btn btn-outline-warning mt-auto">
-                        <i class="bi bi-arrow-right-circle"></i> Åpne
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Opprett bruker -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
-                            <i class="bi bi-person-plus-fill fs-4 text-success"></i>
-                        </div>
-                        <div>
-                            <h5 class="card-title mb-0">Opprett bruker</h5>
-                            <small class="text-muted">Admin-opprettet konto</small>
-                        </div>
-                    </div>
-                    <p class="text-muted small mb-3">
-                        Opprett en bruker direkte uten selvregistrering.
-                    </p>
-                    <a href="{{ url_for('admin.create_user') }}" class="btn btn-success mt-auto">
-                        <i class="bi bi-arrow-right-circle"></i> Opprett
                     </a>
                 </div>
             </div>
@@ -135,11 +91,13 @@
                         </div>
                     </div>
                     <p class="text-muted small mb-3">
-                        Opprett en ferdig konfigurert testbruker (<strong>testbruker</strong> / <strong>test123</strong>)
-                        med 5 tilfeldige favoritter fra hvert turnussett. Eksisterende testbruker slettes og opprettes på nytt.
+                        Opprett en ferdig konfigurert testbruker (<strong>testbruker</strong> /
+                        <strong>test123</strong>)
+                        med 5 tilfeldige favoritter fra hvert turnussett. Eksisterende testbruker slettes og opprettes
+                        på nytt.
                     </p>
                     <form method="POST" action="{{ url_for('admin.create_test_user') }}" class="mt-auto"
-                          onsubmit="return confirm('Opprett/tilbakestill testbruker med tilfeldige favoritter?')">
+                        onsubmit="return confirm('Opprett/tilbakestill testbruker med tilfeldige favoritter?')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-outline-warning w-100">
                             <i class="bi bi-person-fill-gear"></i> Opprett testbruker
@@ -186,10 +144,11 @@
                         </div>
                     </div>
                     <p class="text-muted small mb-3">
-                        Tilbakestill omvisningen for alle brukere slik at den starter automatisk neste gang de logger inn.
+                        Tilbakestill omvisningen for alle brukere slik at den starter automatisk neste gang de logger
+                        inn.
                     </p>
                     <form method="POST" action="{{ url_for('admin.reset_tour') }}" class="mt-auto"
-                          onsubmit="return confirm('Er du sikker? Omvisningen vil starte på nytt for alle brukere.')">
+                        onsubmit="return confirm('Er du sikker? Omvisningen vil starte på nytt for alle brukere.')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-outline-secondary w-100">
                             <i class="bi bi-arrow-repeat"></i> Tilbakestill omvisning

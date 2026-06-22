@@ -1,6 +1,6 @@
 import secrets
 
-from flask import Blueprint, flash, redirect, render_template, session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, session, url_for
 from flask_login import current_user
 from flask_login import login_user as flask_login_user
 
@@ -101,6 +101,8 @@ def verify_email(token):
         if user_data:
             user = User(user_data["username"], user_data["id"], user_data["is_auth"])
             flask_login_user(user)
+            session.permanent = True
+            current_app.session_interface.regenerate(session)
             session['has_seen_tour'] = 0
             session['has_seen_favorites_tour'] = 0
             session['has_seen_mintur_tour'] = 0

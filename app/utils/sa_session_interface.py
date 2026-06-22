@@ -85,11 +85,7 @@ class SqlAlchemySessionInterface(SessionInterface):
                 response.delete_cookie(cookie_name, domain=domain, path=path)
             return
 
-        if session.permanent:
-            expiry = datetime.now(timezone.utc).replace(tzinfo=None) + app.permanent_session_lifetime
-        else:
-            # Non-permanent: cookie expires at browser close; server-side row lives for full lifetime.
-            expiry = datetime.now(timezone.utc).replace(tzinfo=None) + app.permanent_session_lifetime
+        expiry = datetime.now(timezone.utc).replace(tzinfo=None) + app.permanent_session_lifetime
 
         sid = session.sid
         data = pickle.dumps(dict(session))
@@ -97,6 +93,7 @@ class SqlAlchemySessionInterface(SessionInterface):
         from app.models import FlaskSessionModel
 
         db = SessionLocal()
+        session_saved = False
         try:
             row = db.query(FlaskSessionModel).filter_by(session_id=sid).first()
             if row is not None:
@@ -105,6 +102,7 @@ class SqlAlchemySessionInterface(SessionInterface):
             else:
                 db.add(FlaskSessionModel(session_id=sid, data=data, expiry=expiry))
             db.commit()
+            session_saved = True
         except IntegrityError:
             # Race: two threads created the same sid concurrently.
             db.rollback()
@@ -114,6 +112,7 @@ class SqlAlchemySessionInterface(SessionInterface):
                 row.expiry = expiry
                 try:
                     db.commit()
+                    session_saved = True
                 except Exception:
                     db.rollback()
         except Exception:
@@ -121,6 +120,9 @@ class SqlAlchemySessionInterface(SessionInterface):
             logger.exception("Session save failed")
         finally:
             db.close()
+
+        if not session_saved:
+            return
 
         if random.random() < self.cleanup_probability:
             self._delete_expired()

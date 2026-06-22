@@ -74,9 +74,19 @@ def manage_employees():
     excel_exists = os.path.exists(excel_path)
     excel_date = None
     if excel_exists:
-        excel_date = datetime.fromtimestamp(os.path.getmtime(excel_path)).strftime(
-            "%d.%m.%Y %H:%M"
-        )
+        try:
+            from openpyxl import load_workbook as _load_wb
+            wb = _load_wb(excel_path, read_only=True)
+            created = wb.properties.created
+            wb.close()
+            if created:
+                excel_date = created.strftime("%d.%m.%Y %H:%M")
+        except Exception:
+            pass
+        if not excel_date:
+            excel_date = datetime.fromtimestamp(os.path.getmtime(excel_path)).strftime(
+                "%d.%m.%Y %H:%M"
+            )
 
     review_list = [emp for emp in employees if emp.get("not_on_nlf_list")]
     member_report = session.pop("medlemsliste_report", None)

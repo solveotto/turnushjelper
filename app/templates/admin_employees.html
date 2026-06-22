@@ -3,44 +3,37 @@
 {% macro action_buttons(emp, missing=false) %}
 {# Eye + Edit are always shown #}
 <div class="btn-group btn-group-sm">
-    <a href="{{ url_for('admin.user_detail', user_id=emp.id) }}"
-       class="btn btn-outline-primary" title="Se detaljer">
+    <a href="{{ url_for('admin.user_detail', user_id=emp.id) }}" class="btn btn-outline-primary" title="Se detaljer">
         <i class="bi bi-eye"></i>
     </a>
-    <a href="{{ url_for('admin.edit_user', user_id=emp.id) }}"
-       class="btn btn-outline-secondary" title="Rediger">
+    <a href="{{ url_for('admin.edit_user', user_id=emp.id) }}" class="btn btn-outline-secondary" title="Rediger">
         <i class="bi bi-pencil"></i>
     </a>
     {% if emp.is_stub %}
-        {# Stub: only full delete (no credentials to reset) #}
-        <form method="POST"
-              action="{{ url_for('admin.delete_employee', user_id=emp.id) }}"
-              onsubmit="return confirm('Slette stub-bruker {{ emp.name }}?{% if missing %} NB: kan dukke opp igjen på neste PDF.{% endif %}')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-outline-danger" title="Slett">
-                <i class="bi bi-trash"></i>
-            </button>
-        </form>
+    {# Stub: only full delete (no credentials to reset) #}
+    <form method="POST" action="{{ url_for('admin.delete_employee', user_id=emp.id) }}"
+        onsubmit="return confirm('Slette stub-bruker {{ emp.name }}?{% if missing %} NB: kan dukke opp igjen på neste PDF.{% endif %}')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger" title="Slett">
+            <i class="bi bi-trash"></i>
+        </button>
+    </form>
     {% else %}
-        {# Registered user: reset to stub (keep favorites) OR full delete #}
-        <form method="POST"
-              action="{{ url_for('admin.reset_to_stub', user_id=emp.id) }}"
-              onsubmit="return confirm('Tilbakestille {{ emp.username }} til stub-bruker? Kontoen slettes, men favoritter beholdes.{% if missing %} Anbefalt fremfor full sletting — brukeren kan være midlertidig borte fra listen.{% endif %}')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-outline-warning"
-                    title="Slett konto, behold favoritter">
-                <i class="bi bi-person-slash"></i>
-            </button>
-        </form>
-        <form method="POST"
-              action="{{ url_for('admin.delete_user', user_id=emp.id) }}"
-              onsubmit="return confirm('Slette bruker {{ emp.username }} og ALLE favoritter permanent?{% if missing %} OBS: brukeren mangler bare fra siste PDF — vurder å bruke tilbakestilling i stedet.{% endif %} Denne handlingen kan ikke angres.')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-outline-danger"
-                    title="Slett bruker og alle favoritter">
-                <i class="bi bi-trash"></i>
-            </button>
-        </form>
+    {# Registered user: reset to stub (keep favorites) OR full delete #}
+    <form method="POST" action="{{ url_for('admin.reset_to_stub', user_id=emp.id) }}"
+        onsubmit="return confirm('Tilbakestille {{ emp.username }} til stub-bruker? Kontoen slettes, men favoritter beholdes.{% if missing %} Anbefalt fremfor full sletting — brukeren kan være midlertidig borte fra listen.{% endif %}')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-warning" title="Slett konto, behold favoritter">
+            <i class="bi bi-person-slash"></i>
+        </button>
+    </form>
+    <form method="POST" action="{{ url_for('admin.delete_user', user_id=emp.id) }}"
+        onsubmit="return confirm('Slette bruker {{ emp.username }} og ALLE favoritter permanent?{% if missing %} OBS: brukeren mangler bare fra siste PDF — vurder å bruke tilbakestilling i stedet.{% endif %} Denne handlingen kan ikke angres.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger" title="Slett bruker og alle favoritter">
+            <i class="bi bi-trash"></i>
+        </button>
+    </form>
     {% endif %}
 </div>
 {% endmacro %}
@@ -50,182 +43,22 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Ansattliste</h1>
-                <a
-                    href="{{ url_for('admin.admin_dashboard') }}"
-                    class="btn btn-secondary"
-                >
+                <h1>Brukermeny</h1>
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Tilbake til admin
                 </a>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %} {%
             if messages %} {% for category, message in messages %}
-            <div
-                class="alert alert-{{ category }} alert-dismissible fade show"
-                role="alert"
-            >
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                 {{ message }}
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="alert"
-                ></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             {% endfor %} {% endif %} {% endwith %}
 
-            <!-- Ansienitetsliste PDF -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Ansienitetsliste (PDF)</h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted small mb-3">
-                        Lagret PDF:
-                        <code>app/static/turnusfiler/ansinitet.pdf</code>
-                        {% if pdf_exists %}
-                        <span class="badge bg-success ms-2"
-                            ><i class="bi bi-check-circle"></i> Funnet</span
-                        >
-                        {% if pdf_date %}
-                        <span class="badge bg-secondary ms-1"
-                            ><i class="bi bi-calendar3 me-1"></i>{{ pdf_date }}</span
-                        >
-                        {% endif %}
-                        {% else %}
-                        <span class="badge bg-danger ms-2"
-                            ><i class="bi bi-x-circle"></i> Ikke lastet
-                            opp</span
-                        >
-                        {% endif %}
-                    </p>
 
-                    <div class="row g-3">
-                        <!-- Upload new PDF -->
-                        <div class="col-md-5">
-                            <div class="border rounded p-3 h-100">
-                                <h6 class="mb-2">
-                                    <i
-                                        class="bi bi-upload text-primary me-1"
-                                    ></i>
-                                    Last opp ny PDF
-                                </h6>
-                                <p class="text-muted small mb-2">
-                                    Lagrer filen og synkroniserer ansattlisten
-                                    automatisk.
-                                </p>
-                                <form
-                                    method="POST"
-                                    action="{{ url_for('admin.upload_ansinitet_pdf') }}"
-                                    enctype="multipart/form-data"
-                                >
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <div class="input-group">
-                                        <input
-                                            type="file"
-                                            class="form-control form-control-sm"
-                                            name="pdf_file"
-                                            accept=".pdf"
-                                            required
-                                        />
-                                        <button
-                                            type="submit"
-                                            class="btn btn-primary btn-sm"
-                                        >
-                                            <i class="bi bi-cloud-upload"></i>
-                                            Last opp og synkroniser
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Sync / Import from existing PDF -->
-                        <div class="col-md-7">
-                            <div class="border rounded p-3 h-100">
-                                <h6 class="mb-2">
-                                    <i
-                                        class="bi bi-arrow-repeat text-warning me-1"
-                                    ></i>
-                                    Bruk eksisterende PDF
-                                </h6>
-                                <p class="text-muted small mb-2">
-                                    Kjør mot den allerede lagrede filen.
-                                </p>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <div>
-                                        <form
-                                            method="POST"
-                                            action="{{ url_for('admin.sync_employees') }}"
-                                            onsubmit="
-                                                return confirm(
-                                                    'Synkroniser fra PDF? Nye legges til og eksisterende data oppdateres.',
-                                                );
-                                            "
-                                        >
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button
-                                                type="submit"
-                                                class="btn btn-warning btn-sm"
-                                                {%
-                                                if
-                                                not
-                                                pdf_exists
-                                                %}disabled{%
-                                                endif
-                                                %}
-                                            >
-                                                <i
-                                                    class="bi bi-arrow-repeat"
-                                                ></i>
-                                                Synkroniser
-                                            </button>
-                                        </form>
-                                        <small class="text-muted d-block mt-1"
-                                            >Legger til nye + oppdaterer endret
-                                            data</small
-                                        >
-                                    </div>
-                                    <div>
-                                        <form
-                                            method="POST"
-                                            action="{{ url_for('admin.import_employees') }}"
-                                            onsubmit="
-                                                return confirm(
-                                                    'Importer kun nye ansatte fra PDF?',
-                                                );
-                                            "
-                                        >
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button
-                                                type="submit"
-                                                class="btn btn-outline-secondary btn-sm"
-                                                {%
-                                                if
-                                                not
-                                                pdf_exists
-                                                %}disabled{%
-                                                endif
-                                                %}
-                                            >
-                                                <i
-                                                    class="bi bi-file-earmark-plus"
-                                                ></i>
-                                                Kun nye
-                                            </button>
-                                        </form>
-                                        <small class="text-muted d-block mt-1"
-                                            >Hopper over eksisterende</small
-                                        >
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- NLF medlemsliste (Excel) -->
+                <!-- NLF medlemsliste (Excel) -->
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">NLF medlemsliste (Excel)</h5>
@@ -235,19 +68,14 @@
                         Lagret fil:
                         <code>app/static/turnusfiler/medlemsliste.xlsx</code>
                         {% if excel_exists %}
-                        <span class="badge bg-success ms-2"
-                            ><i class="bi bi-check-circle"></i> Funnet</span
-                        >
+                        <span class="badge bg-success ms-2"><i class="bi bi-check-circle"></i> Funnet</span>
                         {% if excel_date %}
-                        <span class="badge bg-secondary ms-1"
-                            ><i class="bi bi-calendar3 me-1"></i>{{ excel_date }}</span
-                        >
+                        <span class="badge bg-secondary ms-1"><i class="bi bi-calendar3 me-1"></i>{{ excel_date
+                            }}</span>
                         {% endif %}
                         {% else %}
-                        <span class="badge bg-danger ms-2"
-                            ><i class="bi bi-x-circle"></i> Ikke lastet
-                            opp</span
-                        >
+                        <span class="badge bg-danger ms-2"><i class="bi bi-x-circle"></i> Ikke lastet
+                            opp</span>
                         {% endif %}
                     </p>
                     <p class="text-muted small mb-2">
@@ -266,21 +94,13 @@
                                     <i class="bi bi-upload text-primary me-1"></i>
                                     Last opp ny fil
                                 </h6>
-                                <form
-                                    method="POST"
-                                    action="{{ url_for('admin.upload_member_excel') }}"
+                                <form method="POST" action="{{ url_for('admin.upload_member_excel') }}"
                                     enctype="multipart/form-data"
-                                    onsubmit="return confirm('Importere medlemslisten? Uregistrerte stubber som ikke står på listen slettes.')"
-                                >
+                                    onsubmit="return confirm('Importere medlemslisten? Uregistrerte stubber som ikke står på listen slettes.')">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div class="input-group">
-                                        <input
-                                            type="file"
-                                            class="form-control form-control-sm"
-                                            name="excel_file"
-                                            accept=".xlsx"
-                                            required
-                                        />
+                                        <input type="file" class="form-control form-control-sm" name="excel_file"
+                                            accept=".xlsx" required />
                                         <button type="submit" class="btn btn-primary btn-sm">
                                             <i class="bi bi-cloud-upload"></i>
                                             Last opp og importer
@@ -298,14 +118,11 @@
                                 <p class="text-muted small mb-2">
                                     Kjør mot den allerede lagrede filen.
                                 </p>
-                                <form
-                                    method="POST"
-                                    action="{{ url_for('admin.sync_members') }}"
-                                    onsubmit="return confirm('Synkronisere fra lagret medlemsliste? Uregistrerte stubber som ikke står på listen slettes.')"
-                                >
+                                <form method="POST" action="{{ url_for('admin.sync_members') }}"
+                                    onsubmit="return confirm('Synkronisere fra lagret medlemsliste? Uregistrerte stubber som ikke står på listen slettes.')">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-warning btn-sm"
-                                            {% if not excel_exists %}disabled{% endif %}>
+                                    <button type="submit" class="btn btn-warning btn-sm" {% if not excel_exists
+                                        %}disabled{% endif %}>
                                         <i class="bi bi-arrow-repeat"></i>
                                         Synkroniser
                                     </button>
@@ -315,6 +132,107 @@
                     </div>
                 </div>
             </div>
+
+
+
+
+            <!-- Ansienitetsliste PDF -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ansienitetsliste (PDF)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Lagret PDF:
+                        <code>app/static/turnusfiler/ansinitet.pdf</code>
+                        {% if pdf_exists %}
+                        <span class="badge bg-success ms-2"><i class="bi bi-check-circle"></i> Funnet</span>
+                        {% if pdf_date %}
+                        <span class="badge bg-secondary ms-1"><i class="bi bi-calendar3 me-1"></i>{{ pdf_date }}</span>
+                        {% endif %}
+                        {% else %}
+                        <span class="badge bg-danger ms-2"><i class="bi bi-x-circle"></i> Ikke lastet
+                            opp</span>
+                        {% endif %}
+                    </p>
+
+                    <div class="row g-3">
+                        <!-- Upload new PDF -->
+                        <div class="col-md-5">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="mb-2">
+                                    <i class="bi bi-upload text-primary me-1"></i>
+                                    Last opp ny PDF
+                                </h6>
+                                <p class="text-muted small mb-2">
+                                    Lagrer filen og synkroniserer ansattlisten
+                                    automatisk.
+                                </p>
+                                <form method="POST" action="{{ url_for('admin.upload_ansinitet_pdf') }}"
+                                    enctype="multipart/form-data">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="input-group">
+                                        <input type="file" class="form-control form-control-sm" name="pdf_file"
+                                            accept=".pdf" required />
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-cloud-upload"></i>
+                                            Last opp og synkroniser
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Sync / Import from existing PDF -->
+                        <div class="col-md-7">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="mb-2">
+                                    <i class="bi bi-arrow-repeat text-warning me-1"></i>
+                                    Bruk eksisterende PDF
+                                </h6>
+                                <p class="text-muted small mb-2">
+                                    Kjør mot den allerede lagrede filen.
+                                </p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <div>
+                                        <form method="POST" action="{{ url_for('admin.sync_employees') }}" onsubmit="
+                                                return confirm(
+                                                    'Synkroniser fra PDF? Nye legges til og eksisterende data oppdateres.',
+                                                );
+                                            ">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-warning btn-sm" {% if not pdf_exists
+                                                %}disabled{% endif %}>
+                                                <i class="bi bi-arrow-repeat"></i>
+                                                Synkroniser
+                                            </button>
+                                        </form>
+                                        <small class="text-muted d-block mt-1">Legger til nye + oppdaterer endret
+                                            data</small>
+                                    </div>
+                                    <div>
+                                        <form method="POST" action="{{ url_for('admin.import_employees') }}" onsubmit="
+                                                return confirm(
+                                                    'Importer kun nye ansatte fra PDF?',
+                                                );
+                                            ">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm" {% if not
+                                                pdf_exists %}disabled{% endif %}>
+                                                <i class="bi bi-file-earmark-plus"></i>
+                                                Kun nye
+                                            </button>
+                                        </form>
+                                        <small class="text-muted d-block mt-1">Hopper over eksisterende</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
 
             {% if member_report %}
             <!-- Member list import report -->
@@ -338,7 +256,8 @@
                         <span class="badge bg-danger">{{ member_report.deleted_stubs }} stubber slettet</span>
                         {% endif %}
                         {% if member_report.skipped_invalid %}
-                        <span class="badge bg-warning text-dark">{{ member_report.skipped_invalid }} ugyldige rader</span>
+                        <span class="badge bg-warning text-dark">{{ member_report.skipped_invalid }} ugyldige
+                            rader</span>
                         {% endif %}
                     </div>
 
@@ -350,7 +269,11 @@
                     <div class="table-responsive mb-3">
                         <table class="table table-sm mb-0">
                             <thead>
-                                <tr><th>Navn</th><th>Medlemsnr</th><th>Årsak</th></tr>
+                                <tr>
+                                    <th>Navn</th>
+                                    <th>Medlemsnr</th>
+                                    <th>Årsak</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {% for c in member_report.conflicts %}
@@ -373,7 +296,11 @@
                     <div class="table-responsive mb-3">
                         <table class="table table-sm mb-0">
                             <thead>
-                                <tr><th>Navn</th><th>Status</th><th>Felter oppdatert</th></tr>
+                                <tr>
+                                    <th>Navn</th>
+                                    <th>Status</th>
+                                    <th>Felter oppdatert</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {% for u in member_report.updated_users %}
@@ -381,9 +308,9 @@
                                     <td>{{ u.name }}</td>
                                     <td>
                                         {% if u.is_stub %}
-                                            <span class="badge bg-secondary">Stub</span>
+                                        <span class="badge bg-secondary">Stub</span>
                                         {% else %}
-                                            <span class="badge bg-success">Registrert</span>
+                                        <span class="badge bg-success">Registrert</span>
                                         {% endif %}
                                     </td>
                                     <td><code>{{ u.fields | join(', ') }}</code></td>
@@ -402,9 +329,8 @@
                             Ikke på medlemslisten ({{ member_report.not_on_list|length }})
                         </h6>
                         {% if stub_not_on_list %}
-                        <form method="POST"
-                              action="{{ url_for('admin.bulk_delete_stubs') }}"
-                              onsubmit="return confirm('Slette {{ stub_not_on_list|length }} stub-brukere som ikke er på medlemslisten? Registrerte brukere berøres ikke.')">
+                        <form method="POST" action="{{ url_for('admin.bulk_delete_stubs') }}"
+                            onsubmit="return confirm('Slette {{ stub_not_on_list|length }} stub-brukere som ikke er på medlemslisten? Registrerte brukere berøres ikke.')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             {% for u in stub_not_on_list %}
                             <input type="hidden" name="user_ids" value="{{ u.id }}">
@@ -438,9 +364,9 @@
                                     <td>{{ u.name or u.username }}</td>
                                     <td>
                                         {% if u.is_stub %}
-                                            <span class="badge bg-secondary">Stub</span>
+                                        <span class="badge bg-secondary">Stub</span>
                                         {% else %}
-                                            <span class="badge bg-success">Registrert</span>
+                                        <span class="badge bg-success">Registrert</span>
                                         {% endif %}
                                     </td>
                                     <td class="text-muted">{{ u.username }}</td>
@@ -467,43 +393,44 @@
                         <div class="row g-2">
                             <div class="col-md-1">
                                 <label class="form-label mb-1">Nr.</label>
-                                <input type="number" class="form-control form-control-sm"
-                                       name="seniority_nr" placeholder="1" />
+                                <input type="number" class="form-control form-control-sm" name="seniority_nr"
+                                    placeholder="1" />
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label mb-1">NLF-medlemsnr. <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm"
-                                       name="medlemsnummer" required placeholder="68588" />
+                                <input type="text" class="form-control form-control-sm" name="medlemsnummer" required
+                                    placeholder="68588" />
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label mb-1">Rullenr.</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       name="rullenummer" placeholder="12345" />
+                                <input type="text" class="form-control form-control-sm" name="rullenummer"
+                                    placeholder="12345" />
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label mb-1">Etternavn <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm"
-                                       name="etternavn" required placeholder="Nordmann" />
+                                <input type="text" class="form-control form-control-sm" name="etternavn" required
+                                    placeholder="Nordmann" />
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label mb-1">For- og mellomnavn <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm"
-                                       name="fornavn" required placeholder="Ola" />
+                                <label class="form-label mb-1">For- og mellomnavn <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" name="fornavn" required
+                                    placeholder="Ola" />
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label mb-1">Stasjoneringssted</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       name="stasjoneringssted" placeholder="OSLO" />
+                                <input type="text" class="form-control form-control-sm" name="stasjoneringssted"
+                                    placeholder="OSLO" />
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label mb-1">Ans.dato</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       name="ans_dato" placeholder="DD.MM.YYYY" />
+                                <input type="text" class="form-control form-control-sm" name="ans_dato"
+                                    placeholder="DD.MM.YYYY" />
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label mb-1">Fødselsdato</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       name="fodt_dato" placeholder="DD.MM.YYYY" />
+                                <input type="text" class="form-control form-control-sm" name="fodt_dato"
+                                    placeholder="DD.MM.YYYY" />
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-success btn-sm w-100">
@@ -524,18 +451,17 @@
                             <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
                             Til gjennomgang — ikke på NLF-liste ({{ review_list|length }})
                         </h5>
-                        <small class="text-muted">Disse brukerne er i systemet men ble ikke funnet ved siste NLF-synkronisering. De er sperret fra innlogging.</small>
+                        <small class="text-muted">Disse brukerne er i systemet men ble ikke funnet ved siste
+                            NLF-synkronisering. De er sperret fra innlogging.</small>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{{ url_for('admin.export_review_list') }}"
-                           class="btn btn-sm btn-outline-secondary">
+                        <a href="{{ url_for('admin.export_review_list') }}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-file-earmark-pdf"></i> Eksporter PDF
                         </a>
                         {% set review_stubs = review_list | selectattr('is_stub') | list %}
                         {% if review_stubs %}
-                        <form method="POST"
-                              action="{{ url_for('admin.bulk_delete_review') }}"
-                              onsubmit="return confirm('Slette alle {{ review_stubs|length }} stub-brukere som ikke er på NLF-listen? Registrerte brukere berøres ikke.')">
+                        <form method="POST" action="{{ url_for('admin.bulk_delete_review') }}"
+                            onsubmit="return confirm('Slette alle {{ review_stubs|length }} stub-brukere som ikke er på NLF-listen? Registrerte brukere berøres ikke.')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger">
                                 <i class="bi bi-trash"></i> Slett alle stubs ({{ review_stubs|length }})
@@ -566,9 +492,9 @@
                                     <td>{{ emp.fornavn }}</td>
                                     <td>
                                         {% if emp.is_registered %}
-                                            <span class="badge bg-success">Registrert</span>
+                                        <span class="badge bg-success">Registrert</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">Stub</span>
+                                        <span class="badge bg-secondary">Stub</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ emp.rullenummer or "—" }}</td>
@@ -578,11 +504,11 @@
                                     <td>
                                         <div class="d-flex gap-1">
                                             <form method="POST"
-                                                  action="{{ url_for('admin.revert_nlf_review', user_id=emp.id) }}"
-                                                  onsubmit="return confirm('Gjenopprette {{ emp.name }} til normal status? Brukeren vil kunne logge inn igjen. NB: ved neste NLF-synkronisering kan brukeren bli flagget igjen hvis de fortsatt mangler fra listen.')">
+                                                action="{{ url_for('admin.revert_nlf_review', user_id=emp.id) }}"
+                                                onsubmit="return confirm('Gjenopprette {{ emp.name }} til normal status? Brukeren vil kunne logge inn igjen. NB: ved neste NLF-synkronisering kan brukeren bli flagget igjen hvis de fortsatt mangler fra listen.')">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <button type="submit" class="btn btn-sm btn-outline-success"
-                                                        title="Gjenopprett">
+                                                    title="Gjenopprett">
                                                     <i class="bi bi-arrow-counterclockwise"></i>
                                                 </button>
                                             </form>
@@ -704,11 +630,11 @@
                     </h5>
                     <div class="d-flex align-items-center gap-3">
                         <span class="text-muted small">Mangler i sist synkroniserte PDF</span>
-                        {% set cleanup_count = not_on_list | selectattr('is_stub') | rejectattr('medlemsnummer') | list | length %}
+                        {% set cleanup_count = not_on_list | selectattr('is_stub') | rejectattr('medlemsnummer') | list
+                        | length %}
                         {% if cleanup_count %}
-                        <form method="POST"
-                              action="{{ url_for('admin.cleanup_missing_stubs') }}"
-                              onsubmit="return confirm('Slette {{ cleanup_count }} uregistrerte stub-brukere som mangler fra ansattlisten? Registrerte brukere berøres ikke.')">
+                        <form method="POST" action="{{ url_for('admin.cleanup_missing_stubs') }}"
+                            onsubmit="return confirm('Slette {{ cleanup_count }} uregistrerte stub-brukere som mangler fra ansattlisten? Registrerte brukere berøres ikke.')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-warning btn-sm">
                                 <i class="bi bi-trash me-1"></i>
@@ -741,9 +667,9 @@
                                     <td><code>{{ emp.rullenummer or '-' }}</code></td>
                                     <td>
                                         {% if emp.is_registered %}
-                                            <span class="badge bg-success">Registrert</span>
+                                        <span class="badge bg-success">Registrert</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">Ikke registrert</span>
+                                        <span class="badge bg-secondary">Ikke registrert</span>
                                         {% endif %}
                                     </td>
                                     <td class="text-muted">
@@ -764,7 +690,8 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 text-muted">Systembrukere ({{ system_list|length }})</h5>
-                    <small class="text-muted">Kontoer uten NLF-medlemsnummer og rullenummer — administratorer o.l.</small>
+                    <small class="text-muted">Kontoer uten NLF-medlemsnummer og rullenummer — administratorer
+                        o.l.</small>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm mb-0">
@@ -783,25 +710,24 @@
                                 <td class="text-muted">{{ u.email or '-' }}</td>
                                 <td>
                                     {% if u.is_auth %}
-                                        <span class="badge bg-warning text-dark">Administrator</span>
+                                    <span class="badge bg-warning text-dark">Administrator</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">Bruker</span>
+                                    <span class="badge bg-secondary">Bruker</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ url_for('admin.user_detail', user_id=u.id) }}"
-                                           class="btn btn-outline-primary" title="Se detaljer">
+                                            class="btn btn-outline-primary" title="Se detaljer">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <a href="{{ url_for('admin.edit_user', user_id=u.id) }}"
-                                           class="btn btn-outline-secondary" title="Rediger">
+                                            class="btn btn-outline-secondary" title="Rediger">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         {% if u.id != current_user.id %}
-                                        <form method="POST"
-                                              action="{{ url_for('admin.delete_user', user_id=u.id) }}"
-                                              onsubmit="return confirm('Slette systembruker {{ u.username }}?')">
+                                        <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                                            onsubmit="return confirm('Slette systembruker {{ u.username }}?')">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Slett">
                                                 <i class="bi bi-trash"></i>
@@ -809,9 +735,8 @@
                                         </form>
                                         {% else %}
                                         <button type="button" class="btn btn-outline-danger disabled"
-                                                title="Du kan ikke slette din egen konto"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-placement="top">
+                                            title="Du kan ikke slette din egen konto" data-bs-toggle="tooltip"
+                                            data-bs-placement="top">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                         {% endif %}
