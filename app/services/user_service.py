@@ -649,9 +649,16 @@ def sync_members_from_excel(members: list) -> dict:
         users = db_session.query(DBUser).all()
         by_mnr = {u.medlemsnummer: u for u in users if u.medlemsnummer}
         by_name = {}
+        by_stub_lastname_words = {}  # normalized last-name word → stub list
+        by_stub_ans_dato = {}        # ans_dato string → stub list
         for u in users:
             if u.name:
                 by_name.setdefault(_normalize_name(u.name), []).append(u)
+            if (u.is_stub or 0) == 1 and u.name and "," in u.name:
+                for w in _normalize_name(u.name.split(",", 1)[0].strip()).split():
+                    by_stub_lastname_words.setdefault(w, []).append(u)
+                if u.ans_dato:
+                    by_stub_ans_dato.setdefault(u.ans_dato, []).append(u)
 
         seen_mnr = set()
         claimed_user_ids = set()
@@ -844,6 +851,69 @@ def sync_members_from_excel(members: list) -> dict:
                                    fodt_dato=fodt_dato,
                                    stasjoneringssted=stasjoneringssted)
             else:
+                # Fuzzy fallback B: last-name word overlap + ans_dato match
+                # (safer — date is a strong anchor; handles compound last names)
+                fuzzy_by_date = []
+                if ans_dato and "," in name:
+                    nlf_last_words = set(
+                        _normalize_name(name.split(",", 1)[0].strip()).split()
+                    )
+                    for u in by_stub_ans_dato.get(ans_dato, []):
+                        if u.id in claimed_user_ids or u.id in deleted_user_ids:
+                            continue
+                        if not u.name or "," not in u.name:
+                            continue
+                        db_last_words = set(
+                            _normalize_name(u.name.split(",", 1)[0].strip()).split()
+                        )
+                        if nlf_last_words & db_last_words:
+                            fuzzy_by_date.append(u)
+
+                if len(fuzzy_by_date) == 1:
+                    stub = fuzzy_by_date[0]
+                    stub.name = name
+                    stub.medlemsnummer = mnr
+                    by_mnr[mnr] = stub
+                    claimed_user_ids.add(stub.id)
+                    for attr, val in hr_fields:
+                        if val is not None:
+                            setattr(stub, attr, val)
+                    absorb_twins(stub, norm)
+                    matched += 1
+                    continue
+
+                # Fuzzy fallback A: exact last name + first-name prefix
+                # (no date available; handles PDF stubs missing middle names)
+                fuzzy_by_first = []
+                if "," in name:
+                    nlf_last = _normalize_name(name.split(",", 1)[0].strip())
+                    nlf_first = _normalize_name(name.split(",", 1)[1].strip())
+                    for w in nlf_last.split():
+                        for u in by_stub_lastname_words.get(w, []):
+                            if u.id in claimed_user_ids or u.id in deleted_user_ids:
+                                continue
+                            if not u.name or "," not in u.name:
+                                continue
+                            db_last = _normalize_name(u.name.split(",", 1)[0].strip())
+                            db_first = _normalize_name(u.name.split(",", 1)[1].strip())
+                            if db_last == nlf_last:
+                                if nlf_first.startswith(db_first) or db_first.startswith(nlf_first):
+                                    if u not in fuzzy_by_first:
+                                        fuzzy_by_first.append(u)
+
+                if len(fuzzy_by_first) == 1:
+                    stub = fuzzy_by_first[0]
+                    stub.name = name
+                    stub.medlemsnummer = mnr
+                    by_mnr[mnr] = stub
+                    claimed_user_ids.add(stub.id)
+                    for attr, val in hr_fields:
+                        if val is not None:
+                            setattr(stub, attr, val)
+                    absorb_twins(stub, norm)
+                    matched += 1
+                    continue
+
                 create_member_stub(name, mnr, ans_dato=ans_dato,
                                    fodt_dato=fodt_dato,
                                    stasjoneringssted=stasjoneringssted)

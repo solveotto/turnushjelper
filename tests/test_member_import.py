@@ -390,3 +390,53 @@ class TestExcelThenPdfMerge:
         assert len(users) == 1
         assert users[0].medlemsnummer == "60054"
         assert users[0].rullenummer is None
+
+
+class TestFuzzyNameMatching:
+    """NLF import fuzzy fallbacks for stubs created by old PDF sync."""
+
+    def test_fuzzy_match_stub_with_middle_name(self, patch_db, db_session):
+        # Old PDF stub has short first name; NLF has full name with middle name.
+        add_user(db_session, "__stub_111", name="Andersen, Erik",
+                 rullenummer="111", is_stub=1)
+        report = user_service.sync_members_from_excel(
+            [{"name": "Andersen, Erik Magnus", "medlemsnummer": "60099"}]
+        )
+        assert report["matched"] == 1
+        assert report["created"] == 0
+        db_session.expire_all()
+        stub = db_session.query(DBUser).filter_by(rullenummer="111").first()
+        assert stub is not None
+        assert stub.name == "Andersen, Erik Magnus"
+        assert stub.medlemsnummer == "60099"
+
+    def test_fuzzy_match_stub_by_lastname_word_and_date(self, patch_db, db_session):
+        # PDF stub has one part of a compound last name; NLF has both parts.
+        add_user(db_session, "__stub_222", name="Nielsen, Kari",
+                 rullenummer="222", ans_dato="01.01.2020", is_stub=1)
+        report = user_service.sync_members_from_excel([{
+            "name": "Nielsen Andersen, Kari",
+            "medlemsnummer": "60100",
+            "ans_dato": "01.01.2020",
+        }])
+        assert report["matched"] == 1
+        assert report["created"] == 0
+        db_session.expire_all()
+        stub = db_session.query(DBUser).filter_by(rullenummer="222").first()
+        assert stub is not None
+        assert stub.name == "Nielsen Andersen, Kari"
+        assert stub.medlemsnummer == "60100"
+
+    def test_fuzzy_match_ambiguous_does_not_merge(self, patch_db, db_session):
+        # Two stubs with the same last-name word and date → ambiguous, create new stub.
+        add_user(db_session, "__stub_333", name="Hansen, Per",
+                 rullenummer="333", ans_dato="05.05.2018", is_stub=1)
+        add_user(db_session, "__stub_334", name="Hansen, Per",
+                 rullenummer="334", ans_dato="05.05.2018", is_stub=1)
+        report = user_service.sync_members_from_excel([{
+            "name": "Hansen, Per Erik",
+            "medlemsnummer": "60101",
+            "ans_dato": "05.05.2018",
+        }])
+        assert report["created"] == 1
+        assert report["matched"] == 0
