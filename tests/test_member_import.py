@@ -427,6 +427,27 @@ class TestFuzzyNameMatching:
         assert stub.name == "Nielsen Andersen, Kari"
         assert stub.medlemsnummer == "60100"
 
+    def test_exact_match_absorbs_compound_lastname_stub(self, patch_db, db_session):
+        # NLF has "Nyhagen, Ove" (short), PDF stub has "Farestveit Nyhagen, Ove"
+        # with same ans_dato. The NLF row matches the NLF stub by exact name,
+        # then absorb_fuzzy_twins should pull in the PDF stub's rullenummer.
+        add_user(db_session, "__stub_m69496", name="Nyhagen, Ove",
+                 medlemsnummer="69496", is_stub=1)
+        add_user(db_session, "__stub_555", name="Farestveit Nyhagen, Ove",
+                 rullenummer="555", ans_dato="30.10.2023", seniority_nr=10, is_stub=1)
+        report = user_service.sync_members_from_excel([{
+            "name": "Nyhagen, Ove",
+            "medlemsnummer": "69496",
+            "ans_dato": "30.10.2023",
+        }])
+        assert report["deleted_stubs"] == 1
+        db_session.expire_all()
+        users = db_session.query(DBUser).filter_by(name="Nyhagen, Ove").all()
+        assert len(users) == 1
+        assert users[0].medlemsnummer == "69496"
+        assert users[0].rullenummer == "555"
+        assert users[0].seniority_nr == 10
+
     def test_fuzzy_match_ambiguous_does_not_merge(self, patch_db, db_session):
         # Two stubs with the same last-name word and date → ambiguous, create new stub.
         add_user(db_session, "__stub_333", name="Hansen, Per",

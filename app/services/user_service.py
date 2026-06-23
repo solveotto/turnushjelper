@@ -717,6 +717,34 @@ def sync_members_from_excel(members: list) -> dict:
                         setattr(target, attr, getattr(twin, attr))
                 delete_stub(twin)
 
+        def absorb_fuzzy_twins(target, stub_ans_dato):
+            """Absorb stubs that share an ans_dato and at least one last-name
+            word with the target — handles compound/hyphenated last names where
+            the PDF stub and the NLF stub don't share an exact name."""
+            if not stub_ans_dato or not target.name or "," not in target.name:
+                return
+            target_last_words = set(
+                _normalize_name(target.name.split(",", 1)[0].strip()).split()
+            )
+            for u in by_stub_ans_dato.get(stub_ans_dato, []):
+                if u.id == target.id:
+                    continue
+                if u.id in deleted_user_ids or u.id in claimed_user_ids:
+                    continue
+                if not u.name or "," not in u.name:
+                    continue
+                u_last_words = set(
+                    _normalize_name(u.name.split(",", 1)[0].strip()).split()
+                )
+                if target_last_words & u_last_words:
+                    for attr in ("rullenummer", "stasjoneringssted", "ans_dato",
+                                 "fodt_dato", "seniority_nr"):
+                        if getattr(target, attr) in (None, "") and getattr(
+                            u, attr
+                        ) not in (None, ""):
+                            setattr(target, attr, getattr(u, attr))
+                    delete_stub(u)
+
         for member in members:
             name = (member.get("name") or "").strip()
             mnr = str(member.get("medlemsnummer") or "").strip()
@@ -759,6 +787,7 @@ def sync_members_from_excel(members: list) -> dict:
                                 setattr(owner, attr, val)
                                 fields_changed.append(attr)
                     absorb_twins(owner, norm)
+                    absorb_fuzzy_twins(owner, ans_dato)
                     if fields_changed:
                         updated += 1
                         updated_users.append({
@@ -787,6 +816,7 @@ def sync_members_from_excel(members: list) -> dict:
                                 setattr(owner, attr, val)
                                 fields_changed.append(attr)
                         absorb_twins(owner, norm)
+                        absorb_fuzzy_twins(owner, ans_dato)
                         matched += 1
                         if fields_changed:
                             updated_users.append({
@@ -834,6 +864,7 @@ def sync_members_from_excel(members: list) -> dict:
                     if val is not None and not getattr(target, attr):
                         setattr(target, attr, val)
                 absorb_twins(target, norm)
+                absorb_fuzzy_twins(target, ans_dato)
                 matched += 1
             elif len(stub_twins) == 1:
                 stub = stub_twins[0]
@@ -843,6 +874,8 @@ def sync_members_from_excel(members: list) -> dict:
                 for attr, val in hr_fields:
                     if val is not None:
                         setattr(stub, attr, val)
+                absorb_twins(stub, norm)
+                absorb_fuzzy_twins(stub, ans_dato)
                 matched += 1
             elif stub_twins:
                 for stub in stub_twins:
@@ -879,6 +912,7 @@ def sync_members_from_excel(members: list) -> dict:
                         if val is not None:
                             setattr(stub, attr, val)
                     absorb_twins(stub, norm)
+                    absorb_fuzzy_twins(stub, ans_dato)
                     matched += 1
                     continue
 
@@ -911,6 +945,7 @@ def sync_members_from_excel(members: list) -> dict:
                         if val is not None:
                             setattr(stub, attr, val)
                     absorb_twins(stub, norm)
+                    absorb_fuzzy_twins(stub, ans_dato)
                     matched += 1
                     continue
 
