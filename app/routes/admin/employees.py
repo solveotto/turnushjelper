@@ -475,6 +475,15 @@ def bulk_delete_review():
     return redirect(url_for("admin.manage_employees"))
 
 
+@admin.route("/delete-all-stubs", methods=["POST"])
+@admin_required
+def delete_all_stubs():
+    """Delete every stub user regardless of NLF-list status."""
+    success, message, _count = user_service.delete_all_stubs()
+    flash(message, "success" if success else "danger")
+    return redirect(url_for("admin.manage_employees"))
+
+
 @admin.route("/export-review-list")
 @admin_required
 def export_review_list():

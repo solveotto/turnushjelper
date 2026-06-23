@@ -1270,6 +1270,28 @@ def delete_stub_users(user_ids):
         db_session.close()
 
 
+def delete_all_stubs() -> tuple[bool, str, int]:
+    """Delete every stub user (is_stub=1). Registered users are never touched."""
+    from app.models import Favorites as FavModel
+
+    db_session = get_db_session()
+    try:
+        stub_ids = [row.id for row in db_session.query(DBUser.id).filter_by(is_stub=1).all()]
+        if not stub_ids:
+            return True, "Ingen stub-brukere å slette.", 0
+        db_session.query(FavModel).filter(FavModel.user_id.in_(stub_ids)).delete(synchronize_session=False)
+        db_session.query(DBUser).filter(DBUser.id.in_(stub_ids)).delete(synchronize_session=False)
+        db_session.commit()
+        logger.info("delete_all_stubs: deleted %d stub users", len(stub_ids))
+        return True, f"{len(stub_ids)} stub-brukere slettet.", len(stub_ids)
+    except Exception as e:
+        db_session.rollback()
+        logger.error("Error deleting all stubs: %s", e)
+        return False, f"Feil ved sletting: {e}", 0
+    finally:
+        db_session.close()
+
+
 def reset_user_to_stub(user_id):
     """Reset a registered user back to stub state, preserving all their favorites.
 
