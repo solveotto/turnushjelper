@@ -449,10 +449,8 @@ def sync_employees_from_scrape(employees: list) -> dict:
                     last_norm = _normalize_name(last_part.strip())
                     if u.ans_dato:
                         by_lastname.setdefault(last_norm, []).append(u)
-                    first_word = first_part.strip().split()[0] if first_part.strip() else ""
-                    if first_word:
-                        key = (last_norm, _normalize_name(first_word))
-                        by_first_last.setdefault(key, []).append(u)
+                    for word in _normalize_name(first_part).split():
+                        by_first_last.setdefault((last_norm, word), []).append(u)
             if u.ans_dato:
                 by_date.setdefault(u.ans_dato, []).append(u)
         merged_ids = set()
@@ -496,11 +494,14 @@ def sync_employees_from_scrape(employees: list) -> dict:
                     merged_by_name += 1
 
             if user is None and etternavn and fornavn:
-                first_word = _normalize_name(fornavn.split()[0])
-                key = (_normalize_name(etternavn), first_word)
-                fl_candidates = [u for u in by_first_last.get(key, []) if u.id not in merged_ids]
-                if len(fl_candidates) == 1:
-                    user = fl_candidates[0]
+                last_norm = _normalize_name(etternavn)
+                fl_seen = {}
+                for word in _normalize_name(fornavn).split():
+                    for u in by_first_last.get((last_norm, word), []):
+                        if u.id not in merged_ids:
+                            fl_seen[u.id] = u
+                if len(fl_seen) == 1:
+                    user = next(iter(fl_seen.values()))
                     user.rullenummer = rullenummer
                     merged_ids.add(user.id)
                     merged_by_name += 1
@@ -628,12 +629,12 @@ def normalize_medlemsnummer(value):
 
 def _normalize_name(name):
     """Normalize an "Etternavn, Fornavn" name for matching: trim each part,
-    collapse internal whitespace, casefold."""
+    replace hyphens with spaces, collapse internal whitespace, casefold."""
     name = name or ""
     if "," in name:
         last, first = name.split(",", 1)
         name = f"{last.strip()}, {first.strip()}"
-    return " ".join(name.split()).casefold()
+    return " ".join(name.replace("-", " ").split()).casefold()
 
 
 def sync_members_from_excel(members: list) -> dict:
