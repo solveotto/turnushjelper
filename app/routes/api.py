@@ -816,4 +816,46 @@ def check_medlemsnummer():
     if stub["is_stub"] != 1:
         return jsonify({"found": False, "reason": "already_registered"})
 
-    return jsonify({"found": True, "rullenummer": stub.get("rullenummer")})
+    return jsonify({
+        "found": True,
+        "rullenummer": stub.get("rullenummer"),
+        "name": stub.get("name") or "",
+    })
+
+
+@api.route("/check-rullenummer")
+@limiter.limit("30 per hour")
+def check_rullenummer():
+    """Return seniority list info for a rullenummer, with optional name-match check.
+
+    Query params:
+        rullenummer  — the rullenummer to look up
+        name         — (optional) the user's resolved NLF name for comparison
+
+    Response shape:
+        {found: false}
+        {found: true, name, seniority_nr, ans_dato, name_match?}
+    """
+    rullenummer = (request.args.get("rullenummer") or "").strip()
+    context_name = (request.args.get("name") or "").strip()
+    if not rullenummer:
+        return jsonify({"found": False})
+
+    db_session = get_db_session()
+    try:
+        user = db_session.query(DBUser).filter_by(rullenummer=rullenummer).first()
+        if user is None:
+            return jsonify({"found": False})
+        result = {
+            "found": True,
+            "name": user.name or "",
+            "seniority_nr": user.seniority_nr,
+            "ans_dato": user.ans_dato or "",
+        }
+        if context_name and user.name:
+            def _words(s):
+                return set(s.replace("-", " ").replace(",", " ").casefold().split())
+            result["name_match"] = bool(_words(context_name) & _words(user.name))
+        return jsonify(result)
+    finally:
+        db_session.close()

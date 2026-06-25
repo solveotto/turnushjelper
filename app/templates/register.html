@@ -117,6 +117,7 @@
                                         }}</label>
                                 </div>
                                 <small class="form-hint" id="rullenummer-hint"></small>
+                                <div id="rullenummer-preview" class="mt-1 small"></div>
                                 {% if form.rullenummer.errors %}
                                 <div class="error-message">
                                     {% for error in form.rullenummer.errors %}
@@ -251,6 +252,8 @@
     {% endif %}
 
     <script>
+        let resolvedName = "";
+
         document
             .getElementById("medlemsnummer")
             .addEventListener("blur", async function () {
@@ -259,11 +262,14 @@
                 const rullenummerGroup = document.getElementById("rullenummer-group");
                 const rullenummerInput = document.getElementById("rullenummer");
                 const rullenummerHint = document.getElementById("rullenummer-hint");
+                const rullenummerPreview = document.getElementById("rullenummer-preview");
                 if (!val) {
                     preview.innerHTML = "";
                     rullenummerGroup.style.display = "none";
                     rullenummerInput.value = "";
                     rullenummerInput.removeAttribute("readonly");
+                    rullenummerPreview.innerHTML = "";
+                    resolvedName = "";
                     return;
                 }
                 try {
@@ -272,26 +278,60 @@
                     );
                     const data = await res.json();
                     if (data.found) {
+                        resolvedName = data.name || "";
                         preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> NLF-medlemsnummeret er gyldig.</span>`;
                         rullenummerGroup.style.display = "";
                         if (data.rullenummer) {
                             rullenummerInput.value = data.rullenummer;
                             rullenummerInput.setAttribute("readonly", true);
                             rullenummerHint.textContent = "Rullenummer er hentet fra ansienitetslisten";
+                            rullenummerPreview.innerHTML = "";
                         } else {
                             rullenummerInput.value = "";
                             rullenummerInput.removeAttribute("readonly");
                             rullenummerHint.textContent = "Oppgi ditt rullenummer";
+                            rullenummerPreview.innerHTML = "";
                         }
                     } else {
+                        resolvedName = "";
                         rullenummerGroup.style.display = "none";
                         rullenummerInput.value = "";
                         rullenummerInput.removeAttribute("readonly");
+                        rullenummerPreview.innerHTML = "";
                         if (data.reason === "already_registered") {
                             preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Dette NLF-medlemsnummeret er allerede registrert.</span>`;
                         } else {
                             preview.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> NLF-medlemsnummeret ble ikke funnet.</span>`;
                         }
+                    }
+                } catch (e) {
+                    preview.innerHTML = "";
+                    resolvedName = "";
+                }
+            });
+
+        document
+            .getElementById("rullenummer")
+            .addEventListener("blur", async function () {
+                if (this.hasAttribute("readonly")) return;
+                const val = this.value.trim();
+                const preview = document.getElementById("rullenummer-preview");
+                if (!val) { preview.innerHTML = ""; return; }
+                try {
+                    const params = new URLSearchParams({ rullenummer: val });
+                    if (resolvedName) params.set("name", resolvedName);
+                    const res = await fetch(`/api/check-rullenummer?${params}`);
+                    const data = await res.json();
+                    if (!data.found) {
+                        preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Rullenummeret ble ikke funnet på ansienitetslisten.</span>`;
+                        return;
+                    }
+                    const nameHint = data.name ? ` (${data.name})` : "";
+                    const dateHint = data.ans_dato ? `, ans.dato: ${data.ans_dato}` : "";
+                    if (data.name_match === false) {
+                        preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Funnet på ansienitetslisten${nameHint}${dateHint} — navn stemmer ikke helt.</span>`;
+                    } else {
+                        preview.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> Funnet på ansienitetslisten${nameHint}${dateHint}.</span>`;
                     }
                 } catch (e) {
                     preview.innerHTML = "";

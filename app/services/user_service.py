@@ -440,6 +440,7 @@ def sync_employees_from_scrape(employees: list) -> dict:
         by_name = {}
         by_lastname = {}
         by_first_last = {}
+        by_word_set = {}
         by_date = {}
         for u in db_session.query(DBUser).filter(DBUser.rullenummer.is_(None)).all():
             if u.name:
@@ -451,12 +452,21 @@ def sync_employees_from_scrape(employees: list) -> dict:
                         by_lastname.setdefault(last_norm, []).append(u)
                     for word in _normalize_name(first_part).split():
                         by_first_last.setdefault((last_norm, word), []).append(u)
+                words = frozenset(_normalize_name(u.name).replace(",", " ").split())
+                if words:
+                    by_word_set.setdefault(words, []).append(u)
             if u.ans_dato:
                 by_date.setdefault(u.ans_dato, []).append(u)
         merged_ids = set()
         # Track rullenummers processed in this run to guard against duplicate
         # rows in the PDF when autoflush=False would hide in-flight INSERTs.
         processed_this_run = set()
+
+        rullenummer_to_nr = {
+            str(emp.get("rullenummer", "")).strip(): emp.get("seniority_nr")
+            for emp in employees
+            if str(emp.get("rullenummer", "")).strip()
+        }
 
         for emp in employees:
             rullenummer = str(emp.get("rullenummer", "")).strip()
@@ -489,6 +499,17 @@ def sync_employees_from_scrape(employees: list) -> dict:
                 ]
                 if len(candidates) == 1:
                     user = candidates[0]
+                    user.rullenummer = rullenummer
+                    merged_ids.add(user.id)
+                    merged_by_name += 1
+
+            if user is None:
+                pdf_words = frozenset(
+                    _normalize_name(f"{etternavn} {fornavn}").split()
+                )
+                ws_candidates = [u for u in by_word_set.get(pdf_words, []) if u.id not in merged_ids]
+                if len(ws_candidates) == 1:
+                    user = ws_candidates[0]
                     user.rullenummer = rullenummer
                     merged_ids.add(user.id)
                     merged_by_name += 1
@@ -572,6 +593,21 @@ def sync_employees_from_scrape(employees: list) -> dict:
                 else:
                     unchanged += 1
 
+        # Second pass: users with a manually-set rullenummer but no seniority_nr.
+        # Covers registered users who entered their rullenummer after the last scan,
+        # or cases where a stub with the same rullenummer was matched first above.
+        nr_from_rullenummer = 0
+        if rullenummer_to_nr:
+            unlinked = (
+                db_session.query(DBUser)
+                .filter(DBUser.rullenummer.isnot(None), DBUser.seniority_nr.is_(None))
+                .all()
+            )
+            for user in unlinked:
+                if user.rullenummer in rullenummer_to_nr:
+                    user.seniority_nr = rullenummer_to_nr[user.rullenummer]
+                    nr_from_rullenummer += 1
+
         # Clear seniority_nr for any employee no longer present in the PDF.
         # Only targets rows that previously had a seniority_nr (i.e. were from a
         # prior PDF import) — avoids touching system/admin users with no rullenummer.
@@ -593,13 +629,14 @@ def sync_employees_from_scrape(employees: list) -> dict:
         db_session.commit()
         logger.info(
             "sync_employees: updated=%d unchanged=%d merged_by_name=%d "
-            "merged_by_date=%d removed_from_list=%d skipped_unmatched=%d",
+            "merged_by_date=%d removed_from_list=%d skipped_unmatched=%d nr_from_rullenummer=%d",
             updated,
             unchanged,
             merged_by_name,
             merged_by_date,
             removed_from_list,
             skipped_unmatched,
+            nr_from_rullenummer,
         )
         return {
             "updated": updated,
@@ -608,6 +645,7 @@ def sync_employees_from_scrape(employees: list) -> dict:
             "merged_by_date": merged_by_date,
             "removed_from_list": removed_from_list,
             "skipped_unmatched": skipped_unmatched,
+            "nr_from_rullenummer": nr_from_rullenummer,
         }
     except Exception as e:
         db_session.rollback()
