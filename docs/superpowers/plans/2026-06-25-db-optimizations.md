@@ -260,7 +260,7 @@
       .first()
   )
   ```
-  On production MySQL with `utf8mb4_unicode_ci` collation, `=` is already case-insensitive and uses the `username` unique index. The old `ilike` compiled to `LIKE` which disabled the index.
+  `filter_by` uses the equality operator, which takes the unique index's equality path and makes the intent (exact lookup) explicit. Note: `ilike` without wildcards actually can use the index on MySQL, so this is a clarity fix, not a significant performance one. Side-effect: on SQLite (dev/test), `=` is case-sensitive while MySQL with `utf8mb4_unicode_ci` is case-insensitive — a minor dev/prod divergence. This is acceptable since usernames are stored and compared consistently, but be aware of it if writing tests that rely on case-insensitive username lookup.
 
 - [ ] **Step 5: Run tests to confirm fix**
 
@@ -479,8 +479,12 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
           db_session.query(SoknadsskjemaChoice).filter_by(turnus_set_id=turnus_set_id).delete()
           db_session.delete(turnus_set)
           db_session.commit()
+          from app.extensions import cache
+          from app.services.turnus_service import get_active_turnus_set
+          cache.delete_memoized(get_active_turnus_set)
           return True, f"Turnussett {turnus_set.year_identifier} slettet"
   ```
+  The `cache.delete_memoized` call is a no-op until Task 6 adds the `@cache.memoize` decorator, but adding it here ensures it's in place before the cache is activated.
 
 - [ ] **Step 6: Run test to confirm it now passes**
 
@@ -628,12 +632,12 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
 ### Task 5: Standardize datetimes in auth_service.py (H-1)
 
 **Files:**
-- Modify: `app/services/auth_service.py` — replace 6 uses of `datetime.now()` with `datetime.utcnow()`
+- Modify: `app/services/auth_service.py` — replace 8 uses of `datetime.now()` with `datetime.now(timezone.utc).replace(tzinfo=None)`
 
 **Interfaces:**
-- Produces: all token timestamps use `datetime.utcnow()` (naive UTC), consistent with the `sa_session_interface.py` pattern
+- Produces: all token timestamps use naive UTC, consistent with the `sa_session_interface.py` pattern
 
-**Why `utcnow()` not `now()`:** The mixed state (some naive, some offset-aware) is the risk. `now()` uses the process's local timezone. On a UTC server this is the same as `utcnow()`, but it creates a latent bug if timezones ever diverge. `utcnow()` is explicit. `sa_session_interface.py` already uses `datetime.now(timezone.utc).replace(tzinfo=None)` which is naive UTC — `utcnow()` is equivalent and simpler.
+**Why `datetime.now(timezone.utc).replace(tzinfo=None)` not `now()` or `utcnow()`:** `now()` uses the process's local timezone — a latent bug if the server clock drifts from UTC. `utcnow()` is deprecated in Python 3.12. `sa_session_interface.py` already uses `datetime.now(timezone.utc).replace(tzinfo=None)` — use the same pattern for consistency across the codebase.
 
 - [ ] **Step 1: Write failing test for token expiry**
 
@@ -698,16 +702,24 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
   ```
   Expected: PASS (the logic works; we're changing the datetime source, not the comparison).
 
-- [ ] **Step 2: Replace `datetime.now()` with `datetime.utcnow()` in `app/services/auth_service.py`**
+- [ ] **Step 2: Update import and replace all 8 `datetime.now()` calls in `app/services/auth_service.py`**
 
-  There are 6 call sites. Apply each replacement:
+  First, update the import at line 2 to add `timezone`:
+  ```python
+  # Before
+  from datetime import datetime, timedelta
+  # After
+  from datetime import datetime, timedelta, timezone
+  ```
+
+  Then replace each call. Use `_now = datetime.now(timezone.utc).replace(tzinfo=None)` as a local alias where you call it more than once in the same function, or inline it where it's a single call:
 
   **Line 16** (`create_verification_token`):
   ```python
   # Before
   expires_at = datetime.now() + timedelta(hours=expiry_hours)
   # After
-  expires_at = datetime.utcnow() + timedelta(hours=expiry_hours)
+  expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=expiry_hours)
   ```
 
   **Line 51** (`verify_token`):
@@ -715,7 +727,7 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
   # Before
   if token_record.expires_at < datetime.now():
   # After
-  if token_record.expires_at < datetime.utcnow():
+  if token_record.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
   ```
 
   **Line 83** (`can_send_verification_email`):
@@ -723,7 +735,7 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
   # Before
   time_since_last = datetime.now() - user.verification_sent_at
   # After
-  time_since_last = datetime.utcnow() - user.verification_sent_at
+  time_since_last = datetime.now(timezone.utc).replace(tzinfo=None) - user.verification_sent_at
   ```
 
   **Line 89** (`can_send_verification_email`):
@@ -731,7 +743,7 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
   # Before
   EmailVerificationToken.created_at >= datetime.now() - timedelta(days=1)
   # After
-  EmailVerificationToken.created_at >= datetime.utcnow() - timedelta(days=1)
+  EmailVerificationToken.created_at >= datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)
   ```
 
   **Line 103** (`update_verification_sent_time`):
@@ -739,7 +751,7 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
   # Before
   user.verification_sent_at = datetime.now()
   # After
-  user.verification_sent_at = datetime.utcnow()
+  user.verification_sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
   ```
 
   **Line 116** (`create_password_reset_token`):
@@ -747,7 +759,7 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
   # Before
   expires_at = datetime.now() + timedelta(hours=1)
   # After
-  expires_at = datetime.utcnow() + timedelta(hours=1)
+  expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
   ```
 
   **Line 154** (`verify_password_reset_token`):
@@ -755,7 +767,15 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
   # Before
   if token_record.expires_at < datetime.now():
   # After
-  if token_record.expires_at < datetime.utcnow():
+  if token_record.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
+  ```
+
+  **Line 209** (`can_send_password_reset_email`):
+  ```python
+  # Before
+  one_hour_ago = datetime.now() - timedelta(hours=1)
+  # After
+  one_hour_ago = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
   ```
 
 - [ ] **Step 3: Run tests**
@@ -775,7 +795,7 @@ All must return 0 before running `alembic upgrade head`. If any return > 0, dele
 - [ ] **Step 5: Commit**
   ```bash
   git add app/services/auth_service.py
-  git commit -m "fix: use datetime.utcnow() consistently in auth_service for naive UTC timestamps"
+  git commit -m "fix: use datetime.now(timezone.utc).replace(tzinfo=None) in auth_service for naive UTC timestamps"
   ```
 
 ---
@@ -1035,7 +1055,7 @@ After all tasks are committed and merged:
 1. Deploy the code.
 2. On the server: `alembic upgrade head`
    - This runs migrations 014, 015, 016 in order.
-   - **Before 016 runs**, the migration itself prints the orphan check SQL — verify those return 0 before proceeding (or comment out the FK migration if orphans exist and clean them first).
+   - **Before running `alembic upgrade head`**, manually run the orphan check SQL listed in the Task 4 pre-migration section against production. All five queries must return 0. If any return > 0, clean the orphans first, then run the migration. The migration does not auto-check or print this — it is your responsibility to verify.
 3. Restart gunicorn.
 
 No downtime required for any migration (all are `ADD INDEX` / `MODIFY COLUMN` with no table locks beyond the column alter on `flask_sessions.data` which is typically fast on a small sessions table).
