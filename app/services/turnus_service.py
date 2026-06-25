@@ -2,6 +2,7 @@ import json
 import logging
 
 from app.database import get_db_session
+from app.extensions import cache
 from app.models import TurnusSet, Shifts, Favorites
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,7 @@ def set_active_turnus_set(turnus_set_id):
 
         turnus_set.is_active = 1
         db_session.commit()
+        cache.delete_memoized(get_active_turnus_set)
         return True, f"Turnussett {turnus_set.year_identifier} er nå aktivt"
     except Exception as e:
         db_session.rollback()
@@ -116,6 +118,7 @@ def set_active_turnus_set(turnus_set_id):
         db_session.close()
 
 
+@cache.memoize(timeout=60)
 def get_active_turnus_set():
     """Get the currently active turnus set"""
     db_session = get_db_session()
@@ -143,15 +146,15 @@ def add_shifts_to_turnus_set(file_path, turnus_set_id):
         with open(file_path, 'r') as f:
             turnus_data = json.load(f)
 
+        existing_titles = {
+            r.title
+            for r in db_session.query(Shifts.title).filter_by(turnus_set_id=turnus_set_id).all()
+        }
         for x in turnus_data:
             for name in x.keys():
-                existing = db_session.query(Shifts).filter_by(
-                    title=name,
-                    turnus_set_id=turnus_set_id
-                ).first()
-                if not existing:
-                    new_shift = Shifts(title=name, turnus_set_id=turnus_set_id)
-                    db_session.add(new_shift)
+                if name not in existing_titles:
+                    db_session.add(Shifts(title=name, turnus_set_id=turnus_set_id))
+                    existing_titles.add(name)
 
         db_session.commit()
         logger.info("Shifts added to turnus set %s successfully", turnus_set_id)
@@ -178,14 +181,17 @@ def delete_turnus_set(turnus_set_id):
     """Delete a turnus set and all its associated data"""
     db_session = get_db_session()
     try:
+        from app.models import SoknadsskjemaChoice
         turnus_set = db_session.query(TurnusSet).filter_by(id=turnus_set_id).first()
         if not turnus_set:
             return False, "Turnussett ikke funnet"
 
         db_session.query(Shifts).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.query(Favorites).filter_by(turnus_set_id=turnus_set_id).delete()
+        db_session.query(SoknadsskjemaChoice).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.delete(turnus_set)
         db_session.commit()
+        cache.delete_memoized(get_active_turnus_set)
         return True, f"Turnussett {turnus_set.year_identifier} slettet"
     except Exception as e:
         db_session.rollback()

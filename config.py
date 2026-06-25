@@ -37,7 +37,7 @@ def get_database_uri():
         user = _env("MYSQL_USER")
         password = _env("MYSQL_PASSWORD")
         database = _env("MYSQL_DATABASE")
-        return f"mysql+pymysql://{user}:{password}@{host}/{database}"
+        return f"mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4"
 
     else:
         raise ValueError(f"Unsupported database type: {db_type}")
@@ -50,11 +50,6 @@ class AppConfig:
 
     # Database
     DB_TYPE = _env("DB_TYPE", "sqlite")
-    SQLALCHEMY_ENGINE_OPTIONS = (
-        {"pool_pre_ping": True}
-        if DB_TYPE == "sqlite"
-        else {"pool_recycle": 300, "pool_pre_ping": True}
-    )
 
     # Email — Mailgun (primary)
     MAILGUN_API_KEY = _env("MAILGUN_API_KEY", "")

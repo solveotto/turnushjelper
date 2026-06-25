@@ -59,6 +59,9 @@ def patch_db(db_session, monkeypatch):
     Monkeypatch ``get_db_session`` in every module that imports it so all
     code paths use the test database.
 
+    Also clears the Flask-Caching cache so memoized values from one test
+    don't bleed into the next.
+
     The service functions follow this pattern:
         session = get_db_session()
         try:
@@ -72,6 +75,12 @@ def patch_db(db_session, monkeypatch):
       1. ``session.close()`` in finally blocks doesn't destroy the connection.
       2. The outer transaction can be rolled back to reset state between tests.
     """
+
+    from app.extensions import cache
+    try:
+        cache.clear()
+    except Exception:
+        pass
 
     # Grab the connection that db_session is already using.
     # Binding new sessions to this connection means:

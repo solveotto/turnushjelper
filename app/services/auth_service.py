@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from config import AppConfig
 from app.database import get_db_session
@@ -13,7 +13,7 @@ def create_verification_token(user_id, token):
     db_session = get_db_session()
     try:
         expiry_hours = AppConfig.TOKEN_EXPIRY_HOURS
-        expires_at = datetime.now() + timedelta(hours=expiry_hours)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=expiry_hours)
 
         db_session.query(EmailVerificationToken).filter_by(
             user_id=user_id,
@@ -48,7 +48,7 @@ def verify_token(token):
         if not token_record:
             return {'success': False, 'message': 'Ugyldig eller allerede brukt verifiseringslenke'}
 
-        if token_record.expires_at < datetime.now():
+        if token_record.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
             return {'success': False, 'message': 'Verifiseringslenken har utløpt. Vennligst be om en ny.'}
 
         token_record.used = 1
@@ -80,13 +80,13 @@ def can_send_verification_email(user_id):
             return False
 
         if user.verification_sent_at:
-            time_since_last = datetime.now() - user.verification_sent_at
+            time_since_last = datetime.now(timezone.utc).replace(tzinfo=None) - user.verification_sent_at
             if time_since_last < timedelta(hours=1):
                 return False
 
         count = db_session.query(EmailVerificationToken).filter(
             EmailVerificationToken.user_id == user_id,
-            EmailVerificationToken.created_at >= datetime.now() - timedelta(days=1)
+            EmailVerificationToken.created_at >= datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)
         ).count()
 
         return count < max_per_day
@@ -100,7 +100,7 @@ def update_verification_sent_time(email):
     try:
         user = db_session.query(DBUser).filter_by(email=email.lower()).first()
         if user:
-            user.verification_sent_at = datetime.now()
+            user.verification_sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
             db_session.commit()
     except Exception as e:
         db_session.rollback()
@@ -113,7 +113,7 @@ def create_password_reset_token(user_id, token):
     """Create password reset token with 1 hour expiry"""
     db_session = get_db_session()
     try:
-        expires_at = datetime.now() + timedelta(hours=1)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
 
         db_session.query(EmailVerificationToken).filter_by(
             user_id=user_id,
@@ -151,7 +151,7 @@ def verify_password_reset_token(token):
         if not token_record:
             return {'success': False, 'message': 'Ugyldig eller allerede brukt tilbakestillingslenke'}
 
-        if token_record.expires_at < datetime.now():
+        if token_record.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
             return {'success': False, 'message': 'Tilbakestillingslenken har utløpt. Vennligst be om en ny.'}
 
         user = db_session.query(DBUser).filter_by(id=token_record.user_id).first()
@@ -206,7 +206,7 @@ def can_send_password_reset_email(email):
         if not user:
             return True
 
-        one_hour_ago = datetime.now() - timedelta(hours=1)
+        one_hour_ago = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
         recent_token = db_session.query(EmailVerificationToken).filter(
             EmailVerificationToken.user_id == user.id,
             EmailVerificationToken.token_type == 'password_reset',

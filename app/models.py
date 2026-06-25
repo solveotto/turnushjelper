@@ -13,7 +13,7 @@ from app.extensions import cache
 class DBUser(Base):
     __tablename__ = 'users'
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    rullenummer: Mapped[int] = mapped_column(String(10), nullable=True)
+    rullenummer: Mapped[str | None] = mapped_column(String(10), nullable=True)
     medlemsnummer = Column(String(20), nullable=True, unique=True, index=True)
     name = Column(String(255), nullable=True)
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
@@ -63,9 +63,9 @@ class TurnusSet(Base):
 class Favorites(Base):
     __tablename__ = 'favorites'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     shift_title = Column(String(255), nullable=False)
-    turnus_set_id = Column(Integer, nullable=False)
+    turnus_set_id = Column(Integer, ForeignKey('turnus_sets.id', ondelete='CASCADE'), nullable=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     __table_args__ = (UniqueConstraint('user_id', 'shift_title', 'turnus_set_id'),)
 
@@ -74,15 +74,15 @@ class Shifts(Base):
     __tablename__ = 'shifts'
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(255), nullable=False)
-    turnus_set_id = Column(Integer, nullable=False)
+    turnus_set_id = Column(Integer, ForeignKey('turnus_sets.id', ondelete='CASCADE'), nullable=False)
     __table_args__ = (UniqueConstraint('title', 'turnus_set_id'),)
 
 
 class SoknadsskjemaChoice(Base):
     __tablename__ = "soknadsskjema_choices"
     id              = Column(Integer, primary_key=True, autoincrement=True)
-    user_id         = Column(Integer, nullable=False)
-    turnus_set_id   = Column(Integer, nullable=False)
+    user_id         = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    turnus_set_id   = Column(Integer, ForeignKey('turnus_sets.id', ondelete='CASCADE'), nullable=False)
     shift_title     = Column(String(255), nullable=False)
     linje_135       = Column(Integer, default=0)   # 1 = X marked
     linje_246       = Column(Integer, default=0)   # 1 = X marked
@@ -122,7 +122,7 @@ class FlaskSessionModel(Base):
     __tablename__ = 'flask_sessions'
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(255), unique=True, nullable=False, index=True)
-    data = Column(LargeBinary, nullable=False)
+    data = Column(LargeBinary(16_777_215), nullable=False)
     expiry = Column(DateTime, nullable=False, index=True)
 
 

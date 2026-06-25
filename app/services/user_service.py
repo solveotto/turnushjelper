@@ -42,7 +42,7 @@ def get_user_data(username_or_email):
     try:
         result = (
             db_session.query(DBUser)
-            .filter(DBUser.username.ilike(username_or_email))
+            .filter_by(username=username_or_email)
             .first()
         )
 
@@ -350,6 +350,7 @@ def update_user(
 
 def delete_user(user_id):
     """Delete a user and all associated data"""
+    from app.models import SoknadsskjemaChoice
     db_session = get_db_session()
     try:
         user = db_session.query(DBUser).filter_by(id=user_id).first()
@@ -357,6 +358,7 @@ def delete_user(user_id):
             return False, "Bruker ikke funnet"
 
         db_session.query(Favorites).filter_by(user_id=user_id).delete()
+        db_session.query(SoknadsskjemaChoice).filter_by(user_id=user_id).delete()
         db_session.delete(user)
         db_session.commit()
         return True, "Bruker slettet"
@@ -1210,7 +1212,21 @@ def get_all_stub_users():
     db_session = get_db_session()
     try:
         users = (
-            db_session.query(DBUser)
+            db_session.query(
+                DBUser.id,
+                DBUser.rullenummer,
+                DBUser.medlemsnummer,
+                DBUser.name,
+                DBUser.stasjoneringssted,
+                DBUser.ans_dato,
+                DBUser.fodt_dato,
+                DBUser.seniority_nr,
+                DBUser.is_stub,
+                DBUser.is_auth,
+                DBUser.email,
+                DBUser.username,
+                DBUser.not_on_nlf_list,
+            )
             .order_by(
                 func.coalesce(DBUser.seniority_nr, 999999).asc(),
                 DBUser.id.asc(),
@@ -1279,9 +1295,10 @@ def delete_missing_stubs():
             .all()
         )
         count = len(targets)
-        for user in targets:
-            db_session.query(FavModel).filter_by(user_id=user.id).delete()
-            db_session.delete(user)
+        if count:
+            ids = [u.id for u in targets]
+            db_session.query(FavModel).filter(FavModel.user_id.in_(ids)).delete(synchronize_session=False)
+            db_session.query(DBUser).filter(DBUser.id.in_(ids)).delete(synchronize_session=False)
         db_session.commit()
         logger.info("delete_missing_stubs: deleted %d rows", count)
         return True, f"{count} stub-brukere slettet.", count
@@ -1312,9 +1329,10 @@ def delete_stub_users(user_ids):
             .all()
         )
         count = len(targets)
-        for user in targets:
-            db_session.query(FavModel).filter_by(user_id=user.id).delete()
-            db_session.delete(user)
+        if count:
+            ids = [u.id for u in targets]
+            db_session.query(FavModel).filter(FavModel.user_id.in_(ids)).delete(synchronize_session=False)
+            db_session.query(DBUser).filter(DBUser.id.in_(ids)).delete(synchronize_session=False)
         db_session.commit()
         logger.info("delete_stub_users: deleted %d of %d requested ids", count, len(user_ids))
         return True, f"{count} stub-brukere slettet.", count

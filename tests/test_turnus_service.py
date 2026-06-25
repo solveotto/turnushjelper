@@ -46,3 +46,56 @@ class TestDelete:
         assert turnus_service.get_turnus_set_by_year("D25") is None
         assert db_session.query(Shifts).filter_by(turnus_set_id=ts["id"]).count() == 0
         assert db_session.query(Favorites).filter_by(turnus_set_id=ts["id"]).count() == 0
+
+
+class TestDeleteTurnusSetCleansUpSoknadsskjema:
+    def test_delete_turnus_set_removes_soknadsskjema_choices(self, patch_db, db_session):
+        from app.models import DBUser, SoknadsskjemaChoice, TurnusSet
+        from app.services.user_service import hash_password
+
+        ts = TurnusSet(name="R26", year_identifier="R26del", is_active=1)
+        db_session.add(ts)
+        db_session.commit()
+
+        user = DBUser(
+            username="user_for_ts_delete", password=hash_password("pw"), is_auth=0
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        choice = SoknadsskjemaChoice(
+            user_id=user.id, turnus_set_id=ts.id, shift_title="D1"
+        )
+        db_session.add(choice)
+        db_session.commit()
+
+        from app.services import turnus_service
+        success, _ = turnus_service.delete_turnus_set(ts.id)
+        assert success is True
+
+        orphans = (
+            db_session.query(SoknadsskjemaChoice)
+            .filter_by(turnus_set_id=ts.id)
+            .count()
+        )
+        assert orphans == 0
+
+
+class TestAddShiftsNoNPlusOne:
+    def test_second_import_does_not_create_duplicates(self, patch_db, db_session, tmp_path):
+        import json
+        from app.models import TurnusSet, Shifts
+
+        ts = TurnusSet(name="R26", year_identifier="R26n1", is_active=1)
+        db_session.add(ts)
+        db_session.commit()
+
+        shifts_data = [{"D1": {"some": "data"}, "N2": {"other": "data"}}]
+        f = tmp_path / "turnus.json"
+        f.write_text(json.dumps(shifts_data))
+
+        turnus_service.add_shifts_to_turnus_set(str(f), ts.id)
+        turnus_service.add_shifts_to_turnus_set(str(f), ts.id)  # second run
+
+        count = db_session.query(Shifts).filter_by(turnus_set_id=ts.id).count()
+        assert count == 2  # D1 and N2, no duplicates

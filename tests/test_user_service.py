@@ -39,6 +39,38 @@ class TestDeleteUser:
         assert user_service.get_user_data("delme") is None
 
 
+class TestDeleteUserCleansUpSoknadsskjema:
+    def test_delete_user_removes_soknadsskjema_choices(self, patch_db, db_session):
+        from app.models import DBUser, SoknadsskjemaChoice, TurnusSet
+        from app.services.user_service import hash_password
+
+        ts = TurnusSet(name="R26", year_identifier="R26", is_active=1)
+        db_session.add(ts)
+        db_session.commit()
+
+        user = DBUser(
+            username="todelete", password=hash_password("pw"), is_auth=0
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        choice = SoknadsskjemaChoice(
+            user_id=user.id, turnus_set_id=ts.id, shift_title="D1"
+        )
+        db_session.add(choice)
+        db_session.commit()
+
+        success, _ = user_service.delete_user(user.id)
+        assert success is True
+
+        orphans = (
+            db_session.query(SoknadsskjemaChoice)
+            .filter_by(user_id=user.id)
+            .count()
+        )
+        assert orphans == 0
+
+
 class TestUpdatePassword:
     def test_update_user_password(self, patch_db):
         user_service.create_user("pwuser", "oldpass")
@@ -240,3 +272,14 @@ class TestUpdateUserFullFields:
         )
         assert success is False
         assert "allerede i bruk" in msg
+
+
+class TestGetUserDataExactMatch:
+    def test_exact_username_lookup(self, patch_db):
+        user_service.create_user("exactuser", "pw")
+        data = user_service.get_user_data("exactuser")
+        assert data is not None
+        assert data["username"] == "exactuser"
+
+    def test_returns_none_for_nonexistent(self, patch_db):
+        assert user_service.get_user_data("doesnotexist") is None

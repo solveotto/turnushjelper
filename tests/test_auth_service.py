@@ -1,7 +1,7 @@
 """Tests for app.services.auth_service."""
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.models import EmailVerificationToken
 from app.services import auth_service, user_service
@@ -26,12 +26,45 @@ class TestVerificationToken:
 
         # Manually expire the token
         record = db_session.query(EmailVerificationToken).filter_by(token=token).first()
-        record.expires_at = datetime.now() - timedelta(hours=1)
+        record.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
         db_session.commit()
 
         result = auth_service.verify_token(token)
         assert result["success"] is False
         assert "utløpt" in result["message"]
+
+
+class TestTokenExpiry:
+    def test_expired_token_is_rejected(self, patch_db, db_session, sample_user):
+        from app.models import EmailVerificationToken
+
+        expired_token = EmailVerificationToken(
+            user_id=sample_user["id"],
+            token="expired-tok-123",
+            expires_at=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=1),
+            used=0,
+        )
+        db_session.add(expired_token)
+        db_session.commit()
+
+        result = auth_service.verify_token("expired-tok-123")
+        assert result["success"] is False
+        assert "utløpt" in result["message"]
+
+    def test_valid_token_is_accepted(self, patch_db, db_session, sample_user):
+        from app.models import EmailVerificationToken
+
+        valid_token = EmailVerificationToken(
+            user_id=sample_user["id"],
+            token="valid-tok-456",
+            expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=48),
+            used=0,
+        )
+        db_session.add(valid_token)
+        db_session.commit()
+
+        result = auth_service.verify_token("valid-tok-456")
+        assert result["success"] is True
 
 
 class TestPasswordResetToken:
