@@ -439,13 +439,20 @@ def sync_employees_from_scrape(employees: list) -> dict:
         # so PDF rows can be merged into member-list users instead of duplicated.
         by_name = {}
         by_lastname = {}
+        by_first_last = {}
         by_date = {}
         for u in db_session.query(DBUser).filter(DBUser.rullenummer.is_(None)).all():
             if u.name:
                 by_name.setdefault(_normalize_name(u.name), []).append(u)
-                if u.ans_dato and "," in u.name:
-                    last_norm = _normalize_name(u.name.split(",")[0].strip())
-                    by_lastname.setdefault(last_norm, []).append(u)
+                if "," in u.name:
+                    last_part, first_part = u.name.split(",", 1)
+                    last_norm = _normalize_name(last_part.strip())
+                    if u.ans_dato:
+                        by_lastname.setdefault(last_norm, []).append(u)
+                    first_word = first_part.strip().split()[0] if first_part.strip() else ""
+                    if first_word:
+                        key = (last_norm, _normalize_name(first_word))
+                        by_first_last.setdefault(key, []).append(u)
             if u.ans_dato:
                 by_date.setdefault(u.ans_dato, []).append(u)
         merged_ids = set()
@@ -484,6 +491,16 @@ def sync_employees_from_scrape(employees: list) -> dict:
                 ]
                 if len(candidates) == 1:
                     user = candidates[0]
+                    user.rullenummer = rullenummer
+                    merged_ids.add(user.id)
+                    merged_by_name += 1
+
+            if user is None and etternavn and fornavn:
+                first_word = _normalize_name(fornavn.split()[0])
+                key = (_normalize_name(etternavn), first_word)
+                fl_candidates = [u for u in by_first_last.get(key, []) if u.id not in merged_ids]
+                if len(fl_candidates) == 1:
+                    user = fl_candidates[0]
                     user.rullenummer = rullenummer
                     merged_ids.add(user.id)
                     merged_by_name += 1
