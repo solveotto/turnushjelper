@@ -1,6 +1,6 @@
 // Shift Classifier Module
 // Single source of truth for shift type classification.
-// Used by shift-colors.js and color-adjustment.js for consistent categorization.
+// Used by shift-colors.js, utils.js, and print-utils.js for consistent categorization.
 //
 // Classification rules (start + end time):
 //   night-early : start before 06:00

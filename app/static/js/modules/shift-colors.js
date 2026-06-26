@@ -19,11 +19,6 @@ export class ShiftColors {
     }
 
     applyShiftColors() {
-        // Skip if custom color settings are active (user has configured custom colors)
-        if (localStorage.getItem('shiftColorSettings')) {
-            return;
-        }
-
         this.colorAllCells();
     }
 
@@ -48,7 +43,6 @@ export class ShiftColors {
 
     // Apply colors to cells within a scoped root element (used by lazy table loader)
     applyColorsToRoot(root) {
-        if (localStorage.getItem('shiftColorSettings')) return;
         root.querySelectorAll('td[id="cell"]').forEach(td => this.colorCell(td));
     }
 

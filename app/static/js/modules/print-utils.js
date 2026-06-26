@@ -1,45 +1,11 @@
 // Print Utilities Module
 
-import { classifyCell, SHIFT_TYPES } from './shift-classifier.js';
-
-// Map each shift type to its CSS class and custom-color settings key
-const SHIFT_STYLE_MAP = {
-    [SHIFT_TYPES.NIGHT_EARLY]: { cls: 'night-early', key: 'nightEarly', whiteText: true },
-    [SHIFT_TYPES.MORNING]:     { cls: 'morning',     key: 'morning',    whiteText: false },
-    [SHIFT_TYPES.MIDDAY]:      { cls: 'midday',      key: 'midday',     whiteText: false },
-    [SHIFT_TYPES.AFTERNOON]:   { cls: 'afternoon',   key: 'afternoon',  whiteText: false },
-    [SHIFT_TYPES.EVENING]:     { cls: 'evening',     key: 'evening',    whiteText: true },
-    [SHIFT_TYPES.DAY_OFF]:     { cls: 'day_off',     key: 'dayoff',     whiteText: false },
-    [SHIFT_TYPES.HOLIDAY]:     { cls: 'h-dag',       key: 'hdag',       whiteText: false }
-};
-
-const DEFAULT_COLORS = {
-    nightEarly: '#1B3A6B',
-    morning:    '#4A90D9',
-    midday:     '#87CEEB',
-    afternoon:  '#FF9999',
-    evening:    '#9B59B6',
-    dayoff:     '#4ADE80',
-    hdag:       '#FCD34D'
-};
+import { classifyCell } from './shift-classifier.js';
 
 export class PrintUtils {
     // Apply shift colors to all td[id="cell"] within a detached root element.
-    // Mirrors ShiftColors.applyColorsToRoot / ColorAdjustment.colorCell so that
-    // tables cloned from <template> get the same coloring as rendered tables.
+    // Used for tables cloned from <template> that haven't been rendered yet.
     static _applyColorsToRoot(root) {
-        let customSettings = null;
-        try {
-            const saved = localStorage.getItem('shiftColorSettings');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                // Ignore old-format keys (ColorAdjustment will migrate them on next load)
-                if (!parsed.early && !parsed.earlylate && !parsed.earlybefore6 && !parsed.late && !parsed.night) {
-                    customSettings = parsed;
-                }
-            }
-        } catch (e) { /* ignore corrupt localStorage */ }
-
         root.querySelectorAll('td[id="cell"]').forEach(td => {
             const timeEl = td.querySelector('.time-text');
             if (!timeEl) return;
@@ -47,18 +13,7 @@ export class PrintUtils {
             const customEl = td.querySelector('.custom-text');
             const customText = customEl ? customEl.textContent : '';
             const shiftType = classifyCell(timeText, customText);
-            if (!shiftType) return;
-            const mapping = SHIFT_STYLE_MAP[shiftType];
-            if (!mapping) return;
-
-            if (customSettings) {
-                const entry = customSettings[mapping.key];
-                const color = (entry && entry.color) ? entry.color : DEFAULT_COLORS[mapping.key];
-                td.style.backgroundColor = color;
-                if (mapping.whiteText) td.style.color = '#fff';
-            } else {
-                td.classList.add(mapping.cls);
-            }
+            if (shiftType) td.classList.add(shiftType);
         });
     }
 

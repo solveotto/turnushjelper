@@ -11,8 +11,6 @@ import { GuidedTour } from './modules/guided-tour.js';
 import { LazyTables } from './modules/lazy-tables.js';
 
 import './modules/utils.js'; // registers window.apiFetch
-// import { Utils, ScrollPosition } from './modules/utils.js';
-// import { ColorAdjustment } from './modules/color-adjustment.js';
 
 class App {
     constructor() {
@@ -28,7 +26,6 @@ class App {
     initializeModules() {
         // Always initialize these modules
         this.modules.favorites = new Favorites();
-        // this.modules.scrollPosition = new ScrollPosition(); // Disabled - Utils not imported
 
         // Initialize shift colors if we have table cells OR lazy tables pending render
         const hasLazyTables = !!document.querySelector('template[data-lazy-table]');
@@ -51,12 +48,6 @@ class App {
                 this.modules.shiftTimeline
             );
         }
-
-        // Initialize color adjustment if we're on the turnusliste page (user customization UI)
-        // Note: ColorAdjustment module is commented out - uncomment import above to re-enable
-        // if (document.querySelector('#apply-colors')) {
-        //     this.modules.colorAdjustment = new ColorAdjustment();
-        // }
 
         // Initialize sorting if we're on the turnusliste page
         if (document.querySelector('#helgetimer-slider')) {
