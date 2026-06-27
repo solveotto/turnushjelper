@@ -70,9 +70,16 @@ On success you'll see green flashes: **"Validering OK: X av Y turnuser godkjent.
 
 ### If validation fails
 
-You'll get red **"Valideringsfeil: …"** messages describing each problem (e.g. a shift on the
-wrong day, an implausible total). **The PDF is deleted and no JSON/DB row is created** — the
-system is unchanged. Fix the source PDF and re-upload.
+You'll get a red summary — **"Validering feilet: N problem(er) i turnussett {YEAR}"** —
+followed by the first ~10 specific problems (e.g. a shift on the wrong day, an implausible
+total, a missing or duplicate turnus). **The PDF is deleted and no JSON/DB row is created** —
+the system is unchanged. The full problem list (and every import outcome) is recorded in
+`app/logs/turnus_import.log`. Fix the source PDF and re-upload.
+
+The validation gate (`validate_turnus_json`) checks structure, weekday labels, time formats,
+≤15h shift durations, total-hour ranges, **a summed-hours cross-check against the printed
+`kl_timer`** (catches dropped/misplaced shifts), duplicate/`UNKNOWN` names, expected turnus
+count, and `start`/`slutt` consistency.
 
 > The "**Bruk eksisterende filer**" path skips scraping but runs the **same** validation gate
 > on the existing JSON, so it is protected identically.
@@ -114,6 +121,7 @@ existing data is left untouched.**
 | strekliste PNG images | Strekliste generate (Step 2) | No (gitignored) |
 | `turnusfiler/{year}/innplassering_{YEAR}.pdf` + `Innplassering` rows | Innplassering import (Step 2) | No (gitignored) |
 | `TurnusSet` row, `Shifts` rows | Create flow (Step 1) | DB |
+| `app/logs/turnus_import.log` | Every import (success/failure/crash) | No (log) |
 
 ---
 
@@ -131,17 +139,22 @@ existing data is left untouched.**
 
 ## Troubleshooting
 
-- **Red "Valideringsfeil" on create** → the scrape produced data that failed a check. Nothing
-  was saved; correct the PDF and re-upload. Common causes: a shift mapped to the wrong
-  day/column, an implausible total, or a missing day.
+- **Red "Validering feilet: N problem(er)" on create** → the scrape produced data that failed
+  a check. Nothing was saved; the full list is in `app/logs/turnus_import.log`. Correct the
+  PDF and re-upload. Common causes: a shift mapped to the wrong day/column, an implausible
+  total, a missing/duplicate turnus, or summed hours that don't match the printed `kl_timer`.
 - **"Feil ved skraping av PDF"** → the PDF could not be read at all (corrupt, or an
-  unexpected layout the scraper's fixed coordinates don't match). The scraper relies on a
-  fixed PDF layout — a re-exported or rescaled PDF can break extraction.
+  unexpected layout the scraper's fixed coordinates don't match); a full stack trace is in
+  `app/logs/turnus_import.log`. The scraper relies on a fixed PDF layout — a re-exported or
+  rescaled PDF can break extraction.
 - **Søknadsskjema won't generate** → the turnusnøkkel template for this set is missing
   (Step 2.2).
 - **No strekliste / double-shift data** → strekliste PDF not uploaded or images not generated
   (Step 2.3).
 
-> **Planned hardening:** stricter validation (recomputed-hours cross-check, duplicate/count
-> checks), a summarized error display, and a dedicated `app/logs/turnus_import.log` audit
-> trail are described in `turnus_scraping_hardening_plan.md`. Update this guide once those land.
+> **Validation hardening (implemented):** the recomputed-hours cross-check, duplicate/count
+> checks, start/slutt consistency, summarized error display, and the dedicated
+> `app/logs/turnus_import.log` audit trail are live. See `turnus_scraping_hardening_plan.md`
+> for the design and `tests/test_scraper_validator.py` / `tests/test_data_integrity.py` for
+> coverage. The golden-file regression test runs once `tests/fixtures/turnuser_R26.pdf` is in
+> place.
