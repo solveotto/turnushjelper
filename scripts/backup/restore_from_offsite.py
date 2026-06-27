@@ -56,6 +56,61 @@ def list_remote_dumps():
     return [os.path.basename(f) for f in result.stdout.strip().splitlines()]
 
 
+def restore_database(dump_file):
+    db_type = os.getenv('DB_TYPE', '').lower()
+
+    if db_type == 'mysql':
+        mysql_host = os.getenv('MYSQL_HOST', '')
+        mysql_user = os.getenv('MYSQL_USER', '')
+        mysql_password = os.getenv('MYSQL_PASSWORD', '')
+        mysql_database = os.getenv('MYSQL_DATABASE', '')
+
+        if not all([mysql_host, mysql_user, mysql_password, mysql_database]):
+            print("ERROR: MySQL credentials not found in .env")
+            return False
+
+        print(f"\nRestoring to MySQL database: {mysql_database} @ {mysql_host}")
+        confirm = input("Type CONFIRM to proceed (or q to skip): ").strip()
+        if confirm.lower() == 'q':
+            print("Restore skipped.")
+            return True
+        if confirm != 'CONFIRM':
+            print("Invalid input, skipping restore.")
+            return True
+
+        print(f"Restoring {dump_file}...")
+        result = subprocess.run(
+            f"mysql -h {mysql_host} -u {mysql_user} -p{mysql_password} {mysql_database} < {dump_file}",
+            shell=True, capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            print(f"ERROR: Restore failed: {result.stderr.strip()}")
+            return False
+        print("Database restored successfully.")
+        return True
+
+    elif db_type == 'sqlite':
+        print("ERROR: SQLite restore not yet implemented for offsite backups")
+        return False
+
+    else:
+        print(f"ERROR: Unknown DB_TYPE: {db_type}")
+        return False
+
+
+def run_migrations():
+    print("\nRunning migrations...")
+    result = subprocess.run(
+        ['alembic', 'upgrade', 'head'],
+        cwd=project_root, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"WARNING: Migrations had issues: {result.stderr.strip()}")
+        return False
+    print("Migrations completed.")
+    return True
+
+
 def main():
     for var, val in [
         ('HOME_BACKUP_HOST', SSH_HOST),
@@ -109,9 +164,15 @@ def main():
     rsync_down(dump_name, local_sql)
     print(f"  Saved: {local_sql}")
 
-    print("\n--- Recovery steps ---")
-    print(f"  1. Restore DB:   mysql -u USER -p DATABASE < {dump_name}")
-    print(f"  2. Migrations:   alembic upgrade head")
+    if restore_database(local_sql):
+        run_migrations()
+        print("\n--- Recovery complete ---")
+    else:
+        print("\n--- Manual recovery steps ---")
+        db_type = os.getenv('DB_TYPE', '').lower()
+        if db_type == 'mysql':
+            print(f"  1. Restore DB:   mysql -u USER -p DATABASE < {dump_name}")
+            print(f"  2. Migrations:   alembic upgrade head")
 
 
 if __name__ == '__main__':
