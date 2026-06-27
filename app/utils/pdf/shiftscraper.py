@@ -299,12 +299,6 @@ class ShiftScraper:
                         else:
                             turnus[uke][dag]["tid"].append(time_val)
 
-                if len(turnus[uke][dag]["tid"]) == 2:
-                    turnus[uke][dag]["start"] = turnus[uke][dag]["tid"][0]
-                    turnus[uke][dag]["slutt"] = turnus[uke][dag]["tid"][1]
-                else:
-                    turnus[uke][dag]["start"] = turnus[uke][dag]["tid"]
-
         def plasseringslogikk_dagsverk(word, uke, dag, turnus):
             # Hopper over iterering hvis de inneholder :, XX, OO eller TT.
             if any(sub in word["text"] for sub in self.ALLOW_FILTER):
@@ -591,6 +585,25 @@ class ShiftScraper:
         # Sorterer først tiden. Sorteringen av dagsverk basserer seg på sorterte tider.
         sorter_turnus("tid")
         sorter_turnus("dagsverk")
+
+        # Derive start/slutt deterministically from the finalized tid lists, as a
+        # single post-pass. Doing it here (rather than per-word during placement)
+        # ensures the split-shift early-return path can no longer leave start
+        # aliasing the tid list and slutt empty.
+        def sett_start_slutt(turnus):
+            for uke in range(1, 7):
+                for dag in range(1, 8):
+                    tider = turnus[uke][dag]["tid"]
+                    tider_med_tid = [t for t in tider if isinstance(t, str) and ":" in t]
+                    if len(tider_med_tid) == 2:
+                        turnus[uke][dag]["start"] = tider_med_tid[0]
+                        turnus[uke][dag]["slutt"] = tider_med_tid[1]
+                    else:
+                        turnus[uke][dag]["start"] = tider
+                        turnus[uke][dag]["slutt"] = ""
+
+        sett_start_slutt(turnus1)
+        sett_start_slutt(turnus2)
 
         totalsummer = extract_totalsummer()
 
