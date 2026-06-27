@@ -34,6 +34,23 @@ logging.basicConfig(
     level=logging.WARNING, handlers=[rotating_handler, logging.StreamHandler()]
 )
 
+# Dedicated audit log for turnus imports. INFO level so successful imports are
+# recorded too (app.log is WARNING-only). propagate=True keeps WARNING+ flowing
+# up to app.log as well, so failures appear in both places.
+turnus_import_handler = RotatingFileHandler(
+    os.path.join(AppConfig.log_dir, "turnus_import.log"),
+    maxBytes=5 * 1024 * 1024,
+    backupCount=5,
+)
+turnus_import_handler.setLevel(logging.INFO)
+turnus_import_handler.setFormatter(
+    logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+)
+_ingest_logger = logging.getLogger("turnus.ingest")
+_ingest_logger.setLevel(logging.INFO)
+_ingest_logger.addHandler(turnus_import_handler)
+_ingest_logger.propagate = True
+
 
 # List of all Blueprints to register
 blueprints = [auth, shifts, admin, api, downloads, minside, registration]

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 from flask import flash, jsonify, redirect, render_template, request, url_for
@@ -13,6 +14,34 @@ from app.utils import db_utils
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
 from config import AppConfig
+
+# Dedicated audit logger (handler configured in app/routes/main.py).
+ingest_logger = logging.getLogger("turnus.ingest")
+
+
+def _current_username():
+    return getattr(current_user, "username", "?")
+
+
+def _flash_validation_errors(errors, year_id):
+    """Flash a summarized validation failure and record the full list to the log."""
+    n = len(errors)
+    flash(f"Validering feilet: {n} problem(er) i turnussett {year_id}.", "danger")
+    for err in errors[:10]:
+        flash(err, "danger")
+    if n > 10:
+        flash(f"... og {n - 10} til (se turnus_import.log for full liste).", "danger")
+    ingest_logger.warning(
+        "Turnus import FAILED %s (user=%s): %d problem(s): %s",
+        year_id, _current_username(), n, " | ".join(errors),
+    )
+
+
+def _log_ingest_success(year_id, count):
+    ingest_logger.info(
+        "Turnus import OK %s (user=%s): %d turnuser validated",
+        year_id, _current_username(), count,
+    )
 
 
 @admin.route("/turnus-sets")
@@ -67,13 +96,13 @@ def create_turnus_set():
                 _existing_data = _json.load(_f)
             _valid, _errors = validate_turnus_json(_existing_data)
             if not _valid:
-                for err in _errors:
-                    flash(f"Valideringsfeil: {err}", "danger")
+                _flash_validation_errors(_errors, year_id)
                 return render_template(
                     "admin_create_turnus_set.html",
                     page_name="Opprett turnussett",
                     form=form,
                 )
+            _log_ingest_success(year_id, len(_existing_data))
             flash(
                 f"Validering OK: {len(_existing_data)} av {len(_existing_data)} turnuser godkjent.",
                 "info",
@@ -174,13 +203,13 @@ def handle_pdf_upload(pdf_file, year_id):
         valid, errors = validate_turnus_json(scraper.turnuser)
         if not valid:
             os.remove(pdf_path)
-            for err in errors:
-                flash(f"Valideringsfeil: {err}", "danger")
+            _flash_validation_errors(errors, year_id)
             return None, None
 
         # Write JSON only after successful validation
         turnus_json_path = scraper.create_json(year_id=year_id)
 
+        _log_ingest_success(year_id, len(scraper.turnuser))
         flash(
             f"Validering OK: {len(scraper.turnuser)} av {len(scraper.turnuser)} turnuser godkjent.",
             "info",
@@ -189,6 +218,9 @@ def handle_pdf_upload(pdf_file, year_id):
         return turnus_json_path, None  # df_json_path will be generated later
 
     except Exception as e:
+        ingest_logger.exception(
+            "Turnus import CRASHED %s (user=%s)", year_id, _current_username()
+        )
         flash(f"Feil ved skraping av PDF: {e}", "danger")
         return None, None
 
@@ -244,11 +276,11 @@ def refresh_turnus_set(turnus_set_id):
         # Validate before overwriting the existing JSON on disk
         valid, errors = validate_turnus_json(scraper.turnuser)
         if not valid:
-            for err in errors:
-                flash(f"Valideringsfeil: {err}", "danger")
+            _flash_validation_errors(errors, year_id)
             flash("Eksisterende turnusdata er ikke endret.", "warning")
             return redirect(url_for("admin.manage_turnus_sets"))
 
+        _log_ingest_success(year_id, len(scraper.turnuser))
         flash(
             f"Validering OK: {len(scraper.turnuser)} av {len(scraper.turnuser)} turnuser godkjent.",
             "info",
@@ -294,6 +326,9 @@ def refresh_turnus_set(turnus_set_id):
             flash(f"Omdøpte vakter: {renamed_details}", "info")
 
     except Exception as e:
+        ingest_logger.exception(
+            "Turnus refresh CRASHED %s (user=%s)", year_id, _current_username()
+        )
         flash(f"Feil ved oppdatering av turnussett: {e}", "danger")
 
     return redirect(url_for("admin.manage_turnus_sets"))
