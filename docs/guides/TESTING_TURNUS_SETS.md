@@ -17,8 +17,12 @@ Safe to run on a dev machine (no real users; deleting a set only affects local d
    SQLITE_PATH=./dummy.db
    ```
 2. Apply migrations: `alembic upgrade head`
-3. Confirm an active turnus set exists (R26). If the DB is empty, create one first via
-   the admin UI (Section 2.2) before the destructive tests.
+3. Check existing sets on **Admin → Administrer turnussett**:
+   - **Empty DB (fresh dev machine):** Section 2.2 creates the active R26 set — do it first;
+     it doubles as the happy-path test.
+   - **R26 already exists but inactive:** just use the activate/switch action (2.7).
+   - **R26 already exists and active:** for the happy-path *create* test use the throwaway
+     `R26COPY` copy instead (see the note in 2.2).
 
 ---
 
@@ -64,24 +68,28 @@ Run from the project root. Each line maps to part of the hardening.
    ```
 3. Log in as an admin and go to **Admin → Administrer turnussett**.
 
-### 2.2 Happy path — create from existing files (no PDF needed)
-`year_identifier` is unique, so you cannot re-create the existing `R26`. Use a **throwaway
-copy** with its own id (`R26COPY`). Create the fixture once:
-```bash
-mkdir -p app/static/turnusfiler/r26copy
-cp app/static/turnusfiler/r26/turnus_schedule_R26.json app/static/turnusfiler/r26copy/turnus_schedule_R26COPY.json
-cp app/static/turnusfiler/r26/turnus_stats_R26.json    app/static/turnusfiler/r26copy/turnus_stats_R26COPY.json
-```
-Then:
+### 2.2 Happy path — create the active set from existing files (no PDF needed)
+On a fresh dev DB (no sets yet), create `R26` directly — this is both your happy-path test
+and how you establish the active set everything else needs. The schedule/stats JSON already
+exist on disk.
 1. **Opprett turnussett**:
-   - Navn: `Happy test`
-   - Årsidentifikator: `R26COPY`
+   - Navn: `OSL R26`
+   - Årsidentifikator: `R26`
    - ✅ **Bruk eksisterende filer**, leave PDF empty
+   - ✅ **Sett som aktivt turnussett**
    - Submit
-2. Expect: green **`Validering OK: 57 av 57 turnuser godkjent.`** and the set is created.
-3. Log: an **INFO** line `Turnus import OK R26COPY (user=...): 57 turnuser validated`.
-4. Cleanup later: delete the `Happy test` set in the UI and
-   `rm -rf app/static/turnusfiler/r26copy`.
+2. Expect: green **`Validering OK: 57 av 57 turnuser godkjent.`** and the set is created and
+   active.
+3. Log: an **INFO** line `Turnus import OK R26 (user=...): 57 turnuser validated`.
+
+> **If `R26` already exists in your DB** (`year_identifier` is unique), test the create flow
+> against a throwaway copy instead:
+> ```bash
+> mkdir -p app/static/turnusfiler/r26copy
+> cp app/static/turnusfiler/r26/turnus_schedule_R26.json app/static/turnusfiler/r26copy/turnus_schedule_R26COPY.json
+> cp app/static/turnusfiler/r26/turnus_stats_R26.json    app/static/turnusfiler/r26copy/turnus_stats_R26COPY.json
+> ```
+> then create with id `R26COPY`, and `rm -rf app/static/turnusfiler/r26copy` afterwards.
 
 ### 2.3 Failure path — create from the broken fixture
 1. Make sure the broken fixture exists (regenerate if cleaned up — see Appendix).
