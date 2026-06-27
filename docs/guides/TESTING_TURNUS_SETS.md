@@ -65,17 +65,23 @@ Run from the project root. Each line maps to part of the hardening.
 3. Log in as an admin and go to **Admin → Administrer turnussett**.
 
 ### 2.2 Happy path — create from existing files (no PDF needed)
+`year_identifier` is unique, so you cannot re-create the existing `R26`. Use a **throwaway
+copy** with its own id (`R26COPY`). Create the fixture once:
+```bash
+mkdir -p app/static/turnusfiler/r26copy
+cp app/static/turnusfiler/r26/turnus_schedule_R26.json app/static/turnusfiler/r26copy/turnus_schedule_R26COPY.json
+cp app/static/turnusfiler/r26/turnus_stats_R26.json    app/static/turnusfiler/r26copy/turnus_stats_R26COPY.json
+```
+Then:
 1. **Opprett turnussett**:
    - Navn: `Happy test`
-   - Årsidentifikator: `R26` (reuses the committed clean JSON)
+   - Årsidentifikator: `R26COPY`
    - ✅ **Bruk eksisterende filer**, leave PDF empty
    - Submit
 2. Expect: green **`Validering OK: 57 av 57 turnuser godkjent.`** and the set is created.
-3. Log: an **INFO** line `Turnus import OK R26 (user=...): 57 turnuser validated`.
-
-> If `R26` already exists and blocks re-creation, use this path against a throwaway copy:
-> `cp -r app/static/turnusfiler/r26 app/static/turnusfiler/r26copy` then rename the two JSON
-> files to `*_R26COPY.json` and use year id `R26COPY`. Delete the set + folder afterwards.
+3. Log: an **INFO** line `Turnus import OK R26COPY (user=...): 57 turnuser validated`.
+4. Cleanup later: delete the `Happy test` set in the UI and
+   `rm -rf app/static/turnusfiler/r26copy`.
 
 ### 2.3 Failure path — create from the broken fixture
 1. Make sure the broken fixture exists (regenerate if cleaned up — see Appendix).
