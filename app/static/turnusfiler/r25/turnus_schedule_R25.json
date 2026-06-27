@@ -96,11 +96,8 @@
                         "21:31",
                         "8:47"
                     ],
-                    "start": [
-                        "21:31",
-                        "8:47"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "8:47",
                     "dagsverk": "3018-70",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -120,11 +117,8 @@
                         "19:26",
                         "6:28"
                     ],
-                    "start": [
-                        "19:26",
-                        "6:28"
-                    ],
-                    "slutt": "",
+                    "start": "19:26",
+                    "slutt": "6:28",
                     "dagsverk": "3121",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -135,11 +129,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "9309",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -187,11 +178,8 @@
                         "16:21",
                         "22:26"
                     ],
-                    "start": [
-                        "16:21",
-                        "22:26"
-                    ],
-                    "slutt": "",
+                    "start": "16:21",
+                    "slutt": "22:26",
                     "dagsverk": "5019_HLD",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -252,11 +240,8 @@
                         "17:18",
                         "22:05"
                     ],
-                    "start": [
-                        "17:18",
-                        "22:05"
-                    ],
-                    "slutt": "",
+                    "start": "17:18",
+                    "slutt": "22:05",
                     "dagsverk": "3139_LHM",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -432,11 +417,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "9328",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -470,11 +452,8 @@
                         "21:31",
                         "6:06"
                     ],
-                    "start": [
-                        "21:31",
-                        "6:06"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "6:06",
                     "dagsverk": "1227",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -485,11 +464,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "9309",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -605,11 +581,8 @@
                         "17:18",
                         "22:44"
                     ],
-                    "start": [
-                        "17:18",
-                        "22:44"
-                    ],
-                    "slutt": "",
+                    "start": "17:18",
+                    "slutt": "22:44",
                     "dagsverk": "3116_LHM",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -658,11 +631,8 @@
                         "16:21",
                         "22:26"
                     ],
-                    "start": [
-                        "16:21",
-                        "22:26"
-                    ],
-                    "slutt": "",
+                    "start": "16:21",
+                    "slutt": "22:26",
                     "dagsverk": "5019_HLD",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -685,11 +655,8 @@
                         "21:31",
                         "8:47"
                     ],
-                    "start": [
-                        "21:31",
-                        "8:47"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "8:47",
                     "dagsverk": "3018-70",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -775,11 +742,8 @@
                         "23:45",
                         "5:39"
                     ],
-                    "start": [
-                        "23:45",
-                        "5:39"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "5:39",
                     "dagsverk": "1535",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -790,11 +754,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "9309",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -828,11 +789,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "9309",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -843,11 +801,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "9309",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -970,11 +925,8 @@
                         "16:23",
                         "23:56"
                     ],
-                    "start": [
-                        "16:23",
-                        "23:56"
-                    ],
-                    "slutt": "",
+                    "start": "16:23",
+                    "slutt": "23:56",
                     "dagsverk": "3111",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -1168,11 +1120,8 @@
                         "18:18",
                         "22:59"
                     ],
-                    "start": [
-                        "18:18",
-                        "22:59"
-                    ],
-                    "slutt": "",
+                    "start": "18:18",
+                    "slutt": "22:59",
                     "dagsverk": "3141_LHM",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -1221,11 +1170,8 @@
                         "16:21",
                         "22:26"
                     ],
-                    "start": [
-                        "16:21",
-                        "22:26"
-                    ],
-                    "slutt": "",
+                    "start": "16:21",
+                    "slutt": "22:26",
                     "dagsverk": "5019_HLD",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -1340,11 +1286,8 @@
                         "21:36",
                         "7:14"
                     ],
-                    "start": [
-                        "21:36",
-                        "7:14"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "7:14",
                     "dagsverk": "5024",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -1355,11 +1298,8 @@
                         "23:23",
                         "7:28"
                     ],
-                    "start": [
-                        "23:23",
-                        "7:28"
-                    ],
-                    "slutt": "",
+                    "start": "23:23",
+                    "slutt": "7:28",
                     "dagsverk": "3145",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -1703,11 +1643,8 @@
                         "17:12",
                         "22:26"
                     ],
-                    "start": [
-                        "17:12",
-                        "22:26"
-                    ],
-                    "slutt": "",
+                    "start": "17:12",
+                    "slutt": "22:26",
                     "dagsverk": "5017-Mod_1_HLD",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -1955,11 +1892,8 @@
                         "16:21",
                         "22:26"
                     ],
-                    "start": [
-                        "16:21",
-                        "22:26"
-                    ],
-                    "slutt": "",
+                    "start": "16:21",
+                    "slutt": "22:26",
                     "dagsverk": "5019_HLD",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -2110,11 +2044,8 @@
                         "15:51",
                         "23:55"
                     ],
-                    "start": [
-                        "15:51",
-                        "23:55"
-                    ],
-                    "slutt": "",
+                    "start": "15:51",
+                    "slutt": "23:55",
                     "dagsverk": "1222",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -2564,11 +2495,8 @@
                         "19:26",
                         "6:28"
                     ],
-                    "start": [
-                        "19:26",
-                        "6:28"
-                    ],
-                    "slutt": "",
+                    "start": "19:26",
+                    "slutt": "6:28",
                     "dagsverk": "3121",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -2601,11 +2529,8 @@
                         "19:23",
                         "7:26"
                     ],
-                    "start": [
-                        "19:23",
-                        "7:26"
-                    ],
-                    "slutt": "",
+                    "start": "19:23",
+                    "slutt": "7:26",
                     "dagsverk": "3120",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -2616,11 +2541,8 @@
                         "22:04",
                         "7:42"
                     ],
-                    "start": [
-                        "22:04",
-                        "7:42"
-                    ],
-                    "slutt": "",
+                    "start": "22:04",
+                    "slutt": "7:42",
                     "dagsverk": "5041",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -2654,11 +2576,8 @@
                         "23:23",
                         "7:28"
                     ],
-                    "start": [
-                        "23:23",
-                        "7:28"
-                    ],
-                    "slutt": "",
+                    "start": "23:23",
+                    "slutt": "7:28",
                     "dagsverk": "3123",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -2669,11 +2588,8 @@
                         "21:36",
                         "6:48"
                     ],
-                    "start": [
-                        "21:36",
-                        "6:48"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "6:48",
                     "dagsverk": "5023",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -2802,11 +2718,8 @@
                         "19:01",
                         "7:26"
                     ],
-                    "start": [
-                        "19:01",
-                        "7:26"
-                    ],
-                    "slutt": "",
+                    "start": "19:01",
+                    "slutt": "7:26",
                     "dagsverk": "3143",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3005,11 +2918,8 @@
                         "21:36",
                         "6:48"
                     ],
-                    "start": [
-                        "21:36",
-                        "6:48"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "6:48",
                     "dagsverk": "5023",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3020,11 +2930,8 @@
                         "21:31",
                         "8:47"
                     ],
-                    "start": [
-                        "21:31",
-                        "8:47"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "8:47",
                     "dagsverk": "3018-70",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3135,11 +3042,8 @@
                         "23:39",
                         "5:45"
                     ],
-                    "start": [
-                        "23:39",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "5:45",
                     "dagsverk": "5022",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3150,11 +3054,8 @@
                         "23:39",
                         "7:42"
                     ],
-                    "start": [
-                        "23:39",
-                        "7:42"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "7:42",
                     "dagsverk": "5029",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3395,11 +3296,8 @@
                         "23:23",
                         "7:28"
                     ],
-                    "start": [
-                        "23:23",
-                        "7:28"
-                    ],
-                    "slutt": "",
+                    "start": "23:23",
+                    "slutt": "7:28",
                     "dagsverk": "3123",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3410,11 +3308,8 @@
                         "23:44",
                         "7:15"
                     ],
-                    "start": [
-                        "23:44",
-                        "7:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:44",
+                    "slutt": "7:15",
                     "dagsverk": "1531",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3488,11 +3383,8 @@
                         "21:31",
                         "8:47"
                     ],
-                    "start": [
-                        "21:31",
-                        "8:47"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "8:47",
                     "dagsverk": "3018-70",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3512,11 +3404,8 @@
                         "22:51",
                         "6:11"
                     ],
-                    "start": [
-                        "22:51",
-                        "6:11"
-                    ],
-                    "slutt": "",
+                    "start": "22:51",
+                    "slutt": "6:11",
                     "dagsverk": "1517",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3527,11 +3416,8 @@
                         "21:05",
                         "8:46"
                     ],
-                    "start": [
-                        "21:05",
-                        "8:46"
-                    ],
-                    "slutt": "",
+                    "start": "21:05",
+                    "slutt": "8:46",
                     "dagsverk": "1632",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3565,11 +3451,8 @@
                         "22:01",
                         "7:20"
                     ],
-                    "start": [
-                        "22:01",
-                        "7:20"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "7:20",
                     "dagsverk": "1501",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3580,11 +3463,8 @@
                         "21:01",
                         "6:11"
                     ],
-                    "start": [
-                        "21:01",
-                        "6:11"
-                    ],
-                    "slutt": "",
+                    "start": "21:01",
+                    "slutt": "6:11",
                     "dagsverk": "1502",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3756,11 +3636,8 @@
                         "16:18",
                         "23:51"
                     ],
-                    "start": [
-                        "16:18",
-                        "23:51"
-                    ],
-                    "slutt": "",
+                    "start": "16:18",
+                    "slutt": "23:51",
                     "dagsverk": "3014",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3893,11 +3770,8 @@
                         "20:01",
                         "8:21"
                     ],
-                    "start": [
-                        "20:01",
-                        "8:21"
-                    ],
-                    "slutt": "",
+                    "start": "20:01",
+                    "slutt": "8:21",
                     "dagsverk": "3032",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -3955,11 +3829,8 @@
                         "23:16",
                         "6:38"
                     ],
-                    "start": [
-                        "23:16",
-                        "6:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:16",
+                    "slutt": "6:38",
                     "dagsverk": "3017",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4284,11 +4155,8 @@
                         "21:36",
                         "6:48"
                     ],
-                    "start": [
-                        "21:36",
-                        "6:48"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "6:48",
                     "dagsverk": "5023",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4299,11 +4167,8 @@
                         "23:39",
                         "5:45"
                     ],
-                    "start": [
-                        "23:39",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "5:45",
                     "dagsverk": "5022",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4420,11 +4285,8 @@
                         "14:46",
                         "23:58"
                     ],
-                    "start": [
-                        "14:46",
-                        "23:58"
-                    ],
-                    "slutt": "",
+                    "start": "14:46",
+                    "slutt": "23:58",
                     "dagsverk": "1318",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4435,11 +4297,8 @@
                         "21:41",
                         "7:51"
                     ],
-                    "start": [
-                        "21:41",
-                        "7:51"
-                    ],
-                    "slutt": "",
+                    "start": "21:41",
+                    "slutt": "7:51",
                     "dagsverk": "1352",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4664,11 +4523,8 @@
                         "22:48",
                         "7:45"
                     ],
-                    "start": [
-                        "22:48",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "22:48",
+                    "slutt": "7:45",
                     "dagsverk": "1322",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4679,11 +4535,8 @@
                         "21:36",
                         "6:48"
                     ],
-                    "start": [
-                        "21:36",
-                        "6:48"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "6:48",
                     "dagsverk": "5023",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4819,11 +4672,8 @@
                         "23:31",
                         "6:22"
                     ],
-                    "start": [
-                        "23:31",
-                        "6:22"
-                    ],
-                    "slutt": "",
+                    "start": "23:31",
+                    "slutt": "6:22",
                     "dagsverk": "1477",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4843,11 +4693,8 @@
                         "22:46",
                         "7:11"
                     ],
-                    "start": [
-                        "22:46",
-                        "7:11"
-                    ],
-                    "slutt": "",
+                    "start": "22:46",
+                    "slutt": "7:11",
                     "dagsverk": "1516",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -4858,11 +4705,8 @@
                         "23:06",
                         "6:15"
                     ],
-                    "start": [
-                        "23:06",
-                        "6:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:06",
+                    "slutt": "6:15",
                     "dagsverk": "1328",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5143,11 +4987,8 @@
                         "21:46",
                         "6:45"
                     ],
-                    "start": [
-                        "21:46",
-                        "6:45"
-                    ],
-                    "slutt": "",
+                    "start": "21:46",
+                    "slutt": "6:45",
                     "dagsverk": "1505",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5158,11 +4999,8 @@
                         "20:48",
                         "8:58"
                     ],
-                    "start": [
-                        "20:48",
-                        "8:58"
-                    ],
-                    "slutt": "",
+                    "start": "20:48",
+                    "slutt": "8:58",
                     "dagsverk": "1351",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5382,11 +5220,8 @@
                         "14:23",
                         "23:41"
                     ],
-                    "start": [
-                        "14:23",
-                        "23:41"
-                    ],
-                    "slutt": "",
+                    "start": "14:23",
+                    "slutt": "23:41",
                     "dagsverk": "3109",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5683,11 +5518,8 @@
                         "21:56",
                         "6:11"
                     ],
-                    "start": [
-                        "21:56",
-                        "6:11"
-                    ],
-                    "slutt": "",
+                    "start": "21:56",
+                    "slutt": "6:11",
                     "dagsverk": "1507",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5698,11 +5530,8 @@
                         "20:50",
                         "9:58"
                     ],
-                    "start": [
-                        "20:50",
-                        "9:58"
-                    ],
-                    "slutt": "",
+                    "start": "20:50",
+                    "slutt": "9:58",
                     "dagsverk": "1353",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5724,11 +5553,8 @@
                         "14:46",
                         "0:40"
                     ],
-                    "start": [
-                        "14:46",
-                        "0:40"
-                    ],
-                    "slutt": "",
+                    "start": "14:46",
+                    "slutt": "0:40",
                     "dagsverk": "1319",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5739,11 +5565,8 @@
                         "20:50",
                         "5:45"
                     ],
-                    "start": [
-                        "20:50",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "20:50",
+                    "slutt": "5:45",
                     "dagsverk": "1321",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5754,11 +5577,8 @@
                         "23:06",
                         "6:15"
                     ],
-                    "start": [
-                        "23:06",
-                        "6:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:06",
+                    "slutt": "6:15",
                     "dagsverk": "1328",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -5944,11 +5764,8 @@
                         "22:48",
                         "7:45"
                     ],
-                    "start": [
-                        "22:48",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "22:48",
+                    "slutt": "7:45",
                     "dagsverk": "1322",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6102,11 +5919,8 @@
                         "21:36",
                         "7:25"
                     ],
-                    "start": [
-                        "21:36",
-                        "7:25"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "7:25",
                     "dagsverk": "1325",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6117,11 +5931,8 @@
                         "23:46",
                         "7:38"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:38",
                     "dagsverk": "1537",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6195,11 +6006,8 @@
                         "22:48",
                         "7:45"
                     ],
-                    "start": [
-                        "22:48",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "22:48",
+                    "slutt": "7:45",
                     "dagsverk": "1322",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6210,11 +6018,8 @@
                         "23:46",
                         "7:31"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:31"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:31",
                     "dagsverk": "1480",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6273,11 +6078,8 @@
                         "20:50",
                         "5:45"
                     ],
-                    "start": [
-                        "20:50",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "20:50",
+                    "slutt": "5:45",
                     "dagsverk": "1321",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6297,11 +6099,8 @@
                         "16:58",
                         "0:41"
                     ],
-                    "start": [
-                        "16:58",
-                        "0:41"
-                    ],
-                    "slutt": "",
+                    "start": "16:58",
+                    "slutt": "0:41",
                     "dagsverk": "1460",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6312,11 +6111,8 @@
                         "14:46",
                         "0:40"
                     ],
-                    "start": [
-                        "14:46",
-                        "0:40"
-                    ],
-                    "slutt": "",
+                    "start": "14:46",
+                    "slutt": "0:40",
                     "dagsverk": "1319",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6453,11 +6249,8 @@
                         "15:51",
                         "23:55"
                     ],
-                    "start": [
-                        "15:51",
-                        "23:55"
-                    ],
-                    "slutt": "",
+                    "start": "15:51",
+                    "slutt": "23:55",
                     "dagsverk": "1222",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6481,11 +6274,8 @@
                         "21:52",
                         "6:46"
                     ],
-                    "start": [
-                        "21:52",
-                        "6:46"
-                    ],
-                    "slutt": "",
+                    "start": "21:52",
+                    "slutt": "6:46",
                     "dagsverk": "1323",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6496,11 +6286,8 @@
                         "22:01",
                         "7:20"
                     ],
-                    "start": [
-                        "22:01",
-                        "7:20"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "7:20",
                     "dagsverk": "1501",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6592,11 +6379,8 @@
                         "20:01",
                         "5:51"
                     ],
-                    "start": [
-                        "20:01",
-                        "5:51"
-                    ],
-                    "slutt": "",
+                    "start": "20:01",
+                    "slutt": "5:51",
                     "dagsverk": "1229",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6607,11 +6391,8 @@
                         "23:48",
                         "7:56"
                     ],
-                    "start": [
-                        "23:48",
-                        "7:56"
-                    ],
-                    "slutt": "",
+                    "start": "23:48",
+                    "slutt": "7:56",
                     "dagsverk": "1329",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6645,11 +6426,8 @@
                         "22:21",
                         "7:13"
                     ],
-                    "start": [
-                        "22:21",
-                        "7:13"
-                    ],
-                    "slutt": "",
+                    "start": "22:21",
+                    "slutt": "7:13",
                     "dagsverk": "1476",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6669,11 +6447,8 @@
                         "20:50",
                         "5:45"
                     ],
-                    "start": [
-                        "20:50",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "20:50",
+                    "slutt": "5:45",
                     "dagsverk": "1321",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6684,11 +6459,8 @@
                         "23:31",
                         "6:22"
                     ],
-                    "start": [
-                        "23:31",
-                        "6:22"
-                    ],
-                    "slutt": "",
+                    "start": "23:31",
+                    "slutt": "6:22",
                     "dagsverk": "1477",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6762,11 +6534,8 @@
                         "16:00",
                         "0:00"
                     ],
-                    "start": [
-                        "16:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "16:00",
+                    "slutt": "0:00",
                     "dagsverk": "9916002400-H",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6777,11 +6546,8 @@
                         "20:50",
                         "5:45"
                     ],
-                    "start": [
-                        "20:50",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "20:50",
+                    "slutt": "5:45",
                     "dagsverk": "1321",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6792,11 +6558,8 @@
                         "21:26",
                         "6:36"
                     ],
-                    "start": [
-                        "21:26",
-                        "6:36"
-                    ],
-                    "slutt": "",
+                    "start": "21:26",
+                    "slutt": "6:36",
                     "dagsverk": "1226",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6830,11 +6593,8 @@
                         "22:48",
                         "7:45"
                     ],
-                    "start": [
-                        "22:48",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "22:48",
+                    "slutt": "7:45",
                     "dagsverk": "1322",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6854,11 +6614,8 @@
                         "21:31",
                         "6:06"
                     ],
-                    "start": [
-                        "21:31",
-                        "6:06"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "6:06",
                     "dagsverk": "1227",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6869,11 +6626,8 @@
                         "22:01",
                         "5:41"
                     ],
-                    "start": [
-                        "22:01",
-                        "5:41"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "5:41",
                     "dagsverk": "1508",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6959,11 +6713,8 @@
                         "21:41",
                         "6:41"
                     ],
-                    "start": [
-                        "21:41",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:41",
+                    "slutt": "6:41",
                     "dagsverk": "1504",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -6974,11 +6725,8 @@
                         "23:11",
                         "8:18"
                     ],
-                    "start": [
-                        "23:11",
-                        "8:18"
-                    ],
-                    "slutt": "",
+                    "start": "23:11",
+                    "slutt": "8:18",
                     "dagsverk": "1524",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7012,11 +6760,8 @@
                         "21:52",
                         "6:46"
                     ],
-                    "start": [
-                        "21:52",
-                        "6:46"
-                    ],
-                    "slutt": "",
+                    "start": "21:52",
+                    "slutt": "6:46",
                     "dagsverk": "1323",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7036,11 +6781,8 @@
                         "21:36",
                         "7:25"
                     ],
-                    "start": [
-                        "21:36",
-                        "7:25"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "7:25",
                     "dagsverk": "1325",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7051,11 +6793,8 @@
                         "21:52",
                         "6:46"
                     ],
-                    "start": [
-                        "21:52",
-                        "6:46"
-                    ],
-                    "slutt": "",
+                    "start": "21:52",
+                    "slutt": "6:46",
                     "dagsverk": "1323",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7348,11 +7087,8 @@
                         "19:04",
                         "8:42"
                     ],
-                    "start": [
-                        "19:04",
-                        "8:42"
-                    ],
-                    "slutt": "",
+                    "start": "19:04",
+                    "slutt": "8:42",
                     "dagsverk": "5040",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7386,11 +7122,8 @@
                         "23:39",
                         "5:45"
                     ],
-                    "start": [
-                        "23:39",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "5:45",
                     "dagsverk": "5022",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7401,11 +7134,8 @@
                         "22:21",
                         "7:13"
                     ],
-                    "start": [
-                        "22:21",
-                        "7:13"
-                    ],
-                    "slutt": "",
+                    "start": "22:21",
+                    "slutt": "7:13",
                     "dagsverk": "1476",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7516,11 +7246,8 @@
                         "20:14",
                         "8:58"
                     ],
-                    "start": [
-                        "20:14",
-                        "8:58"
-                    ],
-                    "slutt": "",
+                    "start": "20:14",
+                    "slutt": "8:58",
                     "dagsverk": "1320",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7566,11 +7293,8 @@
                         "14:46",
                         "0:40"
                     ],
-                    "start": [
-                        "14:46",
-                        "0:40"
-                    ],
-                    "slutt": "",
+                    "start": "14:46",
+                    "slutt": "0:40",
                     "dagsverk": "1319",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7581,11 +7305,8 @@
                         "15:30",
                         "1:00"
                     ],
-                    "start": [
-                        "15:30",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:30",
+                    "slutt": "1:00",
                     "dagsverk": "915300100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7596,11 +7317,8 @@
                         "21:36",
                         "7:25"
                     ],
-                    "start": [
-                        "21:36",
-                        "7:25"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "7:25",
                     "dagsverk": "1325",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7704,11 +7422,8 @@
                         "15:51",
                         "23:54"
                     ],
-                    "start": [
-                        "15:51",
-                        "23:54"
-                    ],
-                    "slutt": "",
+                    "start": "15:51",
+                    "slutt": "23:54",
                     "dagsverk": "1314-E",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7745,11 +7460,8 @@
                         "23:23",
                         "7:28"
                     ],
-                    "start": [
-                        "23:23",
-                        "7:28"
-                    ],
-                    "slutt": "",
+                    "start": "23:23",
+                    "slutt": "7:28",
                     "dagsverk": "3123",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7760,11 +7472,8 @@
                         "21:52",
                         "6:46"
                     ],
-                    "start": [
-                        "21:52",
-                        "6:46"
-                    ],
-                    "slutt": "",
+                    "start": "21:52",
+                    "slutt": "6:46",
                     "dagsverk": "1323",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7784,11 +7493,8 @@
                         "19:26",
                         "6:28"
                     ],
-                    "start": [
-                        "19:26",
-                        "6:28"
-                    ],
-                    "slutt": "",
+                    "start": "19:26",
+                    "slutt": "6:28",
                     "dagsverk": "3121",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -7948,11 +7654,8 @@
                         "16:35",
                         "23:41"
                     ],
-                    "start": [
-                        "16:35",
-                        "23:41"
-                    ],
-                    "slutt": "",
+                    "start": "16:35",
+                    "slutt": "23:41",
                     "dagsverk": "1452",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8300,11 +8003,8 @@
                         "23:06",
                         "6:15"
                     ],
-                    "start": [
-                        "23:06",
-                        "6:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:06",
+                    "slutt": "6:15",
                     "dagsverk": "1328",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8315,11 +8015,8 @@
                         "23:16",
                         "6:38"
                     ],
-                    "start": [
-                        "23:16",
-                        "6:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:16",
+                    "slutt": "6:38",
                     "dagsverk": "3017",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8430,11 +8127,8 @@
                         "16:16",
                         "1:11"
                     ],
-                    "start": [
-                        "16:16",
-                        "1:11"
-                    ],
-                    "slutt": "",
+                    "start": "16:16",
+                    "slutt": "1:11",
                     "dagsverk": "1223",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8445,11 +8139,8 @@
                         "19:18",
                         "8:28"
                     ],
-                    "start": [
-                        "19:18",
-                        "8:28"
-                    ],
-                    "slutt": "",
+                    "start": "19:18",
+                    "slutt": "8:28",
                     "dagsverk": "3144",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8471,11 +8162,8 @@
                         "14:30",
                         "0:30"
                     ],
-                    "start": [
-                        "14:30",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "14:30",
+                    "slutt": "0:30",
                     "dagsverk": "914300030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8486,11 +8174,8 @@
                         "14:30",
                         "0:30"
                     ],
-                    "start": [
-                        "14:30",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "14:30",
+                    "slutt": "0:30",
                     "dagsverk": "914300030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8654,11 +8339,8 @@
                         "23:06",
                         "6:15"
                     ],
-                    "start": [
-                        "23:06",
-                        "6:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:06",
+                    "slutt": "6:15",
                     "dagsverk": "1328",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8678,11 +8360,8 @@
                         "14:45",
                         "23:45"
                     ],
-                    "start": [
-                        "14:45",
-                        "23:45"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "23:45",
                     "dagsverk": "914452345",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8802,11 +8481,8 @@
                         "21:54",
                         "8:45"
                     ],
-                    "start": [
-                        "21:54",
-                        "8:45"
-                    ],
-                    "slutt": "",
+                    "start": "21:54",
+                    "slutt": "8:45",
                     "dagsverk": "7413",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8817,11 +8493,8 @@
                         "22:38",
                         "6:43"
                     ],
-                    "start": [
-                        "22:38",
-                        "6:43"
-                    ],
-                    "slutt": "",
+                    "start": "22:38",
+                    "slutt": "6:43",
                     "dagsverk": "7467",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8855,11 +8528,8 @@
                         "21:54",
                         "7:54"
                     ],
-                    "start": [
-                        "21:54",
-                        "7:54"
-                    ],
-                    "slutt": "",
+                    "start": "21:54",
+                    "slutt": "7:54",
                     "dagsverk": "7412",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -8982,11 +8652,8 @@
                         "16:56",
                         "0:11"
                     ],
-                    "start": [
-                        "16:56",
-                        "0:11"
-                    ],
-                    "slutt": "",
+                    "start": "16:56",
+                    "slutt": "0:11",
                     "dagsverk": "7411",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9047,11 +8714,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9062,11 +8726,8 @@
                         "21:54",
                         "7:54"
                     ],
-                    "start": [
-                        "21:54",
-                        "7:54"
-                    ],
-                    "slutt": "",
+                    "start": "21:54",
+                    "slutt": "7:54",
                     "dagsverk": "7412",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9214,11 +8875,8 @@
                         "16:56",
                         "0:11"
                     ],
-                    "start": [
-                        "16:56",
-                        "0:11"
-                    ],
-                    "slutt": "",
+                    "start": "16:56",
+                    "slutt": "0:11",
                     "dagsverk": "7411",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9229,11 +8887,8 @@
                         "21:54",
                         "7:54"
                     ],
-                    "start": [
-                        "21:54",
-                        "7:54"
-                    ],
-                    "slutt": "",
+                    "start": "21:54",
+                    "slutt": "7:54",
                     "dagsverk": "7412",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9338,11 +8993,8 @@
                         "16:56",
                         "0:11"
                     ],
-                    "start": [
-                        "16:56",
-                        "0:11"
-                    ],
-                    "slutt": "",
+                    "start": "16:56",
+                    "slutt": "0:11",
                     "dagsverk": "7411",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9353,11 +9005,8 @@
                         "15:08",
                         "0:15"
                     ],
-                    "start": [
-                        "15:08",
-                        "0:15"
-                    ],
-                    "slutt": "",
+                    "start": "15:08",
+                    "slutt": "0:15",
                     "dagsverk": "7409",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9394,11 +9043,8 @@
                         "16:56",
                         "0:11"
                     ],
-                    "start": [
-                        "16:56",
-                        "0:11"
-                    ],
-                    "slutt": "",
+                    "start": "16:56",
+                    "slutt": "0:11",
                     "dagsverk": "7411",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9599,11 +9245,8 @@
                         "16:56",
                         "0:11"
                     ],
-                    "start": [
-                        "16:56",
-                        "0:11"
-                    ],
-                    "slutt": "",
+                    "start": "16:56",
+                    "slutt": "0:11",
                     "dagsverk": "7411",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9713,11 +9356,8 @@
                         "22:54",
                         "6:43"
                     ],
-                    "start": [
-                        "22:54",
-                        "6:43"
-                    ],
-                    "slutt": "",
+                    "start": "22:54",
+                    "slutt": "6:43",
                     "dagsverk": "7415",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9728,11 +9368,8 @@
                         "21:54",
                         "8:47"
                     ],
-                    "start": [
-                        "21:54",
-                        "8:47"
-                    ],
-                    "slutt": "",
+                    "start": "21:54",
+                    "slutt": "8:47",
                     "dagsverk": "7466",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -9938,11 +9575,8 @@
                         "22:01",
                         "7:20"
                     ],
-                    "start": [
-                        "22:01",
-                        "7:20"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "7:20",
                     "dagsverk": "1501",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10115,11 +9749,8 @@
                         "21:36",
                         "7:25"
                     ],
-                    "start": [
-                        "21:36",
-                        "7:25"
-                    ],
-                    "slutt": "",
+                    "start": "21:36",
+                    "slutt": "7:25",
                     "dagsverk": "1325",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10139,11 +9770,8 @@
                         "14:46",
                         "0:40"
                     ],
-                    "start": [
-                        "14:46",
-                        "0:40"
-                    ],
-                    "slutt": "",
+                    "start": "14:46",
+                    "slutt": "0:40",
                     "dagsverk": "1319",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10295,11 +9923,8 @@
                         "21:54",
                         "7:54"
                     ],
-                    "start": [
-                        "21:54",
-                        "7:54"
-                    ],
-                    "slutt": "",
+                    "start": "21:54",
+                    "slutt": "7:54",
                     "dagsverk": "7412",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10619,11 +10244,8 @@
                         "23:46",
                         "7:38"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:38",
                     "dagsverk": "3019",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10634,11 +10256,8 @@
                         "22:48",
                         "7:58"
                     ],
-                    "start": [
-                        "22:48",
-                        "7:58"
-                    ],
-                    "slutt": "",
+                    "start": "22:48",
+                    "slutt": "7:58",
                     "dagsverk": "1643",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10684,11 +10303,8 @@
                         "22:01",
                         "5:41"
                     ],
-                    "start": [
-                        "22:01",
-                        "5:41"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "5:41",
                     "dagsverk": "1508",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10699,11 +10315,8 @@
                         "21:56",
                         "6:41"
                     ],
-                    "start": [
-                        "21:56",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:56",
+                    "slutt": "6:41",
                     "dagsverk": "1506",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -10839,11 +10452,8 @@
                         "16:58",
                         "0:41"
                     ],
-                    "start": [
-                        "16:58",
-                        "0:41"
-                    ],
-                    "slutt": "",
+                    "start": "16:58",
+                    "slutt": "0:41",
                     "dagsverk": "1460",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -11343,11 +10953,8 @@
                         "14:53",
                         "23:55"
                     ],
-                    "start": [
-                        "14:53",
-                        "23:55"
-                    ],
-                    "slutt": "",
+                    "start": "14:53",
+                    "slutt": "23:55",
                     "dagsverk": "1453",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -11530,11 +11137,8 @@
                         "16:41",
                         "0:01"
                     ],
-                    "start": [
-                        "16:41",
-                        "0:01"
-                    ],
-                    "slutt": "",
+                    "start": "16:41",
+                    "slutt": "0:01",
                     "dagsverk": "1456",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -11545,11 +11149,8 @@
                         "15:51",
                         "0:06"
                     ],
-                    "start": [
-                        "15:51",
-                        "0:06"
-                    ],
-                    "slutt": "",
+                    "start": "15:51",
+                    "slutt": "0:06",
                     "dagsverk": "1244",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -11952,11 +11553,8 @@
                         "14:56",
                         "23:46"
                     ],
-                    "start": [
-                        "14:56",
-                        "23:46"
-                    ],
-                    "slutt": "",
+                    "start": "14:56",
+                    "slutt": "23:46",
                     "dagsverk": "1215",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12052,11 +11650,8 @@
                         "15:38",
                         "23:43"
                     ],
-                    "start": [
-                        "15:38",
-                        "23:43"
-                    ],
-                    "slutt": "",
+                    "start": "15:38",
+                    "slutt": "23:43",
                     "dagsverk": "1468",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12067,11 +11662,8 @@
                         "22:31",
                         "6:26"
                     ],
-                    "start": [
-                        "22:31",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "22:31",
+                    "slutt": "6:26",
                     "dagsverk": "1513",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12082,11 +11674,8 @@
                         "23:45",
                         "7:43"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:43"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:43",
                     "dagsverk": "1532",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12120,11 +11709,8 @@
                         "22:46",
                         "7:11"
                     ],
-                    "start": [
-                        "22:46",
-                        "7:11"
-                    ],
-                    "slutt": "",
+                    "start": "22:46",
+                    "slutt": "7:11",
                     "dagsverk": "1516",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12135,11 +11721,8 @@
                         "23:33",
                         "8:05"
                     ],
-                    "start": [
-                        "23:33",
-                        "8:05"
-                    ],
-                    "slutt": "",
+                    "start": "23:33",
+                    "slutt": "8:05",
                     "dagsverk": "1525",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12300,11 +11883,8 @@
                         "21:56",
                         "6:41"
                     ],
-                    "start": [
-                        "21:56",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:56",
+                    "slutt": "6:41",
                     "dagsverk": "1506",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12324,11 +11904,8 @@
                         "23:36",
                         "6:45"
                     ],
-                    "start": [
-                        "23:36",
-                        "6:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:36",
+                    "slutt": "6:45",
                     "dagsverk": "1478",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12339,11 +11916,8 @@
                         "23:08",
                         "6:26"
                     ],
-                    "start": [
-                        "23:08",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "23:08",
+                    "slutt": "6:26",
                     "dagsverk": "1521",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12479,11 +12053,8 @@
                         "22:53",
                         "7:03"
                     ],
-                    "start": [
-                        "22:53",
-                        "7:03"
-                    ],
-                    "slutt": "",
+                    "start": "22:53",
+                    "slutt": "7:03",
                     "dagsverk": "1519",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12503,11 +12074,8 @@
                         "23:31",
                         "6:22"
                     ],
-                    "start": [
-                        "23:31",
-                        "6:22"
-                    ],
-                    "slutt": "",
+                    "start": "23:31",
+                    "slutt": "6:22",
                     "dagsverk": "1477",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12518,11 +12086,8 @@
                         "21:31",
                         "6:06"
                     ],
-                    "start": [
-                        "21:31",
-                        "6:06"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "6:06",
                     "dagsverk": "1227",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12676,11 +12241,8 @@
                         "22:46",
                         "7:11"
                     ],
-                    "start": [
-                        "22:46",
-                        "7:11"
-                    ],
-                    "slutt": "",
+                    "start": "22:46",
+                    "slutt": "7:11",
                     "dagsverk": "1516",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12691,11 +12253,8 @@
                         "22:53",
                         "7:03"
                     ],
-                    "start": [
-                        "22:53",
-                        "7:03"
-                    ],
-                    "slutt": "",
+                    "start": "22:53",
+                    "slutt": "7:03",
                     "dagsverk": "1519",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12855,11 +12414,8 @@
                         "21:01",
                         "6:11"
                     ],
-                    "start": [
-                        "21:01",
-                        "6:11"
-                    ],
-                    "slutt": "",
+                    "start": "21:01",
+                    "slutt": "6:11",
                     "dagsverk": "1502",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -12870,11 +12426,8 @@
                         "21:41",
                         "6:41"
                     ],
-                    "start": [
-                        "21:41",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:41",
+                    "slutt": "6:41",
                     "dagsverk": "1504",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13035,11 +12588,8 @@
                         "23:45",
                         "5:39"
                     ],
-                    "start": [
-                        "23:45",
-                        "5:39"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "5:39",
                     "dagsverk": "1535",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13050,11 +12600,8 @@
                         "23:56",
                         "6:21"
                     ],
-                    "start": [
-                        "23:56",
-                        "6:21"
-                    ],
-                    "slutt": "",
+                    "start": "23:56",
+                    "slutt": "6:21",
                     "dagsverk": "1228",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13171,11 +12718,8 @@
                         "16:45",
                         "0:30"
                     ],
-                    "start": [
-                        "16:45",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "16:45",
+                    "slutt": "0:30",
                     "dagsverk": "1469",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13528,11 +13072,8 @@
                         "14:56",
                         "0:06"
                     ],
-                    "start": [
-                        "14:56",
-                        "0:06"
-                    ],
-                    "slutt": "",
+                    "start": "14:56",
+                    "slutt": "0:06",
                     "dagsverk": "1218",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13717,11 +13258,8 @@
                         "14:45",
                         "1:14"
                     ],
-                    "start": [
-                        "14:45",
-                        "1:14"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "1:14",
                     "dagsverk": "1450",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13732,11 +13270,8 @@
                         "15:51",
                         "0:41"
                     ],
-                    "start": [
-                        "15:51",
-                        "0:41"
-                    ],
-                    "slutt": "",
+                    "start": "15:51",
+                    "slutt": "0:41",
                     "dagsverk": "1245",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13797,11 +13332,8 @@
                         "17:03",
                         "0:16"
                     ],
-                    "start": [
-                        "17:03",
-                        "0:16"
-                    ],
-                    "slutt": "",
+                    "start": "17:03",
+                    "slutt": "0:16",
                     "dagsverk": "1410",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13899,11 +13431,8 @@
                         "16:33",
                         "1:57"
                     ],
-                    "start": [
-                        "16:33",
-                        "1:57"
-                    ],
-                    "slutt": "",
+                    "start": "16:33",
+                    "slutt": "1:57",
                     "dagsverk": "1224",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13914,11 +13443,8 @@
                         "16:00",
                         "2:00"
                     ],
-                    "start": [
-                        "16:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "16:00",
+                    "slutt": "2:00",
                     "dagsverk": "9326",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -13979,11 +13505,8 @@
                         "18:00",
                         "2:00"
                     ],
-                    "start": [
-                        "18:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "18:00",
+                    "slutt": "2:00",
                     "dagsverk": "918000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14083,11 +13606,8 @@
                         "17:36",
                         "1:42"
                     ],
-                    "start": [
-                        "17:36",
-                        "1:42"
-                    ],
-                    "slutt": "",
+                    "start": "17:36",
+                    "slutt": "1:42",
                     "dagsverk": "1473",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14098,11 +13618,8 @@
                         "16:06",
                         "0:41"
                     ],
-                    "start": [
-                        "16:06",
-                        "0:41"
-                    ],
-                    "slutt": "",
+                    "start": "16:06",
+                    "slutt": "0:41",
                     "dagsverk": "1625",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14151,11 +13668,8 @@
                         "16:16",
                         "23:36"
                     ],
-                    "start": [
-                        "16:16",
-                        "23:36"
-                    ],
-                    "slutt": "",
+                    "start": "16:16",
+                    "slutt": "23:36",
                     "dagsverk": "1433",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14166,11 +13680,8 @@
                         "16:58",
                         "0:41"
                     ],
-                    "start": [
-                        "16:58",
-                        "0:41"
-                    ],
-                    "slutt": "",
+                    "start": "16:58",
+                    "slutt": "0:41",
                     "dagsverk": "1460",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14286,11 +13797,8 @@
                         "20:28",
                         "9:23"
                     ],
-                    "start": [
-                        "20:28",
-                        "9:23"
-                    ],
-                    "slutt": "",
+                    "start": "20:28",
+                    "slutt": "9:23",
                     "dagsverk": "3030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14324,11 +13832,8 @@
                         "23:46",
                         "7:31"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:31"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:31",
                     "dagsverk": "1480",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14339,11 +13844,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14642,11 +14144,8 @@
                         "23:31",
                         "8:41"
                     ],
-                    "start": [
-                        "23:31",
-                        "8:41"
-                    ],
-                    "slutt": "",
+                    "start": "23:31",
+                    "slutt": "8:41",
                     "dagsverk": "1636",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14680,11 +14179,8 @@
                         "16:58",
                         "0:41"
                     ],
-                    "start": [
-                        "16:58",
-                        "0:41"
-                    ],
-                    "slutt": "",
+                    "start": "16:58",
+                    "slutt": "0:41",
                     "dagsverk": "1460",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14816,11 +14312,8 @@
                         "22:15",
                         "6:41"
                     ],
-                    "start": [
-                        "22:15",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "22:15",
+                    "slutt": "6:41",
                     "dagsverk": "1511",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14831,11 +14324,8 @@
                         "22:35",
                         "8:16"
                     ],
-                    "start": [
-                        "22:35",
-                        "8:16"
-                    ],
-                    "slutt": "",
+                    "start": "22:35",
+                    "slutt": "8:16",
                     "dagsverk": "1640",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14857,11 +14347,8 @@
                         "21:31",
                         "6:06"
                     ],
-                    "start": [
-                        "21:31",
-                        "6:06"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "6:06",
                     "dagsverk": "1227",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14872,11 +14359,8 @@
                         "21:56",
                         "6:41"
                     ],
-                    "start": [
-                        "21:56",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:56",
+                    "slutt": "6:41",
                     "dagsverk": "1506",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -14999,11 +14483,8 @@
                         "22:31",
                         "7:11"
                     ],
-                    "start": [
-                        "22:31",
-                        "7:11"
-                    ],
-                    "slutt": "",
+                    "start": "22:31",
+                    "slutt": "7:11",
                     "dagsverk": "1512",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15014,11 +14495,8 @@
                         "23:03",
                         "8:18"
                     ],
-                    "start": [
-                        "23:03",
-                        "8:18"
-                    ],
-                    "slutt": "",
+                    "start": "23:03",
+                    "slutt": "8:18",
                     "dagsverk": "1635",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15178,11 +14656,8 @@
                         "23:05",
                         "6:16"
                     ],
-                    "start": [
-                        "23:05",
-                        "6:16"
-                    ],
-                    "slutt": "",
+                    "start": "23:05",
+                    "slutt": "6:16",
                     "dagsverk": "1520",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15193,11 +14668,8 @@
                         "21:56",
                         "7:16"
                     ],
-                    "start": [
-                        "21:56",
-                        "7:16"
-                    ],
-                    "slutt": "",
+                    "start": "21:56",
+                    "slutt": "7:16",
                     "dagsverk": "1647",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15219,11 +14691,8 @@
                         "22:01",
                         "5:41"
                     ],
-                    "start": [
-                        "22:01",
-                        "5:41"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "5:41",
                     "dagsverk": "1508",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15234,11 +14703,8 @@
                         "22:53",
                         "7:03"
                     ],
-                    "start": [
-                        "22:53",
-                        "7:03"
-                    ],
-                    "slutt": "",
+                    "start": "22:53",
+                    "slutt": "7:03",
                     "dagsverk": "1519",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15431,11 +14897,8 @@
                         "20:01",
                         "5:51"
                     ],
-                    "start": [
-                        "20:01",
-                        "5:51"
-                    ],
-                    "slutt": "",
+                    "start": "20:01",
+                    "slutt": "5:51",
                     "dagsverk": "1229",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15446,11 +14909,8 @@
                         "23:56",
                         "6:21"
                     ],
-                    "start": [
-                        "23:56",
-                        "6:21"
-                    ],
-                    "slutt": "",
+                    "start": "23:56",
+                    "slutt": "6:21",
                     "dagsverk": "1228",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15498,11 +14958,8 @@
                         "19:26",
                         "6:28"
                     ],
-                    "start": [
-                        "19:26",
-                        "6:28"
-                    ],
-                    "slutt": "",
+                    "start": "19:26",
+                    "slutt": "6:28",
                     "dagsverk": "3121",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15513,11 +14970,8 @@
                         "21:41",
                         "6:41"
                     ],
-                    "start": [
-                        "21:41",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:41",
+                    "slutt": "6:41",
                     "dagsverk": "1504",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15613,11 +15067,8 @@
                         "22:01",
                         "7:20"
                     ],
-                    "start": [
-                        "22:01",
-                        "7:20"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "7:20",
                     "dagsverk": "1501",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15628,11 +15079,8 @@
                         "23:23",
                         "7:28"
                     ],
-                    "start": [
-                        "23:23",
-                        "7:28"
-                    ],
-                    "slutt": "",
+                    "start": "23:23",
+                    "slutt": "7:28",
                     "dagsverk": "3123",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15680,11 +15128,8 @@
                         "23:39",
                         "6:56"
                     ],
-                    "start": [
-                        "23:39",
-                        "6:56"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "6:56",
                     "dagsverk": "1530",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15695,11 +15140,8 @@
                         "22:21",
                         "7:13"
                     ],
-                    "start": [
-                        "22:21",
-                        "7:13"
-                    ],
-                    "slutt": "",
+                    "start": "22:21",
+                    "slutt": "7:13",
                     "dagsverk": "1476",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15916,11 +15358,8 @@
                         "16:35",
                         "23:46"
                     ],
-                    "start": [
-                        "16:35",
-                        "23:46"
-                    ],
-                    "slutt": "",
+                    "start": "16:35",
+                    "slutt": "23:46",
                     "dagsverk": "1470",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -15931,11 +15370,8 @@
                         "21:31",
                         "7:11"
                     ],
-                    "start": [
-                        "21:31",
-                        "7:11"
-                    ],
-                    "slutt": "",
+                    "start": "21:31",
+                    "slutt": "7:11",
                     "dagsverk": "1633",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16108,11 +15544,8 @@
                         "22:05",
                         "7:46"
                     ],
-                    "start": [
-                        "22:05",
-                        "7:46"
-                    ],
-                    "slutt": "",
+                    "start": "22:05",
+                    "slutt": "7:46",
                     "dagsverk": "1637",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16158,11 +15591,8 @@
                         "15:51",
                         "23:55"
                     ],
-                    "start": [
-                        "15:51",
-                        "23:55"
-                    ],
-                    "slutt": "",
+                    "start": "15:51",
+                    "slutt": "23:55",
                     "dagsverk": "1222",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16173,11 +15603,8 @@
                         "23:36",
                         "6:45"
                     ],
-                    "start": [
-                        "23:36",
-                        "6:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:36",
+                    "slutt": "6:45",
                     "dagsverk": "1478",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16325,11 +15752,8 @@
                         "17:03",
                         "0:16"
                     ],
-                    "start": [
-                        "17:03",
-                        "0:16"
-                    ],
-                    "slutt": "",
+                    "start": "17:03",
+                    "slutt": "0:16",
                     "dagsverk": "1410",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16340,11 +15764,8 @@
                         "15:00",
                         "0:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "0:00",
                     "dagsverk": "915002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16355,11 +15776,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16475,11 +15893,8 @@
                         "22:58",
                         "7:53"
                     ],
-                    "start": [
-                        "22:58",
-                        "7:53"
-                    ],
-                    "slutt": "",
+                    "start": "22:58",
+                    "slutt": "7:53",
                     "dagsverk": "1644",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16652,11 +16067,8 @@
                         "20:48",
                         "9:18"
                     ],
-                    "start": [
-                        "20:48",
-                        "9:18"
-                    ],
-                    "slutt": "",
+                    "start": "20:48",
+                    "slutt": "9:18",
                     "dagsverk": "1641",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16690,11 +16102,8 @@
                         "23:16",
                         "6:38"
                     ],
-                    "start": [
-                        "23:16",
-                        "6:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:16",
+                    "slutt": "6:38",
                     "dagsverk": "3017",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16705,11 +16114,8 @@
                         "23:45",
                         "5:39"
                     ],
-                    "start": [
-                        "23:45",
-                        "5:39"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "5:39",
                     "dagsverk": "1535",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16769,11 +16175,8 @@
                         "23:46",
                         "7:38"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:38",
                     "dagsverk": "1537",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16784,11 +16187,8 @@
                         "23:44",
                         "7:15"
                     ],
-                    "start": [
-                        "23:44",
-                        "7:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:44",
+                    "slutt": "7:15",
                     "dagsverk": "1531",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16884,11 +16284,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -16899,11 +16296,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17057,11 +16451,8 @@
                         "22:31",
                         "6:26"
                     ],
-                    "start": [
-                        "22:31",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "22:31",
+                    "slutt": "6:26",
                     "dagsverk": "1513",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17072,11 +16463,8 @@
                         "23:44",
                         "7:15"
                     ],
-                    "start": [
-                        "23:44",
-                        "7:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:44",
+                    "slutt": "7:15",
                     "dagsverk": "1531",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17136,11 +16524,8 @@
                         "23:46",
                         "7:31"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:31"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:31",
                     "dagsverk": "1480",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17151,11 +16536,8 @@
                         "23:31",
                         "6:22"
                     ],
-                    "start": [
-                        "23:31",
-                        "6:22"
-                    ],
-                    "slutt": "",
+                    "start": "23:31",
+                    "slutt": "6:22",
                     "dagsverk": "1477",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17365,11 +16747,8 @@
                         "22:35",
                         "7:16"
                     ],
-                    "start": [
-                        "22:35",
-                        "7:16"
-                    ],
-                    "slutt": "",
+                    "start": "22:35",
+                    "slutt": "7:16",
                     "dagsverk": "1514",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17380,11 +16759,8 @@
                         "22:06",
                         "7:41"
                     ],
-                    "start": [
-                        "22:06",
-                        "7:41"
-                    ],
-                    "slutt": "",
+                    "start": "22:06",
+                    "slutt": "7:41",
                     "dagsverk": "1630",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17430,11 +16806,8 @@
                         "23:39",
                         "6:56"
                     ],
-                    "start": [
-                        "23:39",
-                        "6:56"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "6:56",
                     "dagsverk": "1530",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17445,11 +16818,8 @@
                         "22:53",
                         "7:03"
                     ],
-                    "start": [
-                        "22:53",
-                        "7:03"
-                    ],
-                    "slutt": "",
+                    "start": "22:53",
+                    "slutt": "7:03",
                     "dagsverk": "1519",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17591,11 +16961,8 @@
                         "23:36",
                         "6:45"
                     ],
-                    "start": [
-                        "23:36",
-                        "6:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:36",
+                    "slutt": "6:45",
                     "dagsverk": "1478",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17615,11 +16982,8 @@
                         "23:08",
                         "6:26"
                     ],
-                    "start": [
-                        "23:08",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "23:08",
+                    "slutt": "6:26",
                     "dagsverk": "1521",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17630,11 +16994,8 @@
                         "23:39",
                         "6:56"
                     ],
-                    "start": [
-                        "23:39",
-                        "6:56"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "6:56",
                     "dagsverk": "1530",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17708,11 +17069,8 @@
                         "17:03",
                         "0:16"
                     ],
-                    "start": [
-                        "17:03",
-                        "0:16"
-                    ],
-                    "slutt": "",
+                    "start": "17:03",
+                    "slutt": "0:16",
                     "dagsverk": "1410",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17747,11 +17105,8 @@
                         "23:56",
                         "8:51"
                     ],
-                    "start": [
-                        "23:56",
-                        "8:51"
-                    ],
-                    "slutt": "",
+                    "start": "23:56",
+                    "slutt": "8:51",
                     "dagsverk": "1247",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17912,11 +17267,8 @@
                         "22:23",
                         "8:28"
                     ],
-                    "start": [
-                        "22:23",
-                        "8:28"
-                    ],
-                    "slutt": "",
+                    "start": "22:23",
+                    "slutt": "8:28",
                     "dagsverk": "3122",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17927,11 +17279,8 @@
                         "22:06",
                         "7:45"
                     ],
-                    "start": [
-                        "22:06",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "22:06",
+                    "slutt": "7:45",
                     "dagsverk": "1639",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17953,11 +17302,8 @@
                         "21:41",
                         "6:41"
                     ],
-                    "start": [
-                        "21:41",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:41",
+                    "slutt": "6:41",
                     "dagsverk": "1504",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -17968,11 +17314,8 @@
                         "23:46",
                         "7:38"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:38",
                     "dagsverk": "1537",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18227,11 +17570,8 @@
                         "17:03",
                         "0:16"
                     ],
-                    "start": [
-                        "17:03",
-                        "0:16"
-                    ],
-                    "slutt": "",
+                    "start": "17:03",
+                    "slutt": "0:16",
                     "dagsverk": "1410",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18318,11 +17658,8 @@
                         "23:56",
                         "6:21"
                     ],
-                    "start": [
-                        "23:56",
-                        "6:21"
-                    ],
-                    "slutt": "",
+                    "start": "23:56",
+                    "slutt": "6:21",
                     "dagsverk": "1228",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18627,11 +17964,8 @@
                         "15:30",
                         "0:30"
                     ],
-                    "start": [
-                        "15:30",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "15:30",
+                    "slutt": "0:30",
                     "dagsverk": "915300030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18642,11 +17976,8 @@
                         "16:00",
                         "1:00"
                     ],
-                    "start": [
-                        "16:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "16:00",
+                    "slutt": "1:00",
                     "dagsverk": "916000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18657,11 +17988,8 @@
                         "16:00",
                         "1:00"
                     ],
-                    "start": [
-                        "16:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "16:00",
+                    "slutt": "1:00",
                     "dagsverk": "916000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18686,11 +18014,8 @@
                         "23:16",
                         "6:38"
                     ],
-                    "start": [
-                        "23:16",
-                        "6:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:16",
+                    "slutt": "6:38",
                     "dagsverk": "3017",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18701,11 +18026,8 @@
                         "22:01",
                         "5:41"
                     ],
-                    "start": [
-                        "22:01",
-                        "5:41"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "5:41",
                     "dagsverk": "1508",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18725,11 +18047,8 @@
                         "16:00",
                         "1:00"
                     ],
-                    "start": [
-                        "16:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "16:00",
+                    "slutt": "1:00",
                     "dagsverk": "916000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18827,11 +18146,8 @@
                         "22:46",
                         "6:27"
                     ],
-                    "start": [
-                        "22:46",
-                        "6:27"
-                    ],
-                    "slutt": "",
+                    "start": "22:46",
+                    "slutt": "6:27",
                     "dagsverk": "1515",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18842,11 +18158,8 @@
                         "21:48",
                         "8:58"
                     ],
-                    "start": [
-                        "21:48",
-                        "8:58"
-                    ],
-                    "slutt": "",
+                    "start": "21:48",
+                    "slutt": "8:58",
                     "dagsverk": "1634",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18868,11 +18181,8 @@
                         "23:45",
                         "5:39"
                     ],
-                    "start": [
-                        "23:45",
-                        "5:39"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "5:39",
                     "dagsverk": "1535",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18883,11 +18193,8 @@
                         "23:08",
                         "6:26"
                     ],
-                    "start": [
-                        "23:08",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "23:08",
+                    "slutt": "6:26",
                     "dagsverk": "1521",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -18907,11 +18214,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19009,11 +18313,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19024,11 +18325,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19053,11 +18351,8 @@
                         "23:44",
                         "7:15"
                     ],
-                    "start": [
-                        "23:44",
-                        "7:15"
-                    ],
-                    "slutt": "",
+                    "start": "23:44",
+                    "slutt": "7:15",
                     "dagsverk": "1531",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19068,11 +18363,8 @@
                         "23:36",
                         "6:45"
                     ],
-                    "start": [
-                        "23:36",
-                        "6:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:36",
+                    "slutt": "6:45",
                     "dagsverk": "1478",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19092,11 +18384,8 @@
                         "16:00",
                         "1:00"
                     ],
-                    "start": [
-                        "16:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "16:00",
+                    "slutt": "1:00",
                     "dagsverk": "916000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19200,11 +18489,8 @@
                         "23:51",
                         "7:41"
                     ],
-                    "start": [
-                        "23:51",
-                        "7:41"
-                    ],
-                    "slutt": "",
+                    "start": "23:51",
+                    "slutt": "7:41",
                     "dagsverk": "1539",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19215,11 +18501,8 @@
                         "20:36",
                         "10:11"
                     ],
-                    "start": [
-                        "20:36",
-                        "10:11"
-                    ],
-                    "slutt": "",
+                    "start": "20:36",
+                    "slutt": "10:11",
                     "dagsverk": "3031",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19241,11 +18524,8 @@
                         "23:33",
                         "8:05"
                     ],
-                    "start": [
-                        "23:33",
-                        "8:05"
-                    ],
-                    "slutt": "",
+                    "start": "23:33",
+                    "slutt": "8:05",
                     "dagsverk": "1525",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19256,11 +18536,8 @@
                         "23:39",
                         "6:56"
                     ],
-                    "start": [
-                        "23:39",
-                        "6:56"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "6:56",
                     "dagsverk": "1530",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19280,11 +18557,8 @@
                         "15:00",
                         "0:30"
                     ],
-                    "start": [
-                        "15:00",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "0:30",
                     "dagsverk": "915000030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19692,11 +18966,8 @@
                         "23:08",
                         "6:26"
                     ],
-                    "start": [
-                        "23:08",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "23:08",
+                    "slutt": "6:26",
                     "dagsverk": "1521",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -19707,11 +18978,8 @@
                         "20:01",
                         "5:51"
                     ],
-                    "start": [
-                        "20:01",
-                        "5:51"
-                    ],
-                    "slutt": "",
+                    "start": "20:01",
+                    "slutt": "5:51",
                     "dagsverk": "1229",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20098,11 +19366,8 @@
                         "23:36",
                         "7:45"
                     ],
-                    "start": [
-                        "23:36",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:36",
+                    "slutt": "7:45",
                     "dagsverk": "1526",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20113,11 +19378,8 @@
                         "22:13",
                         "7:38"
                     ],
-                    "start": [
-                        "22:13",
-                        "7:38"
-                    ],
-                    "slutt": "",
+                    "start": "22:13",
+                    "slutt": "7:38",
                     "dagsverk": "3029",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20139,11 +19401,8 @@
                         "20:01",
                         "5:51"
                     ],
-                    "start": [
-                        "20:01",
-                        "5:51"
-                    ],
-                    "slutt": "",
+                    "start": "20:01",
+                    "slutt": "5:51",
                     "dagsverk": "1229",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20154,11 +19413,8 @@
                         "23:56",
                         "6:21"
                     ],
-                    "start": [
-                        "23:56",
-                        "6:21"
-                    ],
-                    "slutt": "",
+                    "start": "23:56",
+                    "slutt": "6:21",
                     "dagsverk": "1228",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20178,11 +19434,8 @@
                         "21:01",
                         "6:11"
                     ],
-                    "start": [
-                        "21:01",
-                        "6:11"
-                    ],
-                    "slutt": "",
+                    "start": "21:01",
+                    "slutt": "6:11",
                     "dagsverk": "1502",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20274,11 +19527,8 @@
                         "23:46",
                         "7:38"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:38"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:38",
                     "dagsverk": "1537",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20289,11 +19539,8 @@
                         "22:01",
                         "6:41"
                     ],
-                    "start": [
-                        "22:01",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "22:01",
+                    "slutt": "6:41",
                     "dagsverk": "1509",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20327,11 +19574,8 @@
                         "23:39",
                         "5:45"
                     ],
-                    "start": [
-                        "23:39",
-                        "5:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "5:45",
                     "dagsverk": "5022",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20351,11 +19595,8 @@
                         "22:31",
                         "6:26"
                     ],
-                    "start": [
-                        "22:31",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "22:31",
+                    "slutt": "6:26",
                     "dagsverk": "1513",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20366,11 +19607,8 @@
                         "23:33",
                         "8:05"
                     ],
-                    "start": [
-                        "23:33",
-                        "8:05"
-                    ],
-                    "slutt": "",
+                    "start": "23:33",
+                    "slutt": "8:05",
                     "dagsverk": "1525",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20468,11 +19706,8 @@
                         "23:39",
                         "7:11"
                     ],
-                    "start": [
-                        "23:39",
-                        "7:11"
-                    ],
-                    "slutt": "",
+                    "start": "23:39",
+                    "slutt": "7:11",
                     "dagsverk": "1529",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20483,11 +19718,8 @@
                         "23:01",
                         "7:41"
                     ],
-                    "start": [
-                        "23:01",
-                        "7:41"
-                    ],
-                    "slutt": "",
+                    "start": "23:01",
+                    "slutt": "7:41",
                     "dagsverk": "1645",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20533,11 +19765,8 @@
                         "21:56",
                         "6:41"
                     ],
-                    "start": [
-                        "21:56",
-                        "6:41"
-                    ],
-                    "slutt": "",
+                    "start": "21:56",
+                    "slutt": "6:41",
                     "dagsverk": "1506",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20548,11 +19777,8 @@
                         "23:46",
                         "7:31"
                     ],
-                    "start": [
-                        "23:46",
-                        "7:31"
-                    ],
-                    "slutt": "",
+                    "start": "23:46",
+                    "slutt": "7:31",
                     "dagsverk": "1480",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20688,11 +19914,8 @@
                         "22:31",
                         "6:26"
                     ],
-                    "start": [
-                        "22:31",
-                        "6:26"
-                    ],
-                    "slutt": "",
+                    "start": "22:31",
+                    "slutt": "6:26",
                     "dagsverk": "1513",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20712,11 +19935,8 @@
                         "23:33",
                         "8:05"
                     ],
-                    "start": [
-                        "23:33",
-                        "8:05"
-                    ],
-                    "slutt": "",
+                    "start": "23:33",
+                    "slutt": "8:05",
                     "dagsverk": "1525",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20727,11 +19947,8 @@
                         "22:46",
                         "7:11"
                     ],
-                    "start": [
-                        "22:46",
-                        "7:11"
-                    ],
-                    "slutt": "",
+                    "start": "22:46",
+                    "slutt": "7:11",
                     "dagsverk": "1516",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20883,11 +20100,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20898,11 +20112,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -20913,11 +20124,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21074,11 +20282,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21089,11 +20294,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21239,11 +20441,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21254,11 +20453,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21269,11 +20465,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21365,11 +20558,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21380,11 +20570,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21395,11 +20582,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21424,11 +20608,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200_917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21439,11 +20620,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21454,11 +20632,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21558,11 +20733,8 @@
                         "17:50",
                         "2:00"
                     ],
-                    "start": [
-                        "17:50",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:50",
+                    "slutt": "2:00",
                     "dagsverk": "9305",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21573,11 +20745,8 @@
                         "17:50",
                         "2:00"
                     ],
-                    "start": [
-                        "17:50",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:50",
+                    "slutt": "2:00",
                     "dagsverk": "9305",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21614,11 +20783,8 @@
                         "17:50",
                         "2:00"
                     ],
-                    "start": [
-                        "17:50",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:50",
+                    "slutt": "2:00",
                     "dagsverk": "9305",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21629,11 +20795,8 @@
                         "17:50",
                         "2:00"
                     ],
-                    "start": [
-                        "17:50",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:50",
+                    "slutt": "2:00",
                     "dagsverk": "9305",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21644,11 +20807,8 @@
                         "17:50",
                         "2:00"
                     ],
-                    "start": [
-                        "17:50",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:50",
+                    "slutt": "2:00",
                     "dagsverk": "9305",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21748,11 +20908,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21763,11 +20920,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21778,11 +20932,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21807,11 +20958,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200_917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21822,11 +20970,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21837,11 +20982,8 @@
                         "17:00",
                         "2:00"
                     ],
-                    "start": [
-                        "17:00",
-                        "2:00"
-                    ],
-                    "slutt": "",
+                    "start": "17:00",
+                    "slutt": "2:00",
                     "dagsverk": "917000200",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21946,11 +21088,8 @@
                         "22:21",
                         "7:13"
                     ],
-                    "start": [
-                        "22:21",
-                        "7:13"
-                    ],
-                    "slutt": "",
+                    "start": "22:21",
+                    "slutt": "7:13",
                     "dagsverk": "1476",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -21961,11 +21100,8 @@
                         "20:14",
                         "6:51"
                     ],
-                    "start": [
-                        "20:14",
-                        "6:51"
-                    ],
-                    "slutt": "",
+                    "start": "20:14",
+                    "slutt": "6:51",
                     "dagsverk": "1225",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22265,11 +21401,8 @@
                         "21:01",
                         "6:11"
                     ],
-                    "start": [
-                        "21:01",
-                        "6:11"
-                    ],
-                    "slutt": "",
+                    "start": "21:01",
+                    "slutt": "6:11",
                     "dagsverk": "1502",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22562,11 +21695,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22577,11 +21707,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22629,11 +21756,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22644,11 +21768,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22744,11 +21865,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22759,11 +21877,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22925,11 +22040,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -22940,11 +22052,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23087,11 +22196,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700_923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23264,11 +22370,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700_923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23441,11 +22544,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700_923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23562,11 +22662,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23577,11 +22674,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23592,11 +22686,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23630,11 +22721,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23645,11 +22733,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23748,11 +22833,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23763,11 +22845,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23778,11 +22857,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23816,11 +22892,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23831,11 +22904,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23846,11 +22916,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23937,11 +23004,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23952,11 +23016,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -23967,11 +23028,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24005,11 +23063,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24020,11 +23075,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24155,11 +23207,8 @@
                         "14:15",
                         "23:45"
                     ],
-                    "start": [
-                        "14:15",
-                        "23:45"
-                    ],
-                    "slutt": "",
+                    "start": "14:15",
+                    "slutt": "23:45",
                     "dagsverk": "914152345",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24220,11 +23269,8 @@
                         "14:15",
                         "23:45"
                     ],
-                    "start": [
-                        "14:15",
-                        "23:45"
-                    ],
-                    "slutt": "",
+                    "start": "14:15",
+                    "slutt": "23:45",
                     "dagsverk": "914152345",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24340,11 +23386,8 @@
                         "14:45",
                         "0:15"
                     ],
-                    "start": [
-                        "14:45",
-                        "0:15"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "0:15",
                     "dagsverk": "914450015",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24355,11 +23398,8 @@
                         "14:45",
                         "0:15"
                     ],
-                    "start": [
-                        "14:45",
-                        "0:15"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "0:15",
                     "dagsverk": "914450015",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24384,11 +23424,8 @@
                         "14:45",
                         "0:15"
                     ],
-                    "start": [
-                        "14:45",
-                        "0:15"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "0:15",
                     "dagsverk": "914450015_914450015",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24399,11 +23436,8 @@
                         "14:45",
                         "0:15"
                     ],
-                    "start": [
-                        "14:45",
-                        "0:15"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "0:15",
                     "dagsverk": "914450015",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24414,11 +23448,8 @@
                         "14:45",
                         "0:15"
                     ],
-                    "start": [
-                        "14:45",
-                        "0:15"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "0:15",
                     "dagsverk": "914450015",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24429,11 +23460,8 @@
                         "14:45",
                         "0:15"
                     ],
-                    "start": [
-                        "14:45",
-                        "0:15"
-                    ],
-                    "slutt": "",
+                    "start": "14:45",
+                    "slutt": "0:15",
                     "dagsverk": "914450015",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24533,11 +23561,8 @@
                         "15:00",
                         "0:30"
                     ],
-                    "start": [
-                        "15:00",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "0:30",
                     "dagsverk": "915000030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24548,11 +23573,8 @@
                         "15:00",
                         "0:30"
                     ],
-                    "start": [
-                        "15:00",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "0:30",
                     "dagsverk": "915000030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24577,11 +23599,8 @@
                         "15:00",
                         "0:30"
                     ],
-                    "start": [
-                        "15:00",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "0:30",
                     "dagsverk": "915000030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24592,11 +23611,8 @@
                         "15:00",
                         "0:30"
                     ],
-                    "start": [
-                        "15:00",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "0:30",
                     "dagsverk": "915000030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24728,11 +23744,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24743,11 +23756,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24769,11 +23779,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24784,11 +23791,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24911,11 +23915,8 @@
                         "14:00",
                         "0:00"
                     ],
-                    "start": [
-                        "14:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "14:00",
+                    "slutt": "0:00",
                     "dagsverk": "914002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24926,11 +23927,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24964,11 +23962,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -24979,11 +23974,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25093,11 +24085,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25108,11 +24097,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25134,11 +24120,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25149,11 +24132,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25346,11 +24326,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25361,11 +24338,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25413,11 +24387,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25428,11 +24399,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25528,11 +24496,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25543,11 +24508,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25595,11 +24557,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25610,11 +24569,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25870,11 +24826,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -25885,11 +24838,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26051,11 +25001,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600_922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26075,11 +25022,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26090,11 +25034,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26230,11 +25171,8 @@
                         "22:00",
                         "6:00"
                     ],
-                    "start": [
-                        "22:00",
-                        "6:00"
-                    ],
-                    "slutt": "",
+                    "start": "22:00",
+                    "slutt": "6:00",
                     "dagsverk": "922000600",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26254,11 +25192,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26269,11 +25204,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26415,11 +25347,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700_923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26439,11 +25368,8 @@
                         "14:30",
                         "0:30"
                     ],
-                    "start": [
-                        "14:30",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "14:30",
+                    "slutt": "0:30",
                     "dagsverk": "914300030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26592,11 +25518,8 @@
                         "23:30",
                         "7:30"
                     ],
-                    "start": [
-                        "23:30",
-                        "7:30"
-                    ],
-                    "slutt": "",
+                    "start": "23:30",
+                    "slutt": "7:30",
                     "dagsverk": "923300730_923300730",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26769,11 +25692,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745_923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -26793,11 +25713,8 @@
                         "14:30",
                         "0:30"
                     ],
-                    "start": [
-                        "14:30",
-                        "0:30"
-                    ],
-                    "slutt": "",
+                    "start": "14:30",
+                    "slutt": "0:30",
                     "dagsverk": "914300030",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27095,11 +26012,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27110,11 +26024,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27139,11 +26050,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100_915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27154,11 +26062,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27169,11 +26074,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27184,11 +26086,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27262,11 +26161,8 @@
                         "16:00",
                         "0:00"
                     ],
-                    "start": [
-                        "16:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "16:00",
+                    "slutt": "0:00",
                     "dagsverk": "9916002400-H",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27277,11 +26173,8 @@
                         "15:00",
                         "1:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "1:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "1:00",
                     "dagsverk": "915000100",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27292,11 +26185,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27307,11 +26197,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27333,11 +26220,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27348,11 +26232,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27372,11 +26253,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27492,11 +26370,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27530,11 +26405,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27545,11 +26417,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27710,11 +26579,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27725,11 +26591,8 @@
                         "23:45",
                         "7:45"
                     ],
-                    "start": [
-                        "23:45",
-                        "7:45"
-                    ],
-                    "slutt": "",
+                    "start": "23:45",
+                    "slutt": "7:45",
                     "dagsverk": "923450745",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27851,11 +26714,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27889,11 +26749,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -27904,11 +26761,8 @@
                         "23:00",
                         "7:00"
                     ],
-                    "start": [
-                        "23:00",
-                        "7:00"
-                    ],
-                    "slutt": "",
+                    "start": "23:00",
+                    "slutt": "7:00",
                     "dagsverk": "923000700",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28013,11 +26867,8 @@
                         "14:15",
                         "22:13"
                     ],
-                    "start": [
-                        "14:15",
-                        "22:13"
-                    ],
-                    "slutt": "",
+                    "start": "14:15",
+                    "slutt": "22:13",
                     "dagsverk": "5407_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28066,11 +26917,8 @@
                         "10:30",
                         "19:51"
                     ],
-                    "start": [
-                        "10:30",
-                        "19:51"
-                    ],
-                    "slutt": "",
+                    "start": "10:30",
+                    "slutt": "19:51",
                     "dagsverk": "5403-M_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28284,11 +27132,8 @@
                         "10:30",
                         "19:51"
                     ],
-                    "start": [
-                        "10:30",
-                        "19:51"
-                    ],
-                    "slutt": "",
+                    "start": "10:30",
+                    "slutt": "19:51",
                     "dagsverk": "5403_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28365,11 +27210,8 @@
                         "14:15",
                         "22:13"
                     ],
-                    "start": [
-                        "14:15",
-                        "22:13"
-                    ],
-                    "slutt": "",
+                    "start": "14:15",
+                    "slutt": "22:13",
                     "dagsverk": "5407_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28430,11 +27272,8 @@
                         "14:15",
                         "22:13"
                     ],
-                    "start": [
-                        "14:15",
-                        "22:13"
-                    ],
-                    "slutt": "",
+                    "start": "14:15",
+                    "slutt": "22:13",
                     "dagsverk": "5407_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28541,11 +27380,8 @@
                         "10:30",
                         "19:51"
                     ],
-                    "start": [
-                        "10:30",
-                        "19:51"
-                    ],
-                    "slutt": "",
+                    "start": "10:30",
+                    "slutt": "19:51",
                     "dagsverk": "5403_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28581,11 +27417,8 @@
                         "13:14",
                         "23:49"
                     ],
-                    "start": [
-                        "13:14",
-                        "23:49"
-                    ],
-                    "slutt": "",
+                    "start": "13:14",
+                    "slutt": "23:49",
                     "dagsverk": "5406",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28634,11 +27467,8 @@
                         "15:00",
                         "0:00"
                     ],
-                    "start": [
-                        "15:00",
-                        "0:00"
-                    ],
-                    "slutt": "",
+                    "start": "15:00",
+                    "slutt": "0:00",
                     "dagsverk": "915002400",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28740,11 +27570,8 @@
                         "10:30",
                         "19:51"
                     ],
-                    "start": [
-                        "10:30",
-                        "19:51"
-                    ],
-                    "slutt": "",
+                    "start": "10:30",
+                    "slutt": "19:51",
                     "dagsverk": "5403_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28830,11 +27657,8 @@
                         "13:14",
                         "23:49"
                     ],
-                    "start": [
-                        "13:14",
-                        "23:49"
-                    ],
-                    "slutt": "",
+                    "start": "13:14",
+                    "slutt": "23:49",
                     "dagsverk": "5406",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
@@ -28998,11 +27822,8 @@
                         "14:15",
                         "22:13"
                     ],
-                    "start": [
-                        "14:15",
-                        "22:13"
-                    ],
-                    "slutt": "",
+                    "start": "14:15",
+                    "slutt": "22:13",
                     "dagsverk": "5407_GTB",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
