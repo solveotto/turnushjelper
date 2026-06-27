@@ -22,6 +22,9 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _JSON_PATH = os.path.join(
     _ROOT, "app", "static", "turnusfiler", "r26", "turnus_schedule_R26.json"
 )
+_R25_JSON_PATH = os.path.join(
+    _ROOT, "app", "static", "turnusfiler", "r25", "turnus_schedule_R25.json"
+)
 _PDF_PATH = os.path.join(
     _ROOT, "app", "static", "turnusfiler", "r26", "pdf", "turnuser_R26.pdf"
 )
@@ -201,6 +204,37 @@ class TestKnownValues:
         day = _get_turnus(turnus_data, "OSL_40")["3"]["4"]
         assert day["dagsverk"] == "1411-N05"
         assert "6:01" in day["tid"]
+
+
+# ---------------------------------------------------------------------------
+# TestHardenedValidator — committed JSON must pass the production validator
+# ---------------------------------------------------------------------------
+
+
+class TestHardenedValidator:
+    """The committed schedule files must pass validate_turnus_json (the same
+    gate every ingestion path uses), including the hours cross-check and the
+    start/slutt consistency check. Guards against accidental data corruption."""
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            pytest.param(_JSON_PATH, id="R26"),
+            pytest.param(_R25_JSON_PATH, id="R25"),
+        ],
+    )
+    def test_committed_schedule_is_valid(self, path):
+        from app.utils.pdf.scraper_validator import validate_turnus_json
+
+        if not os.path.exists(path):
+            pytest.skip(f"Schedule file not found: {path}")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        ok, errors = validate_turnus_json(data, expected_count=len(data))
+        assert ok, (
+            f"{os.path.basename(path)}: {len(errors)} validation problem(s):\n"
+            + "\n".join(errors[:20])
+        )
 
 
 # ---------------------------------------------------------------------------
