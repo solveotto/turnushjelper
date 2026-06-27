@@ -25,9 +25,13 @@ _JSON_PATH = os.path.join(
 _R25_JSON_PATH = os.path.join(
     _ROOT, "app", "static", "turnusfiler", "r25", "turnus_schedule_R25.json"
 )
-_PDF_PATH = os.path.join(
+# Golden-file source PDF: prefer the committed test fixture, fall back to the
+# (gitignored) location an admin upload would write to.
+_FIXTURE_PDF = os.path.join(_ROOT, "tests", "fixtures", "turnuser_R26.pdf")
+_STATIC_PDF = os.path.join(
     _ROOT, "app", "static", "turnusfiler", "r26", "pdf", "turnuser_R26.pdf"
 )
+_PDF_PATH = _FIXTURE_PDF if os.path.exists(_FIXTURE_PDF) else _STATIC_PDF
 
 # ---------------------------------------------------------------------------
 # Shared fixture: load the stored JSON once per session
@@ -303,3 +307,23 @@ class TestScraperRoundtrip:
             assert s_data.get("tj_timer") == t_data.get("tj_timer"), (
                 f"{name}: tj_timer mismatch"
             )
+
+    def test_all_start_slutt_match(self, turnus_data, scraped):
+        # Locks the start/slutt assembly fix: scraped derived fields must equal
+        # the committed (regenerated) JSON for every day.
+        stored_map = {next(iter(e)): next(iter(e.values())) for e in turnus_data}
+        for entry in scraped:
+            name, s_data = next(iter(entry.items()))
+            t_data = stored_map[name]
+            for week_nr in range(1, 7):
+                for day_nr in range(1, 8):
+                    s_day = s_data[week_nr][day_nr]
+                    t_day = t_data[str(week_nr)][str(day_nr)]
+                    assert s_day["start"] == t_day["start"], (
+                        f"{name} W{week_nr}D{day_nr}: scraped start "
+                        f"{s_day['start']!r} != stored {t_day['start']!r}"
+                    )
+                    assert s_day["slutt"] == t_day["slutt"], (
+                        f"{name} W{week_nr}D{day_nr}: scraped slutt "
+                        f"{s_day['slutt']!r} != stored {t_day['slutt']!r}"
+                    )
