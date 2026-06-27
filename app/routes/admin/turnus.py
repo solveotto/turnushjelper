@@ -296,6 +296,22 @@ def refresh_turnus_set(turnus_set_id):
         # Update shift names in DB (preserving favorites)
         summary = db_utils.refresh_turnus_set_shifts(turnus_set_id, turnus_json_path)
 
+        # Warn (don't block) if the turnus count changed vs the previous version.
+        # A legitimate rutetermin can add/remove turnuser, but a silent drop from a
+        # misread PDF looks identical to each surviving turnus, so surface it.
+        prev_count = len(summary["unchanged"]) + len(summary["renamed"]) + len(summary["removed"])
+        new_count = len(summary["unchanged"]) + len(summary["renamed"]) + len(summary["added"])
+        if new_count != prev_count:
+            flash(
+                f"Advarsel: antall turnuser endret fra {prev_count} til {new_count} "
+                f"— bekreft at dette er forventet.",
+                "warning",
+            )
+            ingest_logger.warning(
+                "Turnus refresh COUNT CHANGED %s (user=%s): %d -> %d turnuser",
+                year_id, _current_username(), prev_count, new_count,
+            )
+
         # Update file paths in DB
         db_utils.update_turnus_set_paths(turnus_set_id, turnus_json_path, df_json_path)
 
