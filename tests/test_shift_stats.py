@@ -81,24 +81,9 @@ def stored_stats_r26():
 
 def _make_single_shift_json(turnus_name, start, end):
     """Return a minimal turnus_schedule JSON with one work shift and 41 off days."""
-    days = {}
-    weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
-    for week in range(1, 7):
-        days[str(week)] = {}
-        for day in range(1, 8):
-            if week == 1 and day == 1:
-                days["1"]["1"] = {
-                    "ukedag": "Mandag",
-                    "tid": [start, end],
-                    "dagsverk": "TEST",
-                }
-            else:
-                days[str(week)][str(day)] = {
-                    "ukedag": weekdays[day - 1],
-                    "tid": ["X"],
-                    "dagsverk": "X",
-                }
-    return [{turnus_name: days}]
+    from tests.conftest import single_shift_schedule
+
+    return single_shift_schedule(turnus_name, start, end)
 
 
 def _compute_natt(start, end):

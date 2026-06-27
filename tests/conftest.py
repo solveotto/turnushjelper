@@ -176,3 +176,81 @@ def login_user(client, username, password):
         data={"username": username, "password": password},
         follow_redirects=True,
     )
+
+
+# ---------------------------------------------------------------------------
+# Turnus-schedule factories (shared by validator and shift_stats tests)
+# ---------------------------------------------------------------------------
+
+WEEKDAYS_NB = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
+
+
+def make_work_day(day_nr, start, slutt, dagsverk):
+    """A single work day: a 2-time shift with mirrored start/slutt."""
+    return {
+        "ukedag": WEEKDAYS_NB[day_nr - 1],
+        "tid": [start, slutt],
+        "start": start,
+        "slutt": slutt,
+        "dagsverk": dagsverk,
+        "is_consecutive_shift": False,
+        "is_consecutive_receiver": False,
+    }
+
+
+def make_free_day(day_nr, code="X"):
+    """A single free day (X/O/T): one free code, empty dagsverk and slutt."""
+    return {
+        "ukedag": WEEKDAYS_NB[day_nr - 1],
+        "tid": [code],
+        "start": [code],
+        "slutt": "",
+        "dagsverk": "",
+        "is_consecutive_shift": False,
+        "is_consecutive_receiver": False,
+    }
+
+
+def make_valid_turnus_data(shift=("8:00", "15:00"), kl_timer="210:00", tj_timer="220:00"):
+    """A structurally valid turnus that passes the full validator.
+
+    Mon–Fri of all 6 weeks are identical 7h work shifts (30 days × 7h = 210h,
+    matching the default kl_timer), Sat/Sun are free. Tests mutate one field of
+    the returned dict to exercise a single failure path.
+    """
+    start, slutt = shift
+    data = {}
+    for w in range(1, 7):
+        week = {}
+        for d in range(1, 8):
+            if d <= 5:
+                week[str(d)] = make_work_day(d, start, slutt, f"D{w}{d}")
+            else:
+                week[str(d)] = make_free_day(d)
+        data[str(w)] = week
+    data["kl_timer"] = kl_timer
+    data["tj_timer"] = tj_timer
+    return data
+
+
+def turnus_list(*data_by_name):
+    """Wrap (name, data) pairs into the top-level list the validator expects."""
+    return [{name: data} for name, data in data_by_name]
+
+
+def single_shift_schedule(name, start, end):
+    """A minimal schedule with one work shift on W1D1 and 41 free days.
+
+    Totals are omitted (shift_stats ignores them); not validator-valid on its
+    own. Used for shift_stats night-classification tests.
+    """
+    data = {}
+    for w in range(1, 7):
+        week = {}
+        for d in range(1, 8):
+            if w == 1 and d == 1:
+                week["1"] = {"ukedag": "Mandag", "tid": [start, end], "dagsverk": "TEST"}
+            else:
+                week[str(d)] = {"ukedag": WEEKDAYS_NB[d - 1], "tid": ["X"], "dagsverk": "X"}
+        data[str(w)] = week
+    return [{name: data}]
