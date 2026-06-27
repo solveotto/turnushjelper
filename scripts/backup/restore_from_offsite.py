@@ -12,9 +12,12 @@ import sys
 import os
 import subprocess
 from datetime import datetime
+from dotenv import load_dotenv
 
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
+
+load_dotenv(os.path.join(project_root, '.env'))
 
 SSH_HOST = os.getenv('HOME_BACKUP_HOST', '')
 SSH_USER = os.getenv('HOME_BACKUP_USER', '')
