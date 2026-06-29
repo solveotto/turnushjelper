@@ -362,6 +362,15 @@
                                 <li><hr class="dropdown-divider" /></li>
                                 <li>
                                     <a
+                                        class="dropdown-item"
+                                        href="{{ url_for('legal.personvern') }}"
+                                    >
+                                        <i class="bi bi-shield-lock"></i>
+                                        Personvern
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
                                         class="dropdown-item text-danger"
                                         href="{{ url_for('auth.logout') }}"
                                     >

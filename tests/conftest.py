@@ -98,6 +98,7 @@ def patch_db(db_session, monkeypatch):
         "app.models",
         "app.services.user_service",
         "app.services.auth_service",
+        "app.services.activity_service",
         "app.services.favorites_service",
         "app.services.turnus_service",
         "app.utils.db_utils",

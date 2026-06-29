@@ -191,6 +191,11 @@
                             <div class="button-group">
                                 {{ form.submit(class="btn-modern
                                 btn-primary-modern w-100") }}
+                                <p class="text-muted small text-center mt-3 mb-0">
+                                    Ved å registrere deg samtykker du til at
+                                    opplysningene dine behandles i tråd med vår
+                                    <a href="{{ url_for('legal.personvern') }}">personvernerklæring</a>.
+                                </p>
                             </div>
                         </form>
 

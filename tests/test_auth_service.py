@@ -34,6 +34,33 @@ class TestVerificationToken:
         assert "utløpt" in result["message"]
 
 
+class TestPurgeExpiredTokens:
+    def test_purges_only_expired_tokens(self, patch_db, db_session, sample_user):
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        # Expired (used) and expired (unused) — both should go
+        db_session.add(EmailVerificationToken(
+            user_id=sample_user["id"], token="expired-used",
+            expires_at=now - timedelta(hours=2), used=1,
+        ))
+        db_session.add(EmailVerificationToken(
+            user_id=sample_user["id"], token="expired-unused",
+            expires_at=now - timedelta(days=1), used=0,
+        ))
+        # Still valid — should be kept
+        db_session.add(EmailVerificationToken(
+            user_id=sample_user["id"], token="valid",
+            expires_at=now + timedelta(hours=1), used=0,
+        ))
+        db_session.commit()
+
+        deleted = auth_service.purge_expired_tokens()
+
+        assert deleted == 2
+        remaining = db_session.query(EmailVerificationToken).all()
+        assert [t.token for t in remaining] == ["valid"]
+
+
 class TestTokenExpiry:
     def test_expired_token_is_rejected(self, patch_db, db_session, sample_user):
         from app.models import EmailVerificationToken

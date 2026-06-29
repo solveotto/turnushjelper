@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{#
+  MAINTAINER NOTE: The data inventory below must stay in sync with the personal
+  data actually stored in app/models.py. When you add/remove/rename a
+  personal-data field, update the "Hvilke opplysninger vi lagrer" list here and
+  check delete_user() + the retention cleanup. See CLAUDE.md › Gotchas › GDPR.
+#}
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="d-flex align-items-center mb-4">
+                <i class="bi bi-shield-lock me-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <div>
+                    <h1 class="h3 mb-0">Personvernerklæring</h1>
+                    <p class="text-muted mb-0">
+                        Hvordan vi behandler personopplysningene dine
+                    </p>
+                </div>
+            </div>
+
+            <p>
+                Denne tjenesten er et internt verktøy for medlemmer av Norsk
+                Lokomotivmannsforbund (NLF). Nedenfor finner du informasjon om
+                hvilke personopplysninger vi lagrer, hvorfor vi lagrer dem, og
+                hvilke rettigheter du har etter personvernforordningen (GDPR).
+            </p>
+
+            <h2 class="h5 mt-4">Behandlingsansvarlig</h2>
+            <p>
+                <!-- TODO: fyll inn navn på behandlingsansvarlig -->
+                Behandlingsansvarlig for tjenesten er
+                <strong>Sølve Otto Landmark Øren</strong>. Spørsmål om personvern
+                og henvendelser om rettighetene dine kan rettes til
+                <!-- TODO: fyll inn kontakt-e-post -->
+                <strong>support@turnushjelper.no</strong>.
+            </p>
+
+            <h2 class="h5 mt-4">Hvilke opplysninger vi lagrer</h2>
+            <ul>
+                <li>Navn og brukernavn</li>
+                <li>E-postadresse</li>
+                <li>Rullenummer og NLF-medlemsnummer</li>
+                <li>Fødselsdato og ansettelsesdato</li>
+                <li>Stasjoneringssted og ansiennitet</li>
+                <li>Dine favoritter og valg i søknadsskjema</li>
+                <li>
+                    Aktivitetslogg (tidspunkt for innlogging og utlogging) for
+                    drift og sikkerhet
+                </li>
+            </ul>
+
+            <h2 class="h5 mt-4">Hvorfor vi lagrer opplysningene (behandlingsgrunnlag)</h2>
+            <p>
+                Opplysningene behandles for å kunne levere tjenesten til deg som
+                medlem. Behandlingsgrunnlaget er medlems-/tjenesteforholdet samt
+                vår berettigede interesse i å drifte og sikre tjenesten. Vi
+                bruker ikke opplysningene til markedsføring, og vi deler dem ikke
+                med tredjeparter.
+            </p>
+
+            <h2 class="h5 mt-4">Informasjonskapsler (cookies)</h2>
+            <p>
+                Tjenesten bruker kun én nødvendig informasjonskapsel for å holde
+                deg innlogget. Vi bruker ingen sporings- eller
+                markedsføringskapsler, og det kreves derfor ikke samtykke til
+                informasjonskapsler.
+            </p>
+
+            <h2 class="h5 mt-4">Lagringstid</h2>
+            <p>
+                Opplysningene lagres så lenge du har en aktiv konto. Når kontoen
+                slettes, fjernes alle dine personopplysninger fra databasen.
+            </p>
+
+            <h2 class="h5 mt-4">Dine rettigheter</h2>
+            <p>Etter GDPR har du blant annet rett til å:</p>
+            <ul>
+                <li>be om innsyn i opplysningene vi har lagret om deg,</li>
+                <li>be om retting av uriktige opplysninger, og</li>
+                <li>be om sletting av kontoen din og opplysningene dine.</li>
+            </ul>
+            <p>
+                For å benytte deg av rettighetene dine, send en henvendelse til
+                kontaktadressen over. Vi besvarer henvendelser innen 30 dager.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

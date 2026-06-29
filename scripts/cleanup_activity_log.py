@@ -1,48 +1,41 @@
 """
-Cleanup script to delete page_view activity events older than RETENTION_DAYS.
-Other event types (login, logout, favorite_add, favorite_remove) are kept forever.
-
-Schedule via cron on Hetzner:
+Retention cleanup for GDPR data minimisation. Run periodically via cron on Hetzner:
     python scripts/cleanup_activity_log.py
+
+Deletes:
+  - page_view activity events older than PAGE_VIEW_RETENTION_DAYS (30)
+  - all other activity events (login, logout, favorite_add, favorite_remove)
+    older than ACTIVITY_RETENTION_DAYS (180)
+  - email verification / password reset tokens past their expiry
+
+Retention logic lives in the service layer so it is unit-tested:
+  app.services.activity_service.cleanup_old_activity
+  app.services.auth_service.purge_expired_tokens
 """
 
 import sys
 import os
-from datetime import datetime, timedelta, timezone
 
 project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
-from app.database import get_db_session
-from app.models import UserActivity
-
-RETENTION_DAYS = 30
+from app.services.activity_service import cleanup_old_activity
+from app.services.auth_service import purge_expired_tokens
 
 
-def cleanup_activity_log():
-    cutoff = datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)
-    print(f"Deleting page_view events older than {RETENTION_DAYS} days (before {cutoff.strftime('%Y-%m-%d %H:%M:%S')} UTC)")
-
-    db_session = get_db_session()
+def main():
     try:
-        deleted = (
-            db_session.query(UserActivity)
-            .filter(
-                UserActivity.event_type == "page_view",
-                UserActivity.timestamp < cutoff,
-            )
-            .delete(synchronize_session=False)
-        )
-        db_session.commit()
-        print(f"Deleted {deleted} page_view rows.")
-        return deleted
+        page_views, other = cleanup_old_activity()
+        print(f"Deleted {page_views} old page_view events and {other} other activity events.")
     except Exception as e:
-        db_session.rollback()
-        print(f"Error during cleanup: {e}")
-        return 0
-    finally:
-        db_session.close()
+        print(f"Error during activity cleanup: {e}")
+
+    try:
+        tokens = purge_expired_tokens()
+        print(f"Deleted {tokens} expired tokens.")
+    except Exception as e:
+        print(f"Error during token cleanup: {e}")
 
 
 if __name__ == "__main__":
-    cleanup_activity_log()
+    main()

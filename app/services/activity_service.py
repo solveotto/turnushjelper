@@ -8,6 +8,51 @@ from app.models import UserActivity, DBUser
 
 logger = logging.getLogger(__name__)
 
+# Retention windows for the activity log (GDPR data minimisation).
+PAGE_VIEW_RETENTION_DAYS = 30
+ACTIVITY_RETENTION_DAYS = 180
+
+
+def cleanup_old_activity(
+    page_view_days=PAGE_VIEW_RETENTION_DAYS, activity_days=ACTIVITY_RETENTION_DAYS
+):
+    """Delete old activity events.
+
+    page_view events are deleted after page_view_days; all other event types
+    (login, logout, favorite_add, favorite_remove) after activity_days.
+    Returns (page_views_deleted, other_deleted). Cutoffs use aware UTC to match
+    how log_event stores timestamps.
+    """
+    now = datetime.now(timezone.utc)
+    page_view_cutoff = now - timedelta(days=page_view_days)
+    activity_cutoff = now - timedelta(days=activity_days)
+
+    db_session = get_db_session()
+    try:
+        page_views_deleted = (
+            db_session.query(UserActivity)
+            .filter(
+                UserActivity.event_type == "page_view",
+                UserActivity.timestamp < page_view_cutoff,
+            )
+            .delete(synchronize_session=False)
+        )
+        other_deleted = (
+            db_session.query(UserActivity)
+            .filter(
+                UserActivity.event_type != "page_view",
+                UserActivity.timestamp < activity_cutoff,
+            )
+            .delete(synchronize_session=False)
+        )
+        db_session.commit()
+        return page_views_deleted, other_deleted
+    except Exception:
+        db_session.rollback()
+        raise
+    finally:
+        db_session.close()
+
 
 def log_event(user_id, event_type, details=None, session_duration_seconds=None):
     """Insert a user activity event. Swallows all exceptions to avoid breaking normal flow."""

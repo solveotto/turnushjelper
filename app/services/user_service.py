@@ -7,7 +7,16 @@ import bcrypt
 from sqlalchemy import func
 
 from app.database import get_db_session
-from app.models import DBUser, Favorites, Shifts, TurnusSet
+from app.models import (
+    DBUser,
+    EmailVerificationToken,
+    Favorites,
+    Innplassering,
+    Shifts,
+    SoknadsskjemaChoice,
+    TurnusSet,
+    UserActivity,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -349,16 +358,30 @@ def update_user(
 
 
 def delete_user(user_id):
-    """Delete a user and all associated data"""
-    from app.models import SoknadsskjemaChoice
+    """Delete a user and all associated personal data (GDPR right to erasure).
+
+    Deletes everything explicitly rather than relying on DB-level FK cascades,
+    since cascade behavior differs between SQLite (dev) and MySQL (prod) and
+    some related data is not FK-linked to the user at all.
+    """
     db_session = get_db_session()
     try:
         user = db_session.query(DBUser).filter_by(id=user_id).first()
         if not user:
             return False, "Bruker ikke funnet"
 
+        rullenummer = user.rullenummer
+
         db_session.query(Favorites).filter_by(user_id=user_id).delete()
         db_session.query(SoknadsskjemaChoice).filter_by(user_id=user_id).delete()
+        db_session.query(EmailVerificationToken).filter_by(user_id=user_id).delete()
+        # UserActivity has ondelete='SET NULL', so delete these before the user
+        # row, otherwise the rows are orphaned with user_id=NULL instead of removed.
+        db_session.query(UserActivity).filter_by(user_id=user_id).delete()
+        # Innplassering is linked by rullenummer string, not a user FK — explicit
+        # deletion by rullenummer is the only way to remove it.
+        if rullenummer:
+            db_session.query(Innplassering).filter_by(rullenummer=rullenummer).delete()
         db_session.delete(user)
         db_session.commit()
         return True, "Bruker slettet"

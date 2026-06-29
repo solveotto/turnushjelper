@@ -71,6 +71,62 @@ class TestDeleteUserCleansUpSoknadsskjema:
         assert orphans == 0
 
 
+class TestDeleteUserCleansUpAllPersonalData:
+    def test_delete_user_removes_all_related_personal_data(self, patch_db, db_session):
+        from datetime import datetime, timedelta
+
+        from app.models import (
+            DBUser,
+            EmailVerificationToken,
+            Favorites,
+            Innplassering,
+            Shifts,
+            SoknadsskjemaChoice,
+            TurnusSet,
+            UserActivity,
+        )
+        from app.services.user_service import hash_password
+
+        ts = TurnusSet(name="R26", year_identifier="R26", is_active=1)
+        db_session.add(ts)
+        db_session.commit()
+
+        db_session.add(Shifts(title="D1", turnus_set_id=ts.id))
+        db_session.commit()
+
+        user = DBUser(
+            username="gdprdelete",
+            password=hash_password("pw"),
+            is_auth=0,
+            rullenummer="12345",
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        db_session.add_all([
+            Favorites(user_id=user.id, shift_title="D1", turnus_set_id=ts.id),
+            SoknadsskjemaChoice(user_id=user.id, turnus_set_id=ts.id, shift_title="D1"),
+            EmailVerificationToken(
+                user_id=user.id,
+                token="tok-123",
+                expires_at=datetime.now() + timedelta(hours=1),
+            ),
+            UserActivity(user_id=user.id, event_type="login"),
+            Innplassering(turnus_set_id=ts.id, rullenummer="12345", shift_title="D1"),
+        ])
+        db_session.commit()
+
+        success, _ = user_service.delete_user(user.id)
+        assert success is True
+
+        assert db_session.query(DBUser).filter_by(id=user.id).count() == 0
+        assert db_session.query(Favorites).filter_by(user_id=user.id).count() == 0
+        assert db_session.query(SoknadsskjemaChoice).filter_by(user_id=user.id).count() == 0
+        assert db_session.query(EmailVerificationToken).filter_by(user_id=user.id).count() == 0
+        assert db_session.query(UserActivity).filter_by(user_id=user.id).count() == 0
+        assert db_session.query(Innplassering).filter_by(rullenummer="12345").count() == 0
+
+
 class TestUpdatePassword:
     def test_update_user_password(self, patch_db):
         user_service.create_user("pwuser", "oldpass")

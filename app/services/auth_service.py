@@ -8,6 +8,30 @@ from app.models import DBUser, EmailVerificationToken
 logger = logging.getLogger(__name__)
 
 
+def purge_expired_tokens():
+    """Delete email verification / password reset tokens past their expiry.
+
+    Removes both used and unused tokens once expired — they are dead and serve
+    no purpose. Returns the number of rows deleted. The cutoff is naive UTC to
+    match how expires_at is stored (see create_verification_token).
+    """
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None)
+    db_session = get_db_session()
+    try:
+        deleted = (
+            db_session.query(EmailVerificationToken)
+            .filter(EmailVerificationToken.expires_at < cutoff)
+            .delete(synchronize_session=False)
+        )
+        db_session.commit()
+        return deleted
+    except Exception:
+        db_session.rollback()
+        raise
+    finally:
+        db_session.close()
+
+
 def create_verification_token(user_id, token):
     """Create email verification token"""
     db_session = get_db_session()
