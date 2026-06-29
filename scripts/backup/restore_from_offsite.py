@@ -122,8 +122,10 @@ def restore_database(dump_file):
 
 def run_migrations():
     log("Running migrations...")
+    venv_alembic = os.path.join(project_root, 'venv', 'bin', 'alembic')
+    alembic_cmd = venv_alembic if os.path.exists(venv_alembic) else 'alembic'
     result = subprocess.run(
-        ['alembic', 'upgrade', 'head'],
+        [alembic_cmd, 'upgrade', 'head'],
         cwd=project_root, capture_output=True, text=True
     )
     if result.returncode != 0:
@@ -205,7 +207,6 @@ def run():
         run_migrations()
 
         log("Offsite restore complete")
-        notify_slack(True, f"Restored: {selected.file_name} ({size_kb:.1f} KB)")
         log('=' * 60)
         return True
 

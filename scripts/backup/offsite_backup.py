@@ -137,7 +137,6 @@ def run():
         log(f"Remote cleanup done (keeping last {KEEP_COUNT})")
 
         log("Off-site backup complete")
-        notify_slack(True, f"Dump: {dump_name} ({size_kb:.1f} KB)")
         log('=' * 60)
         return True
 
