@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
 """
-Interactive restore: download backups from home server back to this machine.
+Restore latest backup from Backblaze B2.
 
-Run manually after a server wipe or to inspect available backups:
+Can run unattended (cron) or interactively. Always picks the newest backup.
+
+Usage:
+  # Interactive (default) — choose a backup and confirm before restoring
   python scripts/backup/restore_from_offsite.py
 
-Requires the same HOME_BACKUP_* env vars as offsite_backup.py.
+  # Unattended — restores latest backup without prompts
+  python scripts/backup/restore_from_offsite.py --yes
+
+Schedule via cron on staging server:
+  0 3 * * * /home/deploy/turnushjelper/venv/bin/python /home/deploy/turnushjelper/scripts/backup/restore_from_offsite.py --yes
+
+Requires B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME in .env.
 """
 
 import sys
 import os
 import subprocess
+import json
+import urllib.request
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -19,161 +30,195 @@ sys.path.insert(0, project_root)
 
 load_dotenv(os.path.join(project_root, '.env'))
 
-SSH_HOST = os.getenv('HOME_BACKUP_HOST', '')
-SSH_USER = os.getenv('HOME_BACKUP_USER', '')
-SSH_REMOTE_PATH = os.getenv('HOME_BACKUP_PATH', '')
-SSH_KEY = os.getenv('HOME_BACKUP_SSH_KEY', os.path.expanduser('~/.ssh/backup_key'))
-SSH_PORT = os.getenv('HOME_BACKUP_PORT', '3125')
+import b2sdk.v2 as b2
+
+B2_KEY_ID = os.getenv('B2_KEY_ID', '')
+B2_APPLICATION_KEY = os.getenv('B2_APPLICATION_KEY', '')
+B2_BUCKET_NAME = os.getenv('B2_BUCKET_NAME', '')
+SLACK_WEBHOOK_URL = os.getenv('SLACK_WEBHOOK_URL', '')
+
+LOG_FILE = os.path.join(project_root, 'app', 'logs', 'offsite_restore.log')
+
+UNATTENDED = '--yes' in sys.argv
 
 
-def _ssh_e_arg():
-    return f"ssh -i {SSH_KEY} -p {SSH_PORT} -o StrictHostKeyChecking=no -o BatchMode=yes"
+def log(message):
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    entry = f"[{timestamp}] {message}"
+    print(entry)
+    try:
+        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+        with open(LOG_FILE, 'a') as f:
+            f.write(entry + '\n')
+    except Exception as e:
+        print(f"Warning: could not write to log: {e}")
 
 
-def run_ssh(remote_cmd):
-    return subprocess.run(
-        ['ssh', '-i', SSH_KEY, '-p', SSH_PORT,
-         '-o', 'StrictHostKeyChecking=no', '-o', 'BatchMode=yes',
-         f"{SSH_USER}@{SSH_HOST}", remote_cmd],
-        capture_output=True, text=True
-    )
+def notify_slack(success, message):
+    if not SLACK_WEBHOOK_URL:
+        return
+    if success:
+        text = f":white_check_mark: *Offsite restore succeeded* (turnushjelper)\n{message}"
+    else:
+        text = f":warning: *Offsite restore failed* (turnushjelper)\n```{message}```"
+    payload = json.dumps({"text": text}).encode()
+    try:
+        req = urllib.request.Request(SLACK_WEBHOOK_URL, data=payload, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as e:
+        log(f"Warning: could not send Slack notification: {e}")
 
 
-def rsync_down(remote_name, local_path):
-    src = f"{SSH_USER}@{SSH_HOST}:{SSH_REMOTE_PATH}/{remote_name}"
-    result = subprocess.run(
-        ['rsync', '-e', _ssh_e_arg(), '--timeout=60', src, local_path],
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"rsync failed: {result.stderr.strip()}")
+def get_b2_bucket():
+    info = b2.InMemoryAccountInfo()
+    api = b2.B2Api(info)
+    api.authorize_account("production", B2_KEY_ID, B2_APPLICATION_KEY)
+    return api.get_bucket_by_name(B2_BUCKET_NAME)
 
 
-def list_remote_dumps():
-    result = run_ssh(f"ls -1t {SSH_REMOTE_PATH}/backup_*.sql 2>/dev/null")
-    if result.returncode != 0 or not result.stdout.strip():
-        return []
-    return [os.path.basename(f) for f in result.stdout.strip().splitlines()]
+def list_b2_dumps(bucket):
+    file_versions = [
+        fv for fv, _ in bucket.ls(latest_only=True)
+        if fv is not None
+        and fv.file_name.startswith('backup_')
+        and fv.file_name.endswith('.sql')
+    ]
+    file_versions.sort(key=lambda fv: fv.file_name, reverse=True)
+    return file_versions
+
+
+def download_from_b2(bucket, file_name, local_path):
+    downloaded = bucket.download_file_by_name(file_name)
+    downloaded.save_to(local_path)
 
 
 def restore_database(dump_file):
     db_type = os.getenv('DB_TYPE', '').lower()
 
-    if db_type == 'mysql':
-        mysql_host = os.getenv('MYSQL_HOST', '')
-        mysql_user = os.getenv('MYSQL_USER', '')
-        mysql_password = os.getenv('MYSQL_PASSWORD', '')
-        mysql_database = os.getenv('MYSQL_DATABASE', '')
-
-        if not all([mysql_host, mysql_user, mysql_password, mysql_database]):
-            print("ERROR: MySQL credentials not found in .env")
-            return False
-
-        print(f"\nRestoring to MySQL database: {mysql_database} @ {mysql_host}")
-        confirm = input("Type CONFIRM to proceed (or q to skip): ").strip()
-        if confirm.lower() == 'q':
-            print("Restore skipped.")
-            return True
-        if confirm != 'CONFIRM':
-            print("Invalid input, skipping restore.")
-            return True
-
-        print(f"Restoring {dump_file}...")
-        result = subprocess.run(
-            f"mysql -h {mysql_host} -u {mysql_user} -p{mysql_password} {mysql_database} < {dump_file}",
-            shell=True, capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            print(f"ERROR: Restore failed: {result.stderr.strip()}")
-            return False
-        print("Database restored successfully.")
-        return True
-
-    elif db_type == 'sqlite':
-        print("ERROR: SQLite restore not yet implemented for offsite backups")
+    if db_type != 'mysql':
+        log(f"ERROR: DB_TYPE={db_type!r} — only MySQL is supported")
         return False
 
-    else:
-        print(f"ERROR: Unknown DB_TYPE: {db_type}")
+    mysql_host = os.getenv('MYSQL_HOST', '')
+    mysql_user = os.getenv('MYSQL_USER', '')
+    mysql_password = os.getenv('MYSQL_PASSWORD', '')
+    mysql_database = os.getenv('MYSQL_DATABASE', '')
+
+    if not all([mysql_host, mysql_user, mysql_password, mysql_database]):
+        log("ERROR: MySQL credentials not found in .env")
         return False
+
+    log(f"Restoring to MySQL: {mysql_database} @ {mysql_host}")
+    result = subprocess.run(
+        f"mysql -h {mysql_host} -u {mysql_user} -p{mysql_password} {mysql_database} < {dump_file}",
+        shell=True, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        log(f"ERROR: Restore failed: {result.stderr.strip()}")
+        return False
+    log("Database restored successfully")
+    return True
 
 
 def run_migrations():
-    print("\nRunning migrations...")
+    log("Running migrations...")
     result = subprocess.run(
         ['alembic', 'upgrade', 'head'],
         cwd=project_root, capture_output=True, text=True
     )
     if result.returncode != 0:
-        print(f"WARNING: Migrations had issues: {result.stderr.strip()}")
+        log(f"WARNING: Migrations had issues: {result.stderr.strip()}")
         return False
-    print("Migrations completed.")
+    log("Migrations completed")
     return True
 
 
-def main():
+def run():
+    log('=' * 60)
+    log('Starting offsite restore')
+
     for var, val in [
-        ('HOME_BACKUP_HOST', SSH_HOST),
-        ('HOME_BACKUP_USER', SSH_USER),
-        ('HOME_BACKUP_PATH', SSH_REMOTE_PATH),
+        ('B2_KEY_ID', B2_KEY_ID),
+        ('B2_APPLICATION_KEY', B2_APPLICATION_KEY),
+        ('B2_BUCKET_NAME', B2_BUCKET_NAME),
     ]:
         if not val:
-            print(f"ERROR: {var} is not set. Add it to your .env file.")
-            sys.exit(1)
+            log(f"ERROR: {var} is not set in .env")
+            return False
 
-    print("Connecting to home server and listing backups...")
-    dumps = list_remote_dumps()
+    log(f"Connecting to B2 bucket: {B2_BUCKET_NAME}")
+    try:
+        bucket = get_b2_bucket()
+    except Exception as e:
+        log(f"ERROR: Could not connect to B2: {e}")
+        return False
+
+    dumps = list_b2_dumps(bucket)
     if not dumps:
-        print("No backups found on remote server.")
-        sys.exit(1)
+        log("ERROR: No backups found in B2 bucket")
+        return False
 
-    print(f"\nFound {len(dumps)} backup(s):\n")
-    for i, name in enumerate(dumps):
+    if not UNATTENDED:
+        print(f"\nFound {len(dumps)} backup(s):\n")
+        for i, fv in enumerate(dumps):
+            try:
+                parts = fv.file_name.replace('.sql', '').split('_')
+                dt = datetime.strptime(f"{parts[1]}_{parts[2]}", '%Y%m%d_%H%M%S')
+                label = dt.strftime('%Y-%m-%d %H:%M')
+            except Exception:
+                label = fv.file_name
+            size_kb = fv.size / 1024 if fv.size else 0
+            print(f"  [{i + 1}] {label}  ({fv.file_name}, {size_kb:.1f} KB)")
+
+        print()
+        choice = input("Select backup number (or q to quit): ").strip()
+        if choice.lower() == 'q':
+            sys.exit(0)
         try:
-            parts = name.replace('.sql', '').split('_')
-            dt = datetime.strptime(f"{parts[1]}_{parts[2]}", '%Y%m%d_%H%M%S')
-            label = dt.strftime('%Y-%m-%d %H:%M')
+            idx = int(choice) - 1
+            assert 0 <= idx < len(dumps)
         except Exception:
-            label = name
-        print(f"  [{i + 1}] {label}  ({name})")
+            print("Invalid selection.")
+            sys.exit(1)
+        selected = dumps[idx]
 
-    print()
-    choice = input("Select backup number (or q to quit): ").strip()
-    if choice.lower() == 'q':
-        sys.exit(0)
+        print(f"\nSelected: {selected.file_name}")
+        confirm = input("Type RESTORE to confirm: ").strip()
+        if confirm != 'RESTORE':
+            print("Aborted.")
+            sys.exit(0)
+    else:
+        selected = dumps[0]
+        log(f"Latest backup: {selected.file_name}")
+
+    local_sql = os.path.join(project_root, selected.file_name)
 
     try:
-        idx = int(choice) - 1
-        assert 0 <= idx < len(dumps)
-    except Exception:
-        print("Invalid selection.")
-        sys.exit(1)
+        log(f"Downloading {selected.file_name} from B2...")
+        download_from_b2(bucket, selected.file_name, local_sql)
+        size_kb = os.path.getsize(local_sql) / 1024
+        log(f"Downloaded {size_kb:.1f} KB")
 
-    dump_name = dumps[idx]
+        if not restore_database(local_sql):
+            return False
 
-    print(f"\nSelected:  {dump_name}")
-    print()
-    confirm = input("Type RESTORE to confirm download: ").strip()
-    if confirm != 'RESTORE':
-        print("Aborted.")
-        sys.exit(0)
-
-    local_sql = os.path.join(project_root, dump_name)
-
-    print(f"\nDownloading {dump_name}...")
-    rsync_down(dump_name, local_sql)
-    print(f"  Saved: {local_sql}")
-
-    if restore_database(local_sql):
         run_migrations()
-        print("\n--- Recovery complete ---")
-    else:
-        print("\n--- Manual recovery steps ---")
-        db_type = os.getenv('DB_TYPE', '').lower()
-        if db_type == 'mysql':
-            print(f"  1. Restore DB:   mysql -u USER -p DATABASE < {dump_name}")
-            print(f"  2. Migrations:   alembic upgrade head")
+
+        log("Offsite restore complete")
+        notify_slack(True, f"Restored: {selected.file_name} ({size_kb:.1f} KB)")
+        log('=' * 60)
+        return True
+
+    except Exception as e:
+        log(f"ERROR: {e}")
+        notify_slack(False, str(e))
+        log('=' * 60)
+        return False
+
+    finally:
+        if os.path.exists(local_sql):
+            os.remove(local_sql)
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(0 if run() else 1)

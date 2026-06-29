@@ -10,10 +10,13 @@ Usage:
 import sys
 import os
 import subprocess
+from dotenv import load_dotenv
 
 # Add project root to path (go up 3 levels: backup -> scripts -> project_root)
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
+
+load_dotenv(os.path.join(project_root, '.env'))
 
 from config import AppConfig
 
@@ -208,12 +211,53 @@ def test_backup_script_exists():
         print_check("Backup script exists", False, "File not found")
         return False
 
-def run_test_backup():
-    """Test 7: Try to create a test backup"""
-    print_header("Test 7: Create Test Backup")
-    
+def test_b2_config():
+    """Test 7: Check Backblaze B2 configuration"""
+    print_header("Test 7: Backblaze B2 Configuration")
+
+    key_id = os.getenv('B2_KEY_ID', '')
+    app_key = os.getenv('B2_APPLICATION_KEY', '')
+    bucket_name = os.getenv('B2_BUCKET_NAME', '')
+
+    all_present = True
+    for name, val in [('B2_KEY_ID', key_id), ('B2_APPLICATION_KEY', app_key), ('B2_BUCKET_NAME', bucket_name)]:
+        if val:
+            print_check(name, True, "Configured")
+        else:
+            print_check(name, False, "Missing — add to .env")
+            all_present = False
+
+    return all_present
+
+
+def test_b2_connection():
+    """Test 8 (optional): Verify B2 credentials by connecting to the bucket"""
+    print_header("Test 8: B2 Connection")
+
+    key_id = os.getenv('B2_KEY_ID', '')
+    app_key = os.getenv('B2_APPLICATION_KEY', '')
+    bucket_name = os.getenv('B2_BUCKET_NAME', '')
+
     try:
-        # Import and run the backup script
+        import b2sdk.v2 as b2
+        info = b2.InMemoryAccountInfo()
+        api = b2.B2Api(info)
+        api.authorize_account("production", key_id, app_key)
+        bucket = api.get_bucket_by_name(bucket_name)
+        file_count = sum(1 for fv, _ in bucket.ls(latest_only=True) if fv is not None)
+        print_check("B2 authorization", True, "Credentials accepted")
+        print_check("Bucket accessible", True, f"{bucket_name} ({file_count} file(s))")
+        return True
+    except Exception as e:
+        print_check("B2 connection", False, str(e))
+        return False
+
+
+def run_test_backup():
+    """Test: Try to create a test backup"""
+    print_header("Create Test Backup")
+
+    try:
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "daily_mysql_backup",
@@ -221,14 +265,12 @@ def run_test_backup():
         )
         backup_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(backup_module)
-        
+
         print("Running backup script...")
         success = backup_module.create_backup()
-        
+
         if success:
             print_check("Test backup", True, "Backup created successfully!")
-            
-            # List backup files
             backup_dir = os.path.join(project_root, 'backups')
             import glob
             backups = glob.glob(os.path.join(backup_dir, 'backup_*.sql'))
@@ -240,17 +282,18 @@ def run_test_backup():
         else:
             print_check("Test backup", False, "Backup failed")
             return False
-            
+
     except Exception as e:
         print_check("Test backup", False, str(e))
         return False
+
 
 def main():
     print("\n" + "=" * 70)
     print(" MySQL BACKUP SYSTEM TEST")
     print("=" * 70)
     print("\nThis script tests your backup configuration before scheduling.")
-    
+
     tests = [
         ("Database Configuration", test_database_config),
         ("mysqldump Command", test_mysqldump_available),
@@ -258,10 +301,11 @@ def main():
         ("Backup Directory", test_backup_directory),
         ("Log Directory", test_log_directory),
         ("Backup Script", test_backup_script_exists),
+        ("B2 Configuration", test_b2_config),
     ]
-    
+
     results = []
-    
+
     for test_name, test_func in tests:
         try:
             result = test_func()
@@ -269,37 +313,41 @@ def main():
         except Exception as e:
             print(f"\n✗ Test failed with exception: {e}")
             results.append((test_name, False))
-    
+
     # Summary
     print_header("TEST SUMMARY")
-    
+
     passed = sum(1 for _, result in results if result)
     total = len(results)
-    
+
     for test_name, result in results:
         status = "✓ PASS" if result else "✗ FAIL"
         color = "\033[92m" if result else "\033[91m"
         reset = "\033[0m"
         print(f"{color}{status}{reset} - {test_name}")
-    
+
     print(f"\nPassed: {passed}/{total}")
-    
+
     if passed == total:
         print("\n✓ All tests passed! Ready to schedule daily backups.")
         print("\nNext steps:")
         print("1. Test the backup manually: python scripts/backup/daily_mysql_backup.py")
         print("2. Set up cron job on Hetzner (see README.md)")
-        
-        # Ask if user wants to run test backup
-        if sys.platform != 'win32':  # Only on Unix-like systems
+
+        if sys.platform != 'win32':
+            response = input("\nTest B2 connection now? (yes/no): ")
+            if response.lower() == 'yes':
+                test_b2_connection()
+
             response = input("\nRun a test backup now? (yes/no): ")
             if response.lower() == 'yes':
                 run_test_backup()
     else:
         print(f"\n✗ {total - passed} test(s) failed. Please fix issues before scheduling.")
         print("\nSee README.md for troubleshooting help.")
-    
+
     return passed == total
+
 
 if __name__ == '__main__':
     try:

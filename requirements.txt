@@ -40,3 +40,4 @@ alembic
 python-docx
 reportlab
 flask-limiter
+b2sdk

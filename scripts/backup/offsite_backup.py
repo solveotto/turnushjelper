@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 """
-Off-site backup: MySQL dump → home Ubuntu server via rsync/SSH.
+Off-site backup: MySQL dump → Backblaze B2 bucket.
 
 Schedule via cron on Hetzner (10 min after daily_mysql_backup.py):
   10 2 * * * /home/deploy/turnushjelper/venv/bin/python /home/deploy/turnushjelper/scripts/backup/offsite_backup.py
 
 Required env vars (add to .env):
-  HOME_BACKUP_HOST      IP or hostname of home server
-  HOME_BACKUP_USER      SSH username on home server
-  HOME_BACKUP_PATH      Absolute path to backup dir on home server
-  HOME_BACKUP_SSH_KEY   Path to SSH private key (~/.ssh/backup_key)
-  HOME_BACKUP_PORT      SSH port (default: 3125)
-  OFFSITE_KEEP_COUNT    How many remote backups to retain (default: 14)
-
-Note: .env is backed up manually when changed — not included here.
+  B2_KEY_ID           Application key ID from Backblaze B2 console
+  B2_APPLICATION_KEY  Application key from Backblaze B2 console
+  B2_BUCKET_NAME      Name of the B2 bucket
+  OFFSITE_KEEP_COUNT  How many remote backups to retain (default: 14)
 """
 
 import sys
@@ -29,13 +25,13 @@ sys.path.insert(0, project_root)
 
 from config import AppConfig
 
+import b2sdk.v2 as b2
+
 LOG_FILE = os.path.join(project_root, 'app', 'logs', 'offsite_backup.log')
 
-SSH_HOST = os.getenv('HOME_BACKUP_HOST', '')
-SSH_USER = os.getenv('HOME_BACKUP_USER', '')
-SSH_REMOTE_PATH = os.getenv('HOME_BACKUP_PATH', '')
-SSH_KEY = os.getenv('HOME_BACKUP_SSH_KEY', os.path.expanduser('~/.ssh/backup_key'))
-SSH_PORT = os.getenv('HOME_BACKUP_PORT', '3125')
+B2_KEY_ID = os.getenv('B2_KEY_ID', '')
+B2_APPLICATION_KEY = os.getenv('B2_APPLICATION_KEY', '')
+B2_BUCKET_NAME = os.getenv('B2_BUCKET_NAME', '')
 KEEP_COUNT = int(os.getenv('OFFSITE_KEEP_COUNT', '14'))
 SLACK_WEBHOOK_URL = os.getenv('SLACK_WEBHOOK_URL', '')
 
@@ -67,36 +63,25 @@ def notify_slack(success, message):
         log(f"Warning: could not send Slack notification: {e}")
 
 
-def _ssh_e_arg():
-    return f"ssh -i {SSH_KEY} -p {SSH_PORT} -o StrictHostKeyChecking=no -o BatchMode=yes"
+def get_b2_bucket():
+    info = b2.InMemoryAccountInfo()
+    api = b2.B2Api(info)
+    api.authorize_account("production", B2_KEY_ID, B2_APPLICATION_KEY)
+    return api, api.get_bucket_by_name(B2_BUCKET_NAME)
 
 
-def rsync_up(local_path, remote_name):
-    dest = f"{SSH_USER}@{SSH_HOST}:{SSH_REMOTE_PATH}/{remote_name}"
-    result = subprocess.run(
-        ['rsync', '-e', _ssh_e_arg(), '--timeout=60', local_path, dest],
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"rsync failed: {result.stderr.strip()}")
-
-
-def run_ssh(remote_cmd):
-    return subprocess.run(
-        ['ssh', '-i', SSH_KEY, '-p', SSH_PORT,
-         '-o', 'StrictHostKeyChecking=no', '-o', 'BatchMode=yes',
-         f"{SSH_USER}@{SSH_HOST}", remote_cmd],
-        capture_output=True, text=True
-    )
-
-
-def remote_cleanup():
-    cmd = (
-        f"ls -1t {SSH_REMOTE_PATH}/backup_*.sql 2>/dev/null | tail -n +{KEEP_COUNT + 1} | xargs -r rm -f"
-    )
-    result = run_ssh(cmd)
-    if result.returncode != 0:
-        log(f"Warning: remote cleanup issue: {result.stderr.strip()}")
+def b2_cleanup(api, bucket):
+    file_versions = [
+        fv for fv, _ in bucket.ls(latest_only=True)
+        if fv is not None
+        and fv.file_name.startswith('backup_')
+        and fv.file_name.endswith('.sql')
+    ]
+    # Newest first (lexicographic order works for backup_YYYYMMDD_HHMMSS.sql)
+    file_versions.sort(key=lambda fv: fv.file_name, reverse=True)
+    for fv in file_versions[KEEP_COUNT:]:
+        api.delete_file_version(fv.id_, fv.file_name)
+        log(f"Deleted old backup: {fv.file_name}")
 
 
 def create_dump(path):
@@ -123,9 +108,9 @@ def run():
         return False
 
     for var, val in [
-        ('HOME_BACKUP_HOST', SSH_HOST),
-        ('HOME_BACKUP_USER', SSH_USER),
-        ('HOME_BACKUP_PATH', SSH_REMOTE_PATH),
+        ('B2_KEY_ID', B2_KEY_ID),
+        ('B2_APPLICATION_KEY', B2_APPLICATION_KEY),
+        ('B2_BUCKET_NAME', B2_BUCKET_NAME),
     ]:
         if not val:
             log(f"ERROR: {var} is not set in .env")
@@ -136,17 +121,20 @@ def run():
     tmp_dump = os.path.join(tempfile.gettempdir(), dump_name)
 
     try:
-        log(f"Creating mysqldump...")
+        log("Creating mysqldump...")
         create_dump(tmp_dump)
         size_kb = os.path.getsize(tmp_dump) / 1024
         log(f"Dump size: {size_kb:.1f} KB")
 
+        log(f"Connecting to B2 bucket: {B2_BUCKET_NAME}")
+        api, bucket = get_b2_bucket()
+
         log(f"Uploading {dump_name}...")
-        rsync_up(tmp_dump, dump_name)
+        bucket.upload_local_file(local_file=tmp_dump, file_name=dump_name)
         log(f"Uploaded {dump_name}")
 
-        remote_cleanup()
-        log(f"Remote cleanup done (keeping last {KEEP_COUNT} of each)")
+        b2_cleanup(api, bucket)
+        log(f"Remote cleanup done (keeping last {KEEP_COUNT})")
 
         log("Off-site backup complete")
         notify_slack(True, f"Dump: {dump_name} ({size_kb:.1f} KB)")
