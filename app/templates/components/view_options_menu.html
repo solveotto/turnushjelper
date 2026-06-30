@@ -1,0 +1,49 @@
+{# Shared view controls for the user menu: hide-table toggle + size slider.
+   Wired by app/static/js/modules/turnusliste.js, persisted in localStorage
+   (shared across pages, so settings apply on both Turnusliste and Favoritter). #}
+<li>
+    <a class="dropdown-item" href="#" id="hide-table-toggle-btn" onclick="return false;">
+        <i class="bi bi-table me-1"></i>Skjul tabell
+    </a>
+</li>
+<li>
+    <!-- Keep the dropdown open while dragging the size slider -->
+    <div class="dropdown-item-text" onclick="event.stopPropagation()">
+        <label for="shift-size-slider" class="d-block small text-muted mb-1">
+            <i class="bi bi-arrows-angle-expand me-1"></i>Størrelse
+        </label>
+        <input
+            type="range"
+            class="form-range"
+            id="shift-size-slider"
+            min="0.4"
+            max="1.4"
+            step="0.05"
+            value="1"
+        />
+        <button
+            type="button"
+            class="btn btn-link btn-sm p-0 mt-1"
+            id="shift-size-reset"
+        >
+            <i class="bi bi-arrow-clockwise me-1"></i>Tilbakestill størrelse
+        </button>
+    </div>
+</li>
+<li>
+    <!-- Keep the dropdown open while dragging the columns slider -->
+    <div class="dropdown-item-text" onclick="event.stopPropagation()">
+        <label for="columns-slider" class="d-block small text-muted mb-1">
+            <i class="bi bi-layout-split me-1"></i>Ved siden av hverandre: <span id="columns-value">1</span>
+        </label>
+        <input
+            type="range"
+            class="form-range"
+            id="columns-slider"
+            min="1"
+            max="4"
+            step="1"
+            value="1"
+        />
+    </div>
+</li>

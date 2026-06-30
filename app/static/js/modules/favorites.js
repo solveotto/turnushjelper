@@ -90,6 +90,11 @@ export class Favorites {
     }
 
     updateFavoritesDom(favorites, positions) {
+        // Respect the current "Skjul favoritter" view state so a newly favorited
+        // item disappears immediately when hide mode is active.
+        const hideFavorites =
+            (localStorage.getItem('turnuslisteViewMode') || 'show-all') === 'hide-favorites';
+
         document.querySelectorAll('.list-group-item').forEach(li => {
             const checkbox = li.querySelector('.toggle-favoritt');
             if (!checkbox) return;
@@ -101,6 +106,7 @@ export class Favorites {
 
             // Toggle the favorite-item CSS class on the <li>
             li.classList.toggle('favorite-item', isFavorite);
+            li.classList.toggle('favorites-hidden', isFavorite && hideFavorites);
 
             // Locate the header row (first .d-flex.justify-content-between inside the li)
             const headerRow = li.querySelector('.d-flex.align-items-center.justify-content-between');

@@ -1,7 +1,6 @@
-/* Hide table content for favorite items when "hide favorites" is active.
+/* Hide favorite items entirely when "hide favorites" is active.
    Using a CSS rule means it applies automatically to lazy-rendered tables too. */
-.favorite-item.favorites-hidden .table-scroll-wrapper,
-.favorite-item.favorites-hidden .data-felt {
+.favorite-item.favorites-hidden {
     display: none;
 }
 

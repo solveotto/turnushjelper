@@ -15,14 +15,20 @@
    id="gen-favorites-btn"
    class="btn navbar-action-btn me-1"
    title="Generer favorittliste automatisk — finn turnuser som ligner dine tidligere favoritter">
+    <span class="gen-favorites-ai-label">AI</span>
     <i class="bi bi-stars"></i>
 </a>
 {% endblock %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/turnusliste/highlighted-turnus.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/turnusliste/view-options.css') }}">
     <script src="{{ url_for('static', filename='js/modules/turnusliste.js') }}"></script>
 
+{% endblock %}
+
+{% block user_menu_items %}
+{% include 'components/view_options_menu.html' %}
 {% endblock %}
 
 {% block content %}
@@ -78,7 +84,8 @@
                         </div>
                     {% endif %}
                 </div>
-               
+
+                <div class="turnus-list">
                 {% for turnus in favorites %}
                     {% set outer_index = loop.index0 %}
                     {% for name, data in turnus.items() %}
@@ -220,7 +227,8 @@
                         </div>
                     {% endfor %}
                 {% endfor %}
-            </div>  
+                </div>
+            </div>
         </div>
     </div>
 </div>

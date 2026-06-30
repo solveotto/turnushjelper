@@ -124,5 +124,79 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // The .printable container holds the view state (CSS variable + class) so it
+    // cascades to lazy-rendered tables automatically.
+    const printable = document.querySelector('.printable');
+
+    // Set up shift size slider
+    const sizeSlider = document.getElementById('shift-size-slider');
+    const sizeReset = document.getElementById('shift-size-reset');
+
+    if (printable && sizeSlider) {
+        function applyShiftScale(scale) {
+            printable.style.setProperty('--shift-scale', scale);
+            sizeSlider.value = scale;
+            localStorage.setItem('turnuslisteShiftScale', scale);
+        }
+
+        applyShiftScale(localStorage.getItem('turnuslisteShiftScale') || '1');
+
+        sizeSlider.addEventListener('input', function() {
+            applyShiftScale(sizeSlider.value);
+        });
+
+        if (sizeReset) {
+            sizeReset.addEventListener('click', function() {
+                applyShiftScale('1');
+            });
+        }
+    }
+
+    // Set up columns slider (number of turnuses side by side, 1-4)
+    const columnsSlider = document.getElementById('columns-slider');
+    const columnsValue = document.getElementById('columns-value');
+
+    if (printable && columnsSlider) {
+        function applyColumns(cols) {
+            cols = parseInt(cols, 10) || 1;
+            columnsSlider.value = cols;
+            if (columnsValue) columnsValue.textContent = cols;
+            printable.style.setProperty('--turnus-cols', cols);
+            printable.classList.toggle('multi-up', cols > 1);
+            localStorage.setItem('turnuslisteColumns', cols);
+        }
+
+        applyColumns(localStorage.getItem('turnuslisteColumns') || '1');
+
+        columnsSlider.addEventListener('input', function() {
+            applyColumns(columnsSlider.value);
+        });
+    }
+
+    // Set up hide-table toggle (shows only name on top + stats at the bottom)
+    const hideTableBtn = document.getElementById('hide-table-toggle-btn');
+
+    if (printable && hideTableBtn) {
+        let hideTable = localStorage.getItem('turnuslisteHideTable') === '1';
+
+        function updateHideTableBtn() {
+            if (hideTable) {
+                hideTableBtn.innerHTML = '<i class="bi bi-table me-1"></i>Vis tabell';
+            } else {
+                hideTableBtn.innerHTML = '<i class="bi bi-table me-1"></i>Skjul tabell';
+            }
+        }
+
+        printable.classList.toggle('hide-table', hideTable);
+        updateHideTableBtn();
+
+        hideTableBtn.addEventListener('click', function() {
+            hideTable = !hideTable;
+            localStorage.setItem('turnuslisteHideTable', hideTable ? '1' : '0');
+            printable.classList.toggle('hide-table', hideTable);
+            updateHideTableBtn();
+        });
+    }
+
 });
 

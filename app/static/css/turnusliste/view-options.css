@@ -1,0 +1,82 @@
+/* Turnusliste view options: size scaling + hide-table mode.
+
+   SIZE: the slider sets --shift-scale on the .printable container; we apply it as
+   `zoom` to each turnus card (.list-group-item). zoom reflows layout and scales
+   everything proportionally — table, cell text, stats, name and icons — so the
+   whole card shrinks/grows uniformly and the cells keep equal widths at any size.
+
+   Print is unaffected: the print path injects card content without the .printable
+   wrapper, so the zoom rule never matches and cards print at their natural size.
+
+   This file is only loaded on /turnusliste.
+
+   The font-size rules below just restore the cells' original sizes (their inline
+   font-sizes were removed from the template). They are fixed — the zoom does the
+   scaling. Base px values match the old inline keywords: small = 13px, xx-small = 9px. */
+
+/* --- Size: zoom the whole card --- */
+.printable .list-group-item {
+    zoom: var(--shift-scale, 1);
+}
+
+/* --- Restore original cell text sizes (scaling is handled by zoom above) --- */
+.time-text {
+    font-size: 13px;
+}
+
+.dagsverk-link {
+    font-size: 9px;
+}
+
+.week-num-cell {
+    font-size: 13px;
+}
+
+.footer-timer-cell {
+    font-size: 13px;
+}
+
+/* --- Multi-column layout: N turnuses side by side (--turnus-cols, 2-4) --- */
+/* .turnus-list is the direct parent of the cards on both pages
+   (ul.list-group on Turnusliste, the wrapper div on Favoritter). */
+.printable.multi-up .col-auto {
+    /* Let the grid use the full row width instead of shrinking to content. */
+    width: 100%;
+}
+
+.printable.multi-up .turnus-list {
+    display: grid;
+    /* Size each column to the card's natural width and center the row, so the
+       tables sit centered together instead of left-aligned with empty space.
+       minmax(0, ...) lets a column shrink (table scrolls in its cell) when the
+       natural-width tables don't all fit the screen. */
+    grid-template-columns: repeat(var(--turnus-cols, 2), minmax(0, max-content));
+    justify-content: center;
+    gap: 0.5rem;
+    align-items: start;
+}
+
+/* Keep the table at its natural width (same proportions as single-column view)
+   instead of stretching its columns to fill the narrower grid cell. */
+.printable.multi-up .table-scroll-wrapper table {
+    width: auto;
+}
+
+/* Scroll a too-wide table within its cell instead of clipping it.
+   Combine with the size slider to fit all columns. */
+.printable.multi-up .table-scroll-wrapper {
+    overflow-x: auto;
+}
+
+/* Fall back to a single column on narrow screens, where multi-up doesn't fit. */
+@media (max-width: 768px) {
+    .printable.multi-up .turnus-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Hide-table mode (show only name on top + stats at the bottom) --- */
+/* Scoped under .printable so print (no .printable wrapper) always shows the table. */
+.printable.hide-table .table-scroll-wrapper {
+    display: none;
+}

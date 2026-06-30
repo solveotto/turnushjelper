@@ -130,6 +130,13 @@
     box-shadow: var(--shadow-md);
 }
 
+/* "AI" label prefixing the generer-favoritter button */
+.gen-favorites-ai-label {
+    font-weight: 700;
+    font-size: var(--font-size-xs);
+    letter-spacing: 0.05em;
+}
+
 /* Sorter button — yellow to stand out, placed after navbar-action-btn to win specificity */
 .navbar-action-btn.sorter-btn {
     background-color: #ffc107 !important;
