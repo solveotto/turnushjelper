@@ -184,6 +184,14 @@
     z-index: 1000;
 }
 
+/* Push menu button to far right on mobile to prevent it from being pushed off-screen */
+@media (max-width: 991.98px) {
+    .navbar-actions .dropdown {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+}
+
 .user-menu-btn:hover {
     background-color: rgba(255, 255, 255, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.3) !important;
@@ -344,15 +352,14 @@
 .mobile-icon-nav {
     display: flex;
     align-items: center;
-    margin-left: auto;
-    margin-right: 0;
+    gap: 0.25rem;
     flex-shrink: 0;
 }
 
 .mobile-icon-link {
     color: rgba(255, 255, 255, 0.9) !important;
     padding: var(--spacing-sm) !important;
-    margin: 0 var(--spacing-xs);
+    margin: 0;
     border-radius: var(--radius-md);
     transition: all var(--transition-normal);
     display: flex;
@@ -531,15 +538,14 @@
 
     /* Mobile icon navigation adjustments */
     .mobile-icon-nav {
-        margin-left: auto;
-        margin-right: 0;
+        gap: 0.25rem;
         flex-shrink: 0;
     }
 
     .mobile-icon-link {
         min-width: 44px; /* WCAG minimum */
         min-height: 44px;
-        margin: 0 var(--spacing-xs);
+        margin: 0;
         padding: var(--spacing-sm) !important;
     }
 
@@ -553,7 +559,7 @@
     .mobile-icon-link {
         min-width: 40px; /* Reduce slightly for space */
         min-height: 40px; /* Reduce slightly for space */
-        margin: 0 1px; /* Tighter spacing between icons */
+        margin: 0; /* Let parent gap handle spacing */
         padding: 0.25rem !important; /* Reduce padding */
     }
 
