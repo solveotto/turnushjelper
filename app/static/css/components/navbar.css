@@ -604,11 +604,6 @@
         font-size: 0.9rem; /* Slightly smaller icons */
     }
 
-    .mobile-icon-nav {
-        margin-left: auto;
-        margin-right: auto;
-    }
-
     .brand-text {
         display: none;
     }
