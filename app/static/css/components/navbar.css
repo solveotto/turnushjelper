@@ -345,7 +345,8 @@
     display: flex;
     align-items: center;
     margin-left: auto;
-    margin-right: auto;
+    margin-right: 0;
+    flex-shrink: 0;
 }
 
 .mobile-icon-link {
@@ -531,7 +532,8 @@
     /* Mobile icon navigation adjustments */
     .mobile-icon-nav {
         margin-left: auto;
-        margin-right: auto;
+        margin-right: 0;
+        flex-shrink: 0;
     }
 
     .mobile-icon-link {
