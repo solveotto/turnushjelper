@@ -217,15 +217,77 @@
     padding: var(--spacing-sm) 0;
     margin-top: var(--spacing-sm);
     z-index: 9999 !important; /* Ensure dropdown appears above all content */
-    position: absolute;
+    position: fixed;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    max-height: calc(100vh - 100px);
+    overflow-y: scroll;
 }
 
 /* Ensure dropdown shows above all other elements */
 .modern-navbar .dropdown-menu.show {
     z-index: 9999 !important;
     display: block !important;
+}
+
+/* Mobile dropdown positioning - full screen overlay */
+@media (max-width: 991.98px) {
+    .modern-navbar .dropdown-menu {
+        position: fixed !important;
+        top: 70px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: calc(100vh - 70px) !important;
+        max-width: none !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.98) 0%, rgba(30, 58, 138, 0.98) 100%);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Close button styling */
+    .mobile-menu-close-btn {
+        display: flex !important;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.99) 0%, rgba(30, 58, 138, 0.99) 100%);
+        padding: 1rem;
+        justify-content: flex-end;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 10;
+    }
+
+    .mobile-menu-close-btn button {
+        background: rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: white !important;
+        padding: 0.5rem 0.75rem !important;
+        border-radius: 0.5rem !important;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .mobile-menu-close-btn button:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    /* Menu items spacing */
+    .modern-navbar .dropdown-item {
+        padding: 1rem 1.25rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .modern-navbar .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
 }
 
 /* Mobile Sorting Modal Styling */
@@ -357,13 +419,18 @@
 }
 
 .mobile-icon-nav .navbar-nav {
-    gap: 0.25rem !important;
-    margin: 0 !important;
+    margin-left: -0.125rem !important;
+    margin-right: -0.125rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
     padding: 0 !important;
 }
 
 .mobile-icon-nav .nav-item {
-    margin: 0 !important;
+    margin-left: 0.125rem !important;
+    margin-right: 0.125rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
     padding: 0 !important;
 }
 
@@ -554,13 +621,18 @@
     }
 
     .mobile-icon-nav .navbar-nav {
-        gap: 0.25rem !important;
-        margin: 0 !important;
+        margin-left: -0.125rem !important;
+        margin-right: -0.125rem !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
         padding: 0 !important;
     }
 
     .mobile-icon-nav .nav-item {
-        margin: 0 !important;
+        margin-left: 0.125rem !important;
+        margin-right: 0.125rem !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
         padding: 0 !important;
     }
 
@@ -579,33 +651,69 @@
 /* Extra small screens */
 @media (max-width: 576px) {
     .mobile-icon-nav {
-        gap: 0.2rem !important;
+        flex-shrink: 0 !important;
     }
 
     .mobile-icon-nav .navbar-nav {
-        gap: 0.2rem !important;
-        margin: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
         padding: 0 !important;
     }
 
     .mobile-icon-nav .nav-item {
-        margin: 0 !important;
+        margin-left: 2px !important;
+        margin-right: 2px !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
         padding: 0 !important;
     }
 
+    /* Hide AI/action buttons on small screens - users can access via menu */
+    .action-buttons {
+        display: none !important;
+    }
+
+    /* Hide help button on small screens to free space for menu button */
+    #help-icon-btn {
+        display: none !important;
+    }
+
+    /* Hide AI generate favorites button on small screens */
+    #gen-favorites-btn {
+        display: none !important;
+    }
+}
+
+/* Restore action buttons on larger screens (≥768px) */
+@media (min-width: 768px) {
+    .action-buttons {
+        display: flex !important;
+    }
+
+    #help-icon-btn {
+        display: flex !important;
+    }
+
+    #gen-favorites-btn {
+        display: inline-flex !important;
+    }
+
+    /* Hide mobile icon nav on larger screens */
+    .mobile-icon-nav {
+        display: none !important;
+    }
+
     .mobile-icon-link {
-        min-width: 40px; /* Reduce slightly for space */
-        min-height: 40px; /* Reduce slightly for space */
-        margin: 0; /* Let parent gap handle spacing */
-        padding: 0.25rem !important; /* Reduce padding */
+        min-width: 38px; /* Compact for space */
+        min-height: 38px; /* Compact for space */
+        margin: 0;
+        padding: 0.2rem !important; /* Minimal padding */
     }
 
     .mobile-icon-link i {
-        font-size: 0.9rem; /* Slightly smaller icons */
-    }
-
-    .brand-text {
-        display: none;
+        font-size: 0.85rem; /* Smaller icons */
     }
 
     .modern-navbar .navbar-brand {
@@ -869,3 +977,6 @@
 
 @media (min-width: 992px) { .mobile-sorter { display: none !important; } }
 @media print { .navbar-icon-actions { display: none !important; } }
+
+/* Extra extra small screens (320px and below) */
+@media (max-width: 320px) {

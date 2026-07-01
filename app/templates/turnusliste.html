@@ -10,6 +10,14 @@
     </a>
 </li>
 {% include 'components/view_options_menu.html' %}
+<li class="d-md-none">
+    <hr class="dropdown-divider" />
+</li>
+<li class="d-md-none">
+    <a class="dropdown-item" href="{{ url_for('shifts.import_favorites', ref='turnusliste') }}">
+        <i class="bi bi-stars"></i> <span class="gen-favorites-ai-label">AI</span> Generer favoritter
+    </a>
+</li>
 {% endblock %} {% block mobile_sorter %}
 <div class="mobile-sorter d-lg-none me-2">
     <button class="btn navbar-icon-btn navbar-action-btn sorter-btn mobile-sorter-btn" type="button"

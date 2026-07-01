@@ -215,6 +215,12 @@
                                 <i class="bi bi-list"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <!-- Mobile close button -->
+                                <li class="mobile-menu-close-btn d-md-none">
+                                    <button type="button" class="btn-close-menu" data-bs-dismiss="dropdown" aria-label="Close menu">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </li>
                                 <li class="dropdown-header">
                                     <div class="user-info">
                                         <strong
@@ -334,6 +340,13 @@
 
                                 <!-- Page-specific menu items -->
                                 {% block user_menu_items %}{% endblock %}
+
+                                <!-- Help button for small screens -->
+                                <li class="d-md-none">
+                                    <a class="dropdown-item" href="#" onclick="document.getElementById('help-icon-btn').click(); return false;">
+                                        <i class="bi bi-question-circle"></i> Hjelp
+                                    </a>
+                                </li>
 
                                 <!-- Print button (always in menu) -->
                                 {% block mobile_print %}
