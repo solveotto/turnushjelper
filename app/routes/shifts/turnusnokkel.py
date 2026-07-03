@@ -5,6 +5,7 @@ from app.database import get_db_session
 from app.models import SoknadsskjemaChoice
 from app.routes.shifts import shifts
 from app.utils import db_utils, df_utils
+from app.utils.kompdag_utils import count_kompdager, get_holidays_for_dates
 
 
 @shifts.route("/turnusnokkel/<int:turnus_set_id>/<turnus_name>")
@@ -68,6 +69,18 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
         all_rows = [list(row) for row in sheet.iter_rows(min_row=1, max_row=48)]
         wb.close()
 
+        # Holiday flag comes from the computed §5.13.1 set, not the manual
+        # red font in the template (which misses e.g. påskeaften and Sunday
+        # holidays). A turnus year spans two calendar years, so the set is
+        # unioned across all years present in the template dates.
+        all_dates = [
+            cell.value.date() if hasattr(cell.value, "date") else cell.value
+            for row in all_rows
+            for cell in row[7:16]
+            if cell.value is not None and hasattr(cell.value, "strftime")
+        ]
+        holiday_set = get_holidays_for_dates(all_dates)
+
         for g in range(6):
             header_cells = all_rows[g * 8]
             uke_labels = [
@@ -83,16 +96,15 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
                 dates = []
                 for cell in all_rows[g * 8 + 1 + d][7:16]:
                     if cell.value is not None and hasattr(cell.value, "strftime"):
-                        is_holiday = (
-                            cell.font
-                            and cell.font.color
-                            and cell.font.color.type == "rgb"
-                            and cell.font.color.rgb == "FFFF0000"
+                        cell_date = (
+                            cell.value.date()
+                            if hasattr(cell.value, "date")
+                            else cell.value
                         )
                         dates.append(
                             {
                                 "value": cell.value.strftime("%d.%m.%y"),
-                                "holiday": bool(is_holiday),
+                                "holiday": cell_date in holiday_set,
                             }
                         )
                     else:
@@ -117,6 +129,9 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
                 )
             groups.append({"uke_labels": [f"Linje {g + 1}"], "day_rows": day_rows})
 
+    komp = count_kompdager(turnus_set_id)
+    kompdager = komp.get(turnus_name) if komp else None
+
     pref_db = get_db_session()
     try:
         pref_row = (
@@ -140,5 +155,6 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
         linje_labels=linje_labels,
         groups=groups,
         template_found=template_found,
+        kompdager=kompdager,
         linjeprioritering_current=linjeprioritering_current or "",
     )

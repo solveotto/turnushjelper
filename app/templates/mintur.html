@@ -221,9 +221,6 @@
                                         >Tidlig 8-12</span
                                     ><b>{{ df_row.tidlig_8_12 }}</b>
                                     <span class="text-muted text-nowrap"
-                                        >Snitt timer</span
-                                    ><b>{{ df_row.avg_shift_hours }}</b>
-                                    <span class="text-muted text-nowrap"
                                         >Helgetimer</span
                                     ><b>{{ df_row.helgetimer }}</b>
                                     <span class="text-muted text-nowrap"
@@ -235,6 +232,9 @@
                                     <span class="text-muted text-nowrap"
                                         >Lengste arb. periode(r)</span
                                     ><b>{{ df_row.longest_work_streak }}</b>
+                                    <span class="text-muted text-nowrap"
+                                        >Kompdager</span
+                                    ><b>{{ kompdager if kompdager is not none else '–' }}</b>
                                 </div>
                             </div>
                         </div>

@@ -3,6 +3,7 @@ from flask_login import current_user, login_required
 
 from app.routes.shifts import shifts
 from app.utils import db_utils, df_utils
+from app.utils.kompdag_utils import count_kompdager, kompdager_max_label
 from app.utils.turnus_helpers import get_user_turnus_set
 
 
@@ -34,13 +35,20 @@ def favorites():
         if name in fav_dict_lookup
     ]
 
+    df_records = (
+        user_df_manager.df.to_dict(orient="records")
+        if not user_df_manager.df.empty
+        else []
+    )
+    komp = count_kompdager(turnus_set_id) or {}
+    for row in df_records:
+        row["kompdager_max"] = kompdager_max_label(komp.get(row["turnus"]))
+
     return render_template(
         "favorites.html",
         page_name="Favoritter",
         favorites=fav_dict_sorted,
-        df=user_df_manager.df.to_dict(orient="records")
-        if not user_df_manager.df.empty
-        else [],
+        df=df_records,
         current_turnus_set=user_turnus_set,
         active_set=active_set,
         all_turnus_sets=db_utils.get_all_turnus_sets(),

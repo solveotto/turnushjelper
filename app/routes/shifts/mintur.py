@@ -4,6 +4,7 @@ from flask_login import current_user, login_required
 from app.routes.shifts import _classify_shift_type, shifts
 from app.services.innplassering_service import get_innplassering_for_user
 from app.utils import db_utils, df_utils
+from app.utils.kompdag_utils import count_kompdager, get_holidays_for_dates
 
 
 def _load_mintur_data(user_id: int) -> dict | None:
@@ -79,6 +80,17 @@ def _load_mintur_data(user_id: int) -> dict | None:
         sheet = wb["Turnusnøkkel"]
         all_rows = [list(row) for row in sheet.iter_rows(min_row=1, max_row=48)]
         wb.close()
+
+        # Holiday flag comes from the computed §5.13.1 set (multi-year, since
+        # a turnus year spans two calendar years), not the manual red font.
+        all_dates = [
+            c.value.date() if hasattr(c.value, "date") else c.value
+            for row in all_rows
+            for c in row[7:16]
+            if c.value is not None and hasattr(c.value, "strftime")
+        ]
+        holiday_set = get_holidays_for_dates(all_dates)
+
         for g in range(6):
             uke_labels = [
                 str(c.value) for c in all_rows[g * 8][7:16] if c.value is not None
@@ -89,21 +101,21 @@ def _load_mintur_data(user_id: int) -> dict | None:
                     linje_shifts.get((g + j - 1) % 6 + 1, {}).get(d + 1, _empty_cell)
                     for j in range(1, 7)
                 ]
-                dates = [
-                    {
-                        "value": c.value.strftime("%d.%m.%y")
-                        if hasattr(c.value, "strftime")
-                        else "",
-                        "holiday": bool(
-                            c.font
-                            and c.font.color
-                            and c.font.color.type == "rgb"
-                            and c.font.color.rgb == "FFFF0000"
-                        ),
-                        "date_obj": c.value if hasattr(c.value, "strftime") else None,
-                    }
-                    for c in all_rows[g * 8 + 1 + d][7:16]
-                ]
+                dates = []
+                for c in all_rows[g * 8 + 1 + d][7:16]:
+                    if c.value is not None and hasattr(c.value, "strftime"):
+                        cal_date = (
+                            c.value.date() if hasattr(c.value, "date") else c.value
+                        )
+                        dates.append(
+                            {
+                                "value": c.value.strftime("%d.%m.%y"),
+                                "holiday": cal_date in holiday_set,
+                                "date_obj": c.value,
+                            }
+                        )
+                    else:
+                        dates.append({"value": "", "holiday": False, "date_obj": None})
                 day_rows.append({"name": dag_names[d], "cells": cells, "dates": dates})
             groups.append({"uke_labels": uke_labels, "day_rows": day_rows})
     else:
@@ -156,6 +168,10 @@ def mintur():
         (r for r in df_records if r.get("turnus") == data["shift_title"]), None
     )
 
+    komp = count_kompdager(data["turnus_set_id"])
+    counts = komp.get(data["shift_title"]) if komp else None
+    kompdager = counts[data["linjenummer"] - 1] if counts else None
+
     return render_template(
         "mintur.html",
         page_name="Min Turnus",
@@ -163,6 +179,7 @@ def mintur():
         linjenummer=data["linjenummer"],
         turnus_data={data["shift_title"]: data["raw"]},
         df_row=df_row,
+        kompdager=kompdager,
         linje_labels=linje_labels,
         groups=data["groups"],
         template_found=data["template_found"],

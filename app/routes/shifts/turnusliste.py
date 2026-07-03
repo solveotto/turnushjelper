@@ -6,6 +6,7 @@ from flask_login import current_user, login_required
 from app.extensions import cache
 from app.routes.shifts import shifts
 from app.utils import db_utils, df_utils
+from app.utils.kompdag_utils import count_kompdager, kompdager_max_label
 from app.utils.turnus_helpers import get_user_turnus_set
 
 
@@ -45,13 +46,20 @@ def turnusliste():
     # Get turnus parameter for highlighting specific turnus
     highlighted_turnus = request.args.get("turnus")
 
+    df_records = (
+        user_df_manager.df.to_dict(orient="records")
+        if not user_df_manager.df.empty
+        else []
+    )
+    komp = count_kompdager(turnus_set_id) or {}
+    for row in df_records:
+        row["kompdager_max"] = kompdager_max_label(komp.get(row["turnus"]))
+
     return render_template(
         "turnusliste.html",
         page_name="Turnusliste",
         table_data=user_df_manager.turnus_data,
-        df=user_df_manager.df.to_dict(orient="records")
-        if not user_df_manager.df.empty
-        else [],
+        df=df_records,
         favoritt=favoritt,
         favorite_positions=favorite_positions,
         current_turnus_set=user_turnus_set,
