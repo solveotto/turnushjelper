@@ -154,6 +154,30 @@
   /* background is set dynamically by JS based on count ratio */
 }
 
+/* ── Kompdager per linje grid ── */
+.kompdager-grid td.turnus-name {
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+.kompdager-grid .komp-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.2rem 0.25rem !important;
+}
+
+.komp-pill {
+  display: inline-block;
+  min-width: 2rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background-color: var(--bs-secondary-bg, #e9ecef);
+}
+
 /* ── Heatmap grid ── */
 .heatmap-grid {
   font-size: 0.8rem;

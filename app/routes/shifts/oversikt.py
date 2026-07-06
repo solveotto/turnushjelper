@@ -7,6 +7,7 @@ from app.extensions import cache
 from app.routes.shifts import shifts
 from app.services.innplassering_service import get_innplassering_for_user
 from app.utils import db_utils, df_utils
+from app.utils.kompdag_utils import count_kompdager
 from app.utils.turnus_helpers import get_user_turnus_set, iter_turnus_days
 
 
@@ -52,6 +53,10 @@ def oversikt():
     ]
     labels = df["turnus"].tolist() if not df.empty else []
     data = {m: df[m].tolist() if m in df.columns else [] for m in metrics}
+
+    # Per-linje kompdag counts ({turnus: [linje1..linje6]}); None when the
+    # nøkkel template (calendar-date source) is unavailable.
+    kompdager = count_kompdager(turnus_set_id)
 
     # Load current user's favorites for the star button in the modal
     fav_order_lst = db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
@@ -125,6 +130,7 @@ def oversikt():
         labels=labels,
         data=data,
         weekday_free=weekday_free,
+        kompdager=kompdager,
         schedule_data=schedule_data,
         favoritt=fav_order_lst,
         current_turnus_set=user_turnus_set,

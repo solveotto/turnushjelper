@@ -66,8 +66,8 @@ export class SortingSystem {
                 try {
                     // data-felt uses a CSS grid: interleaved <span> label + <b> value pairs.
                     // Order: Dagsverk, Tidlig, Kveld, Natt, Starter før 6, Tidlig 6-8,
-                    //        Tidlig 8-12, Snitt t/skift, Helgetimer, Helgtimer dag,
-                    //        Lengste fri, Lengste rekke
+                    //        Tidlig 8-12, Helgetimer, Helgtimer dag, Lengste fri,
+                    //        Lengste rekke, Kompdager (maks)
                     const bs = dataRow.querySelectorAll('b');
                     const shiftCnt   = parseInt(bs[0]?.textContent)   || 0;
                     const tidlig     = parseInt(bs[1]?.textContent)   || 0;
@@ -76,11 +76,12 @@ export class SortingSystem {
                     const before6    = parseInt(bs[4]?.textContent)   || 0;
                     const tidlig68   = parseInt(bs[5]?.textContent)   || 0;
                     const tidlig812  = parseInt(bs[6]?.textContent)   || 0;
-                    const avgHours   = parseFloat(bs[7]?.textContent) || 0;
-                    const helgetimer = parseInt(bs[8]?.textContent)   || 0;
-                    // bs[9] = helgetimer_dagtid (not used in sorting)
-                    const longestOff    = parseInt(bs[10]?.textContent) || 0;
-                    const longestStreak = parseInt(bs[11]?.textContent) || 0;
+                    const helgetimer = parseInt(bs[7]?.textContent)   || 0;
+                    // bs[8] = helgetimer_dagtid (not used in sorting)
+                    const longestOff    = parseInt(bs[9]?.textContent)  || 0;
+                    const longestStreak = parseInt(bs[10]?.textContent) || 0;
+                    // Kompdager (maks) renders as "10 (L1)"; parseInt takes the count.
+                    const kompdagerMax  = parseInt(bs[11]?.textContent) || 0;
 
                     turnusData.push({
                         name: name,
@@ -95,7 +96,7 @@ export class SortingSystem {
                         tidlig_8_12: tidlig812,
                         longest_off_streak: longestOff,
                         longest_work_streak: longestStreak,
-                        avg_shift_hours: avgHours
+                        kompdager_max: kompdagerMax
                     });
                 } catch (error) {
                     console.error(`Error parsing data for turnus ${name}:`, error);
@@ -113,7 +114,7 @@ export class SortingSystem {
      */
     calculateMinMax(turnusData) {
         const criteria = ['helgetimer', 'shift_cnt', 'tidlig', 'natt', 'ettermiddag', 'before_6',
-                          'tidlig_6_8', 'tidlig_8_12', 'longest_off_streak', 'longest_work_streak', 'avg_shift_hours'];
+                          'tidlig_6_8', 'tidlig_8_12', 'longest_off_streak', 'longest_work_streak', 'kompdager_max'];
         const minMax = {};
 
         criteria.forEach(key => {
@@ -176,7 +177,7 @@ export class SortingSystem {
             tidlig_8_12: parseFloat(document.getElementById('tidlig-8-12-slider').value),
             longest_off_streak: parseFloat(document.getElementById('longest-off-slider').value),
             longest_work_streak: parseFloat(document.getElementById('longest-streak-slider').value),
-            avg_shift_hours: parseFloat(document.getElementById('avg-hours-slider').value)
+            kompdager_max: parseFloat(document.getElementById('kompdager-slider').value)
         };
 
         const turnusData = this.getTurnusData();
@@ -308,7 +309,7 @@ export class SortingSystem {
             tidlig_8_12: 'Tidlig 8-12',
             longest_off_streak: 'Lengste fri',
             longest_work_streak: 'Lengste rekke',
-            avg_shift_hours: 'Snitt timer'
+            kompdager_max: 'Kompdager (maks)'
         };
         return labels[key] || key;
     }
@@ -326,7 +327,7 @@ export class SortingSystem {
                 tidlig_8_12: document.getElementById('tidlig-8-12-slider').value,
                 longest_off_streak: document.getElementById('longest-off-slider').value,
                 longest_work_streak: document.getElementById('longest-streak-slider').value,
-                avg_shift_hours: document.getElementById('avg-hours-slider').value
+                kompdager_max: document.getElementById('kompdager-slider').value
             };
             localStorage.setItem('turnuslisteSortingSettings', JSON.stringify(settings));
             console.log('Sorting settings saved:', settings);
@@ -363,7 +364,7 @@ export class SortingSystem {
                            key === 'tidlig_8_12' ? 'tidlig-8-12-slider' :
                            key === 'longest_off_streak' ? 'longest-off-slider' :
                            key === 'longest_work_streak' ? 'longest-streak-slider' :
-                           key === 'avg_shift_hours' ? 'avg-hours-slider' :
+                           key === 'kompdager_max' ? 'kompdager-slider' :
                            `${key}-slider`;
             
             const slider = document.getElementById(sliderId);

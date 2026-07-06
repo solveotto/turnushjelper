@@ -149,6 +149,62 @@ block extra_css %}
         </div>
     </div>
 
+    {# ── Kompdager per linje (only when nøkkel dates are available) ── #}
+    {% if kompdager %}
+    <div class="section-header section-fridager mb-3">
+        <span class="section-icon"><i class="bi bi-gift"></i></span>
+        <h5>Kompdager per linje</h5>
+        <hr />
+    </div>
+    <div class="card chart-card mb-4">
+        <div class="card-body p-2">
+            <div style="overflow-x: auto; max-height: 260px; overflow-y: auto">
+                <table
+                    class="table table-sm table-borderless weekday-grid kompdager-grid mb-0"
+                >
+                    <thead
+                        style="
+                            position: sticky;
+                            top: 0;
+                            z-index: 1;
+                            background: var(--bs-body-bg);
+                        "
+                    >
+                        <tr>
+                            <th class="text-start">Turnus</th>
+                            {% for linje in range(1, 7) %}
+                            <th>Linje {{ linje }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for label in labels %}
+                        {% set counts = kompdager.get(label) %}
+                        <tr data-turnus="{{ label }}">
+                            <td class="turnus-name">
+                                <a
+                                    href="#"
+                                    class="text-decoration-none text-body modal-turnus-link"
+                                    data-turnus="{{ label }}"
+                                    >{{ label | display_name}}</a
+                                >
+                            </td>
+                            {% for linje in range(6) %}
+                            <td class="komp-cell">
+                                <span class="komp-pill"
+                                    >{{ counts[linje] if counts else '–' }}</span
+                                >
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     {# ── Vakttype & Helg — heatmap (always visible) ── #}
     <div class="section-header section-vakttyper mb-3">
         <span class="section-icon"
