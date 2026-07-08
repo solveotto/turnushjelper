@@ -339,7 +339,7 @@ function makeBarChart(key, labelsArr, valuesArr, color) {
     });
 }
 
-function makeStackedBar(canvasId, wrapId, labelsArr, datasets, isPercent) {
+function makeStackedBar(canvasId, wrapId, labelsArr, datasets, isPercent, legendOnClick) {
     destroyChart(canvasId);
     const [wrap, canvas] = freshCanvas(wrapId, canvasId);
     if (!wrap) return;
@@ -387,6 +387,7 @@ function makeStackedBar(canvasId, wrapId, labelsArr, datasets, isPercent) {
                     display: true,
                     position: 'top',
                     labels: { boxWidth: 12, font: { size: 11 }, padding: 12 },
+                    ...(legendOnClick ? { onClick: legendOnClick } : {}),
                 },
                 tooltip: {
                     callbacks: {
@@ -399,34 +400,44 @@ function makeStackedBar(canvasId, wrapId, labelsArr, datasets, isPercent) {
     });
 }
 
-function renderVaktprofil() {
-    const KEYS   = ['natt', 'tidlig', 'ettermiddag'];
-    const COLORS = ['#1e3a5f', '#3b82f6', '#f87171'];
-    const LBLS   = ['Natt', 'Tidlig', 'Ettermiddag'];
+const VP_KEYS   = ['natt', 'tidlig', 'ettermiddag'];
+const VP_COLORS = ['#1e3a5f', '#3b82f6', '#f87171'];
+const VP_LBLS   = ['Natt', 'Tidlig', 'Ettermiddag'];
+let vaktprofilSortKey = 'natt';  // which segment drives the row order; set by legend clicks
 
-    const { lbls } = sortedData(turnusLabels, metricsData['natt'] || [], currentSort);
+function renderVaktprofil() {
+    const { lbls } = sortedData(turnusLabels, metricsData[vaktprofilSortKey] || [], currentSort);
     const totals = lbls.map(lbl => {
         const i = turnusLabels.indexOf(lbl);
-        return KEYS.reduce((s, k) => s + ((metricsData[k] || [])[i] || 0), 0);
+        return VP_KEYS.reduce((s, k) => s + ((metricsData[k] || [])[i] || 0), 0);
     });
-    const datasets = KEYS.map((k, ki) => ({
-        label: LBLS[ki],
+    const datasets = VP_KEYS.map((k, ki) => ({
+        label: VP_LBLS[ki],
         data: lbls.map((lbl, ri) => {
             const i = turnusLabels.indexOf(lbl);
             return Math.round(((metricsData[k] || [])[i] || 0) / (totals[ri] || 1) * 100);
         }),
-        backgroundColor: COLORS[ki] + 'cc',
-        borderColor:     COLORS[ki],
+        backgroundColor: VP_COLORS[ki] + 'cc',
+        borderColor:     VP_COLORS[ki],
         borderWidth: 1,
         borderRadius: 2,
         borderSkipped: false,
     }));
-    makeStackedBar('chart-vaktprofil', 'wrap-vaktprofil', lbls, datasets, true);
+    // Clicking a legend item re-sorts the bars by that segment (highest first),
+    // instead of Chart.js's default hide/show of the dataset.
+    makeStackedBar('chart-vaktprofil', 'wrap-vaktprofil', lbls, datasets, true, (_e, legendItem) => {
+        vaktprofilSortKey = VP_KEYS[legendItem.datasetIndex] || 'natt';
+        renderVaktprofil();
+    });
 }
+
+// datasetIndex → metric key that segment represents (for legend-click sorting)
+const HP_KEYS = ['helgetimer_dagtid', 'helgetimer_ettermiddag'];
+let helgeprofilSortKey = 'helgetimer';  // set by legend clicks; default = total helgetimer
 
 function renderHelgeprofil() {
     if (!(metricsData['helgetimer_dagtid'] || []).length) return;
-    const { lbls } = sortedData(turnusLabels, metricsData['helgetimer'] || [], currentSort);
+    const { lbls } = sortedData(turnusLabels, metricsData[helgeprofilSortKey] || [], currentSort);
     const datasets = [
         {
             label: 'Dagtid (lør/søn før 14)',
@@ -443,7 +454,12 @@ function renderHelgeprofil() {
             borderWidth: 1, borderRadius: 2, borderSkipped: false,
         },
     ];
-    makeStackedBar('chart-helgeprofil', 'wrap-helgeprofil', lbls, datasets, false);
+    // Clicking a legend item re-sorts the bars by that segment (highest first),
+    // instead of Chart.js's default hide/show of the dataset.
+    makeStackedBar('chart-helgeprofil', 'wrap-helgeprofil', lbls, datasets, false, (_e, legendItem) => {
+        helgeprofilSortKey = HP_KEYS[legendItem.datasetIndex] || 'helgetimer';
+        renderHelgeprofil();
+    });
 }
 
 function renderRytmescore() {
