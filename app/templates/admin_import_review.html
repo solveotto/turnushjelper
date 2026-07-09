@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Godkjenn import av {{ year_id }}</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <p>
+                        Timeskjema-importen av <strong>{{ turnus_count }}</strong> turnuser
+                        ({{ meta.name }}) er validert, men PDF-verifiseringen fant avvik.
+                        Avvik kan skyldes at PDF-en er en eldre revisjon — vurder hver
+                        forskjell før du godkjenner. <strong>Timeskjema-verdiene er det som
+                        importeres.</strong>
+                    </p>
+                    <p class="text-muted small">
+                        Lastet opp av {{ meta.uploader }} {{ meta.staged_at }}.
+                        {% if meta.is_active %}Settet aktiveres ved godkjenning.{% endif %}
+                    </p>
+
+                    {% if diff.only_primary or diff.only_secondary %}
+                        <h6>Turnuser som bare finnes i én kilde</h6>
+                        <ul>
+                            {% for name in diff.only_primary %}
+                                <li>{{ name }} — bare i timeskjema</li>
+                            {% endfor %}
+                            {% for name in diff.only_secondary %}
+                                <li>{{ name }} — bare i PDF</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    {% if diff.cells %}
+                        <h6>Dagsavvik ({{ diff.cells | length }})</h6>
+                        <div class="table-responsive mb-4">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Turnus</th>
+                                        <th>Uke</th>
+                                        <th>Dag</th>
+                                        <th>Timeskjema</th>
+                                        <th>PDF</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cell in diff.cells %}
+                                        <tr>
+                                            <td>{{ cell.turnus }}</td>
+                                            <td>{{ cell.uke }}</td>
+                                            <td>{{ cell.ukedag or cell.dag }}</td>
+                                            <td>{{ cell.primary_dagsverk or '–' }} {{ cell.primary_tid | join('–') }}</td>
+                                            <td>{{ cell.secondary_dagsverk or '–' }} {{ cell.secondary_tid | join('–') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+
+                    {% if diff.totals %}
+                        <h6>Timeavvik ({{ diff.totals | length }})</h6>
+                        <div class="table-responsive mb-4">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Turnus</th>
+                                        <th>KL.timer (timeskjema / PDF)</th>
+                                        <th>Tj.timer (timeskjema / PDF)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for total in diff.totals %}
+                                        <tr>
+                                            <td>{{ total.turnus }}</td>
+                                            <td>{{ total.primary_kl_timer }} / {{ total.secondary_kl_timer }}</td>
+                                            <td>{{ total.primary_tj_timer }} / {{ total.secondary_tj_timer }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between">
+                        <form method="POST" action="{{ url_for('admin.import_turnusset_cancel', year_id=year_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-x-circle"></i> Avbryt import
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.import_turnusset_approve', year_id=year_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Godkjenn import
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

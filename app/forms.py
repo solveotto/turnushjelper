@@ -45,8 +45,13 @@ class CreateTurnusSetForm(FlaskForm):
                                     default=True,
                                     render_kw={"onchange": "toggleFileUploads()"})
 
-    # PDF upload option
-    pdf_file = FileField('Last opp PDF-fil (for å skrape og generere JSON)',
+    # Schedule upload: timeskjema (.xls TSV export) or PDF, auto-detected by content
+    schedule_file = FileField('Last opp turnusfil (timeskjema .xls eller PDF)',
+                        validators=[FileAllowed(['pdf', 'xls', 'tsv', 'txt'],
+                                                'Kun .xls/.tsv/.txt (timeskjema) eller PDF!')])
+
+    # Optional cross-verification source for timeskjema imports
+    verify_pdf_file = FileField('Verifiserings-PDF (valgfritt)',
                         validators=[FileAllowed(['pdf'], 'Kun PDF-filer!')])
 
     submit = SubmitField('Opprett turnussett')
