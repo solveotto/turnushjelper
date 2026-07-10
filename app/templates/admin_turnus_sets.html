@@ -206,7 +206,7 @@
                                         </form>
 
                                         <form method="POST" action="{{ url_for('admin.delete_turnus_set', turnus_set_id=turnus_set.id) }}"
-                                              style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier | display_name }}? Dette vil også slette alle tilknyttede vakter og favoritter.')">
+                                              style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier | display_name }}? Dette vil også slette alle tilknyttede vakter, favoritter og innplasseringsdata.')">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="bi bi-trash"></i> Slett

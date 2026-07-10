@@ -288,6 +288,7 @@
                                                 ></i>
                                                 {{ ts.year_identifier |
                                                 display_name }}
+                                                {% if ts.is_active %}<span class="badge bg-success ms-1">aktiv</span>{% endif %}
                                             </a>
                                         </li>
                                         {% endfor %}
