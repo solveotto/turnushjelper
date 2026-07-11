@@ -45,6 +45,16 @@ SHIFT_NR_VISUAL_X_MAX = 50  # Shift numbers are within 50 pixels of left edge vi
 # Sets the resolution of the .png files. Higher value = Higher resolution and file size.
 PDF_ZOOM = 4
 
+# Left crop: keeps the Nr./Kjøredager/Materiell columns (page border is at ~24)
+X_LEFT_BASE = 22
+
+# Legacy fixed layout, used only when a page has no extractable hour header.
+# Calibrated for the pre-R26 strekliste PDF (~19.6 pt/hour timeline with a
+# 271 pt right-side panel).
+LEGACY_X_RIGHT_CROP_BASE = 271
+LEGACY_TIMELINE_START_RATIO = 0.149
+LEGACY_TIMELINE_END_RATIO = 0.969
+
 
 def get_paths(version: str) -> dict:
     """
@@ -297,10 +307,132 @@ def find_separator_lines(
     return lines
 
 
+def _pick_hour_row(spans: list) -> dict | None:
+    """
+    Pick the topmost horizontal row of hour labels 0-23 from candidate spans.
+
+    spans: iterable of (text, visual_x, visual_y) tuples.
+    Returns {hour: visual_x} for the first (topmost) y-cluster that contains
+    all 24 hours in increasing, roughly even-spaced x order, else None.
+    """
+    cands = []
+    for text, x, y in spans:
+        text = text.strip()
+        if text.isdigit() and 0 <= int(text) <= 23:
+            cands.append((int(text), x, y))
+
+    if not cands:
+        return None
+
+    # Cluster by visual y (labels on the same printed row jitter slightly)
+    cands.sort(key=lambda c: c[2])
+    clusters = []
+    for hour, x, y in cands:
+        if clusters and y - clusters[-1]["y_max"] <= 3:
+            clusters[-1]["items"].append((hour, x))
+            clusters[-1]["y_max"] = y
+        else:
+            clusters.append({"items": [(hour, x)], "y_max": y})
+
+    for cluster in clusters:  # already ordered top to bottom
+        hours = {}
+        for hour, x in sorted(cluster["items"], key=lambda i: i[1]):
+            hours.setdefault(hour, x)
+        if sorted(hours.keys()) != list(range(24)):
+            continue
+        xs = [hours[h] for h in range(24)]
+        diffs = [xs[i + 1] - xs[i] for i in range(23)]
+        # A real ruler is strictly increasing and roughly evenly spaced
+        if min(diffs) <= 0 or max(diffs) > 2 * min(diffs):
+            continue
+        return hours
+
+    return None
+
+
+def get_hour_label_positions(page) -> dict | None:
+    """
+    Extract the printed hour header (0-23) from a strekliste page.
+
+    Returns {hour: visual_x_center} or None if no complete row is found.
+    """
+    if not FITZ_AVAILABLE:
+        return None
+
+    rot = page.rotation_matrix
+    spans = []
+    for block in page.get_text("dict")["blocks"]:
+        if "lines" not in block:
+            continue
+        for line in block["lines"]:
+            for span in line["spans"]:
+                text = span["text"].strip()
+                if not text.isdigit() or not 0 <= int(text) <= 23:
+                    continue
+                rect = fitz.Rect(span["bbox"]) * rot
+                spans.append(
+                    (text, (rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2)
+                )
+
+    return _pick_hour_row(spans)
+
+
+def compute_page_geometry(page, zoom: int) -> dict:
+    """
+    Compute crop x-bounds and ruler hour positions (pixels) for a page.
+
+    Calibrates from the hour labels printed on the page so the ruler and
+    crop track the PDF's actual timeline layout. Falls back to the legacy
+    fixed layout when no hour row can be found.
+
+    Returns {x_left, x_right, hour_px, calibrated} where hour_px holds the
+    24 hour-label x positions relative to the cropped image.
+    """
+    x_left = int(X_LEFT_BASE * zoom)
+    visual_width = page.rect.width  # page.rect is the visual (rotated) rect
+
+    hours = get_hour_label_positions(page)
+    if hours:
+        spacing = (hours[23] - hours[0]) / 23
+        # Keep the hour-24 gridline plus a small pad, drop the outer margin
+        crop_right_visual = min(visual_width - 1, hours[23] + spacing + 4)
+        return {
+            "x_left": x_left,
+            "x_right": int(crop_right_visual * zoom),
+            "hour_px": [hours[h] * zoom - x_left for h in range(24)],
+            "calibrated": True,
+        }
+
+    x_right = int((visual_width - LEGACY_X_RIGHT_CROP_BASE) * zoom)
+    width = x_right - x_left
+    start = width * LEGACY_TIMELINE_START_RATIO
+    end = width * LEGACY_TIMELINE_END_RATIO
+    return {
+        "x_left": x_left,
+        "x_right": x_right,
+        "hour_px": [start + (h / 23) * (end - start) for h in range(24)],
+        "calibrated": False,
+    }
+
+
+def _load_ruler_font(size: int):
+    """Load a scalable font at the given pixel size (arial on Windows,
+    DejaVu Sans on Linux), falling back to PIL's default font."""
+    for name in ("arial.ttf", "DejaVuSans.ttf"):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    try:
+        return ImageFont.load_default(size)  # Pillow >= 10.1
+    except TypeError:
+        return ImageFont.load_default()
+
+
 def create_hour_ruler(
-    width: int, height: int = 30, zoom: int = 1
+    width: int, hour_px: list, height: int = 30, zoom: int = 1
 ) -> Image.Image | None:
-    """Create a horizontal ruler showing hours 0-23."""
+    """Create a horizontal ruler with hour labels 0-23 at the given x positions."""
     if not PIL_AVAILABLE:
         return None
 
@@ -309,27 +441,14 @@ def create_hour_ruler(
     ruler = Image.new("RGB", (width, scaled_height), "white")
     draw = ImageDraw.Draw(ruler)
 
-    # Timeline positions as ratios of width (zoom-independent)
-    # These ratios represent where the timeline starts and ends in the cropped image
-    timeline_start_ratio = (
-        0.149  # Timeline starts at ~30% from left (shift info column)
-    )
-    timeline_end_ratio = 0.969  # Timeline ends at ~97% (margin on right)
+    # Digit size follows the hour spacing (~30 px at zoom 4 for the r26
+    # layout), matching the size of the PDF's own printed labels
+    spacing = (hour_px[-1] - hour_px[0]) / (len(hour_px) - 1)
+    font_size = max(int(5 * zoom), int(spacing * 0.25))
+    font = _load_ruler_font(font_size)
 
-    timeline_start = int(width * timeline_start_ratio)
-    timeline_end = int(width * timeline_end_ratio)
-
-    # Font size scales with zoom - adjust base size (12) as needed
-    font_size = int(5 * zoom)
-    try:
-        font = ImageFont.truetype("arial.ttf", font_size)
-    except OSError:
-        font = ImageFont.load_default()
-
-    # Draw hour marks 0-23
     y_pos = scaled_height // 2
-    for hour in range(24):
-        x = timeline_start + (hour / 23) * (timeline_end - timeline_start)
+    for hour, x in enumerate(hour_px):
         # Use anchor='mm' (middle-middle) to center text on both axes
         draw.text((x, y_pos), str(hour), fill="black", anchor="mm", font=font)
 
@@ -346,10 +465,6 @@ def render_shift_image(shift_nr: str, version: str) -> bytes | None:
 
     if not os.path.exists(pdf_path):
         return None
-
-    # Crop margins (base values for zoom=1, will be scaled)
-    x_left_base = 22
-    x_right_crop_base = 271  # Amount to crop from right side
 
     doc = fitz.open(pdf_path)
 
@@ -370,12 +485,11 @@ def render_shift_image(shift_nr: str, version: str) -> bytes | None:
             # Detect separator lines in the image
             separator_lines = find_separator_lines(img)
 
+            # Crop/ruler x-geometry calibrated from the page's hour header
+            geometry = compute_page_geometry(page, zoom)
+
             # Find the shift's approximate y position in image coordinates
             shift_y = int(shift_info["visual_y"] * zoom)
-
-            # Scale crop margins by zoom level
-            x_left = int(x_left_base * zoom)
-            x_right_crop = int(x_right_crop_base * zoom)
 
             # Find the separator line just above this shift (top boundary)
             lines_above = [y for y in separator_lines if y < shift_y]
@@ -391,12 +505,12 @@ def render_shift_image(shift_nr: str, version: str) -> bytes | None:
                 else min(img.height, shift_y + int(40 * zoom))
             )
 
-            crop_box = (x_left, y_top, img.width - x_right_crop, y_bottom)
+            crop_box = (geometry["x_left"], y_top, geometry["x_right"], y_bottom)
 
             cropped = img.crop(crop_box)
 
             # Create and attach hour ruler
-            ruler = create_hour_ruler(cropped.width, zoom=zoom)
+            ruler = create_hour_ruler(cropped.width, geometry["hour_px"], zoom=zoom)
             if ruler is not None:
                 combined = Image.new(
                     "RGB", (cropped.width, cropped.height + ruler.height), "white"
@@ -510,15 +624,13 @@ def generate_all_images(
     skipped = []
     errors = []
 
-    # Crop margins (base values for zoom=1, will be scaled)
     zoom = PDF_ZOOM
-    x_left = int(22 * zoom)
-    x_right_crop = int(271 * zoom)
 
     # Page-level cache
     current_page_num = None
     page_img = None
     separator_lines = None
+    geometry = None
 
     for idx, shift in enumerate(all_shifts):
         full_name = shift["full_name"]
@@ -544,8 +656,11 @@ def generate_all_images(
                 # Detect separator lines once per page
                 separator_lines = find_separator_lines(page_img)
 
+                # Calibrate crop/ruler x-geometry once per page
+                geometry = compute_page_geometry(page, zoom)
+
             # Safety check: ensure page was rendered
-            if page_img is None or separator_lines is None:
+            if page_img is None or separator_lines is None or geometry is None:
                 continue
 
             # Find crop bounds for this shift using cached separator lines
@@ -565,12 +680,12 @@ def generate_all_images(
                 else min(page_img.height, shift_y + int(40 * zoom))
             )
 
-            crop_box = (x_left, y_top, page_img.width - x_right_crop, y_bottom)
+            crop_box = (geometry["x_left"], y_top, geometry["x_right"], y_bottom)
 
             cropped = page_img.crop(crop_box)
 
             # Create and attach hour ruler
-            ruler = create_hour_ruler(cropped.width, zoom=zoom)
+            ruler = create_hour_ruler(cropped.width, geometry["hour_px"], zoom=zoom)
             if ruler is not None:
                 combined = Image.new(
                     "RGB", (cropped.width, cropped.height + ruler.height), "white"

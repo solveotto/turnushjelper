@@ -46,9 +46,9 @@ def main():
         f.write(img_bytes)
 
     print(f"Saved to: {output_path}")
-    print(f"\nTo adjust alignment, edit strekliste_generator.py:")
-    print(f"  - timeline_start_ratio: move numbers left/right")
-    print(f"  - timeline_end_ratio: adjust right edge")
+    print("\nRuler/crop geometry is auto-calibrated from the hour labels")
+    print("printed in the PDF (see compute_page_geometry in strekliste_generator.py).")
+    print("If alignment is off, check get_hour_label_positions against this PDF.")
 
 if __name__ == "__main__":
     main()
