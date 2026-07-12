@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/bin/pytest*)",
+      "Bash(venv/bin/python *)",
+      "Bash(venv/bin/python3 *)",
+      "Bash(venv/bin/alembic*)",
+      "Bash(venv/bin/pip *)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git status*)",
+      "Bash(git worktree *)",
+      "Bash(find . *)",
+      "Bash(grep *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 -c '\nimport json,sys,re\ntry:\n    c = json.load(sys.stdin).get(\"tool_input\", {}).get(\"command\", \"\")\nexcept Exception:\n    sys.exit(0)\nif re.search(r\"(^|[;&|]\\s*)(pytest|python3?|alembic|pip3?)(\\s|$)\", c, re.M):\n    print(json.dumps({\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"deny\", \"permissionDecisionReason\": \"That interpreter/tool is not on PATH in this repo - prefix it with venv/bin/ (e.g. venv/bin/pytest, venv/bin/python, venv/bin/alembic).\"}}))\n'",
+            "timeout": 10,
+            "statusMessage": "Checking command uses venv/bin"
+          }
+        ]
+      }
+    ]
+  }
+}

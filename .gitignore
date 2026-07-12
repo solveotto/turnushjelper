@@ -35,6 +35,6 @@ config.ini
 *.sql
 backups/
 tmpclaude-*
-.claude/
-CLAUDE.md
+.claude/*
+!.claude/settings.json
 *:Zone.Identifier
