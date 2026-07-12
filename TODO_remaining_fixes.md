@@ -12,6 +12,11 @@ shift_stats summary-row bug + regenerated stats JSONs, and several smaller guard
   lists the options to present.
 - **Part 3** — optional small cleanups.
 
+> **Status (2026-07-12 evening):** Part 1 is **DONE** (commit `c8f1aaa`,
+> 254 passed). Task 5 is **DECIDED: Option A — implement it** (see the task).
+> Task 6 is **CLOSED**: Solve decided to keep the søknadsskjema as it is; no
+> change, no warning banner. Task 7 remains open (verification-first task).
+
 ## Ground rules — read before touching anything
 
 1. Read `CLAUDE.md` first and follow it exactly (three-layer architecture,
@@ -252,6 +257,11 @@ this action stale?" and confirm each is covered by a delete.
 
 ### Task 5: Unauthenticated identity lookups `check_rullenummer` / `check_medlemsnummer`
 
+> **DECIDED (Solve, 2026-07-12): Option A — implement it now.** Return only
+> `{found: bool}` (plus `name_match` when the caller supplies a name); never
+> echo name/seniority/ans_dato. Update the registration frontend and the tests
+> in the same change, per the notes below.
+
 `app/routes/api.py` exposes, without login (rate-limited 30/hour/IP):
 
 - `GET /api/check-rullenummer?rullenummer=NNNNN` → `{found, name, seniority_nr, ans_dato}`
@@ -274,6 +284,9 @@ If Solve picks A or B: the JSON response shape changes → update the JS in the 
 change, and extend `tests/test_registration_routes.py` / `tests/test_api_routes.py`.
 
 ### Task 6: Søknadsskjema silently truncates favorites beyond 71
+
+> **CLOSED (Solve, 2026-07-12): keep the søknadsskjema exactly as it is.**
+> No warning banner, no layout change. Do not implement anything here.
 
 `app/routes/shifts/soknadsskjema.py` builds a fixed 71-row table (`Alt.1`–`Alt.71`,
 matching the union's paper form). A user with more than 71 favorites gets rows 72+
