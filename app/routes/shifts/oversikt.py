@@ -17,7 +17,7 @@ def _oversikt_cache_key():
     ts_id = ts["id"] if ts else "none"
     if session.get("_flashes"):
         return f"view/oversikt/{current_user.get_id()}/{ts_id}/flash/{uuid.uuid4()}"
-    return f"view/oversikt/{current_user.get_id()}/{ts_id}"
+    return df_utils.oversikt_view_key(current_user.get_id(), ts_id)
 
 
 @shifts.route("/oversikt")

@@ -59,3 +59,10 @@ def test_turnusnokkel_badges_and_computed_holidays(
         assert re.search(rf'date-cell holiday">{re.escape(holiday)}<', html), (
             f"{holiday} not marked as holiday"
         )
+
+
+def test_turnusnokkel_unknown_set_404(client, sample_user):
+    """An unknown turnus_set_id must 404, not 500 (get_turnus_set_by_id → None)."""
+    login_user(client, sample_user["username"], sample_user["password"])
+    resp = client.get("/turnusnokkel/99999/OSL_01")
+    assert resp.status_code == 404

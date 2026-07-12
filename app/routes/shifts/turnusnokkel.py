@@ -1,4 +1,4 @@
-from flask import render_template
+from flask import abort, render_template
 from flask_login import current_user, login_required
 
 from app.database import get_db_session
@@ -18,6 +18,8 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
     from config import AppConfig
 
     turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        abort(404)
     year_identifier = turnus_set["year_identifier"]
     df_manager = df_utils.DataframeManager(turnus_set_id)
 

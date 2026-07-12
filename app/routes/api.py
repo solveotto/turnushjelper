@@ -10,7 +10,7 @@ from app.database import get_db_session
 from app.extensions import cache, favorite_lock, limiter
 from app.models import DBUser, SoknadsskjemaChoice
 from app.services import user_service
-from app.utils import db_utils, shift_matcher
+from app.utils import db_utils, df_utils, shift_matcher
 from app.utils.turnus_helpers import get_user_turnus_set
 from config import AppConfig
 
@@ -52,8 +52,8 @@ def toggle_favorite():
                 positions = {name: idx + 1 for idx, name in enumerate(updated)}
                 # Invalidate the cached turnusliste page so the next full load reflects the change
                 from app.extensions import cache as _cache
-                _cache.delete(f"view/turnusliste/{user_id}/{turnus_set_id}")
-                _cache.delete(f"view/oversikt/{user_id}/{turnus_set_id}")
+                _cache.delete(df_utils.turnusliste_view_key(user_id, turnus_set_id))
+                _cache.delete(df_utils.oversikt_view_key(user_id, turnus_set_id))
                 return {"status": "success", "message": message, "favorites": updated, "positions": positions}
 
             if favorite:
@@ -170,8 +170,8 @@ def move_favorite():
         db_session.close()
 
         # Invalidate cached pages that bake in favorite positions
-        cache.delete(f"view/turnusliste/{user_id}/{turnus_set_id}")
-        cache.delete(f"view/oversikt/{user_id}/{turnus_set_id}")
+        cache.delete(df_utils.turnusliste_view_key(user_id, turnus_set_id))
+        cache.delete(df_utils.oversikt_view_key(user_id, turnus_set_id))
 
         return jsonify({"status": "success", "message": "Favorite moved successfully"})
 
@@ -263,8 +263,8 @@ def set_favorite_position():
         db_session.close()
 
         # Invalidate cached pages that bake in favorite positions
-        cache.delete(f"view/turnusliste/{user_id}/{turnus_set_id}")
-        cache.delete(f"view/oversikt/{user_id}/{turnus_set_id}")
+        cache.delete(df_utils.turnusliste_view_key(user_id, turnus_set_id))
+        cache.delete(df_utils.oversikt_view_key(user_id, turnus_set_id))
 
         return jsonify({"status": "success", "message": "Favorite position updated"})
 
@@ -743,7 +743,7 @@ def mark_tour_seen():
             # with the updated has_seen_tour value instead of the stale cached one.
             ts = get_user_turnus_set()
             ts_id = ts["id"] if ts else "none"
-            cache.delete(f"view/turnusliste/{current_user.get_id()}/{ts_id}")
+            cache.delete(df_utils.turnusliste_view_key(current_user.get_id(), ts_id))
             return jsonify({"status": "success", "message": "Tour marked as seen"})
         return jsonify({"status": "error", "message": "User not found"}), 404
     except Exception as e:

@@ -19,6 +19,34 @@ def invalidate_turnus_cache(turnus_set_id):
     from app.extensions import cache
     cache.delete(f"turnus_data_{turnus_set_id}")
     cache.delete(f"kompdager_{turnus_set_id}")
+    # Bump the view-cache generation so every user's cached /turnusliste and
+    # /oversikt page keys change at once (SimpleCache cannot enumerate keys, so
+    # the per-user page caches can't be deleted directly). The orphaned entries
+    # expire naturally; CACHE_THRESHOLD bounds memory in the meantime.
+    gen_key = f"turnus_gen_{turnus_set_id}"
+    cache.set(gen_key, (cache.get(gen_key) or 0) + 1, timeout=0)  # 0 = no expiry
+
+
+def get_turnus_cache_generation(turnus_set_id):
+    """Monotonic counter bumped on every turnus-data invalidation.
+
+    Baked into the per-user view-cache keys so bumping it invalidates all
+    users' cached pages at once (SimpleCache cannot enumerate keys).
+    """
+    from app.extensions import cache
+    return cache.get(f"turnus_gen_{turnus_set_id}") or 0
+
+
+def turnusliste_view_key(user_id, turnus_set_id):
+    """Versioned per-user cache key for the /turnusliste response."""
+    gen = get_turnus_cache_generation(turnus_set_id)
+    return f"view/turnusliste/{user_id}/{turnus_set_id}/g{gen}"
+
+
+def oversikt_view_key(user_id, turnus_set_id):
+    """Versioned per-user cache key for the /oversikt response."""
+    gen = get_turnus_cache_generation(turnus_set_id)
+    return f"view/oversikt/{user_id}/{turnus_set_id}/g{gen}"
 
 
 class DataframeManager():

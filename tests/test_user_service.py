@@ -339,3 +339,64 @@ class TestGetUserDataExactMatch:
 
     def test_returns_none_for_nonexistent(self, patch_db):
         assert user_service.get_user_data("doesnotexist") is None
+
+
+class TestRullenummerUniqueness:
+    """A rullenummer must not be claimed by two users — otherwise the
+    innplassering lookup (joins on the rullenummer string) would show one user
+    another person's shift assignment."""
+
+    def _make_user(self, db_session, **kwargs):
+        from app.models import DBUser
+        defaults = dict(username="owner", password="x", is_auth=0)
+        defaults.update(kwargs)
+        user = DBUser(**defaults)
+        db_session.add(user)
+        db_session.commit()
+        return user
+
+    def test_activate_stub_rejects_taken_rullenummer(self, patch_db, db_session):
+        from app.models import DBUser
+        # User A already owns rullenummer 12345.
+        self._make_user(db_session, username="owner_a", rullenummer="12345")
+        # Stub B tries to claim the same rullenummer on activation.
+        stub = self._make_user(db_session, username="__stub_b", is_stub=1)
+
+        success, msg, uid = user_service.activate_stub_user(
+            user_id=stub.id, username="realb", email="b@test.com",
+            password="pw123456", rullenummer="12345",
+        )
+        assert success is False
+        assert "allerede i bruk" in msg
+        assert uid is None
+        # B's rullenummer must be untouched.
+        db_session.expire_all()
+        updated = db_session.query(DBUser).filter_by(id=stub.id).first()
+        assert updated.rullenummer is None
+
+    def test_activate_stub_accepts_free_rullenummer(self, patch_db, db_session):
+        from app.models import DBUser
+        stub = self._make_user(db_session, username="__stub_c", is_stub=1)
+
+        success, msg, uid = user_service.activate_stub_user(
+            user_id=stub.id, username="realc", email="c@test.com",
+            password="pw123456", rullenummer="99999",
+        )
+        assert success is True
+        db_session.expire_all()
+        updated = db_session.query(DBUser).filter_by(id=stub.id).first()
+        assert updated.rullenummer == "99999"
+        assert updated.is_stub == 0
+
+    def test_create_user_with_email_rejects_taken_rullenummer(
+        self, patch_db, db_session
+    ):
+        self._make_user(db_session, username="owner_d", rullenummer="54321")
+
+        success, msg, uid = user_service.create_user_with_email(
+            email="d@test.com", username="reald", password="pw123456",
+            rullenummer="54321",
+        )
+        assert success is False
+        assert "allerede i bruk" in msg
+        assert uid is None

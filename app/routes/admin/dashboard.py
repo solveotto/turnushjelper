@@ -65,7 +65,11 @@ def reset_tour():
             DBUser.has_seen_soknadsskjema_tour: 0,
         })
         db_session.commit()
-        cache.clear()  # evict all cached pages so data-tour-seen is re-rendered fresh
+        # Genuine all-users reset: every user's cached page is now stale, and
+        # per-user targeting would mean enumerating all users × turnus sets to
+        # rebuild each view key. A full clear is the correct tool here (rare
+        # admin action; the one-time turnus_data reload cost is acceptable).
+        cache.clear()
         flash("Omvisningen er tilbakestilt for alle brukere.", "success")
     except Exception as e:
         db_session.rollback()

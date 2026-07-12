@@ -8,7 +8,7 @@ from app.extensions import cache, limiter
 from app.forms import RegisterForm, ResendVerificationForm
 from app.models import User
 from app.services import user_service
-from app.utils import db_utils, email_utils
+from app.utils import db_utils, df_utils, email_utils, turnus_helpers
 
 registration = Blueprint("registration", __name__)
 
@@ -116,7 +116,17 @@ def verify_email(token):
             session['has_seen_compare_tour'] = 0
             session['has_seen_welcome'] = 0
             session['has_seen_soknadsskjema_tour'] = 0
-            cache.clear()  # evict any stale cached pages from a previous user with the same ID
+            # Evict only this user's cached pages/flags (an old account may have
+            # reused the same DB id/username). Targeted deletes so the shared
+            # turnus_data_* caches survive instead of a full cache.clear().
+            uid = user_data["id"]
+            ts = turnus_helpers.get_user_turnus_set()
+            ts_id = ts["id"] if ts else "none"
+            cache.delete(df_utils.turnusliste_view_key(uid, ts_id))
+            cache.delete(df_utils.oversikt_view_key(uid, ts_id))
+            cache.delete(f"tour_state_{uid}")
+            cache.delete(f"has_min_turnus_{uid}")
+            cache.delete(f"user_{user_data['username']}")
             flash("E-post verifisert! Du er nå logget inn.", "success")
             return redirect(url_for("shifts.index"))
 

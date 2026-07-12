@@ -18,7 +18,7 @@ def _turnusliste_cache_key():
     # baked into the stored HTML and re-shown on subsequent visits.
     if session.get("_flashes"):
         return f"view/turnusliste/{current_user.get_id()}/{ts_id}/flash/{uuid.uuid4()}"
-    return f"view/turnusliste/{current_user.get_id()}/{ts_id}"
+    return df_utils.turnusliste_view_key(current_user.get_id(), ts_id)
 
 
 @shifts.route("/turnusliste")

@@ -150,6 +150,15 @@ def create_user_with_email(email, username, password, verified=False, rullenumme
         if existing_username:
             return False, "Brukernavnet er allerede tatt", None
 
+        if rullenummer:
+            existing_rnr = (
+                db_session.query(DBUser)
+                .filter_by(rullenummer=str(rullenummer))
+                .first()
+            )
+            if existing_rnr:
+                return False, "Rullenummeret er allerede i bruk av en annen bruker", None
+
         new_user = DBUser(
             username=username,
             email=email.lower(),
@@ -1214,7 +1223,14 @@ def activate_stub_user(user_id, username, email, password, rullenummer=None):
         user.is_stub = 0
         user.email_verified = 0
         if rullenummer and not user.rullenummer:
-            user.rullenummer = rullenummer
+            taken = (
+                db_session.query(DBUser)
+                .filter(DBUser.rullenummer == str(rullenummer), DBUser.id != user_id)
+                .first()
+            )
+            if taken:
+                return False, "Rullenummeret er allerede i bruk av en annen bruker", None
+            user.rullenummer = str(rullenummer)
         db_session.commit()
         logger.info("Stub user %s activated as %s", user_id, username)
         return True, "Aktivert", user_id
