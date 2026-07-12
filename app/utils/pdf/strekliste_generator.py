@@ -230,11 +230,8 @@ def find_row_bounds(page, shift_nr: str) -> tuple | None:
     """
     shifts = get_shift_rows(page)
 
-    # Get visual page dimensions
-    if page.rotation in (90, 270):
-        visual_height = page.rect.width
-    else:
-        visual_height = page.rect.height
+    # page.rect already has rotation applied, so its height IS the visual height
+    visual_height = page.rect.height
 
     for i, shift in enumerate(shifts):
         if (

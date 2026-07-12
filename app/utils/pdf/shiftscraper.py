@@ -101,13 +101,11 @@ class ShiftScraper:
     # Scraper og sorterer pdf med turnuser
     def scrape_pdf(self, pdf_path="turnuser_R25.pdf", year_id=None):
 
-        pdf = pdfplumber.open(pdf_path)
-        pages_in_pdf = pdf.pages
-
-        for page in pages_in_pdf:
-            sorterte_turnuser = self.sort_page(page)
-            for sortert_turnus in sorterte_turnuser:
-                self.turnuser.append(sortert_turnus)
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                sorterte_turnuser = self.sort_page(page)
+                for sortert_turnus in sorterte_turnuser:
+                    self.turnuser.append(sortert_turnus)
 
     def extract_turnus_name(self, text_objects, word_pos):
         """

@@ -63,7 +63,7 @@ def update_favorite_order(user_id, turnus_set_id=None):
         current_favorites = db_session.query(Favorites).filter_by(
             user_id=user_id,
             turnus_set_id=turnus_set_id
-        ).all()
+        ).order_by(Favorites.order_index).all()
 
         for index, favorite in enumerate(current_favorites):
             favorite.order_index = index

@@ -116,28 +116,28 @@ class Turnus():
 
 
             for _index, _dagsverk in turuns_df_reset.iterrows():
-                is_work_day = _dagsverk['start'] != _dagsverk['slutt'] and _index + 1 < len(turuns_df_reset)
+                # Every row is a real rotation day (weeks 1-6 × days 1-7);
+                # there is no summary row in the dataframe.
+                is_work_day = _dagsverk['start'] != _dagsverk['slutt']
 
-                # Track day-of-week off rates (skip the summary row at the end)
-                if _index + 1 < len(turuns_df_reset):
-                    day_key = weekday_map.get(_dagsverk['ukedag'])
-                    if day_key:
-                        weekday_total[day_key] += 1
-                        if not is_work_day:
-                            weekday_off[day_key] += 1
+                # Track day-of-week off rates
+                day_key = weekday_map.get(_dagsverk['ukedag'])
+                if day_key:
+                    weekday_total[day_key] += 1
+                    if not is_work_day:
+                        weekday_off[day_key] += 1
 
                 if is_work_day:
                     current_work_streak += 1
                     longest_work_streak = max(longest_work_streak, current_work_streak)
                     current_off_streak = 0
                 else:
-                    if _index + 1 < len(turuns_df_reset):  # Not the summary row
-                        if prev_was_night:
-                            # Recovery day after night shift — doesn't count as true day off
-                            prev_was_night = False
-                        else:
-                            current_off_streak += 1
-                            longest_off_streak = max(longest_off_streak, current_off_streak)
+                    if prev_was_night:
+                        # Recovery day after night shift — doesn't count as true day off
+                        prev_was_night = False
+                    else:
+                        current_off_streak += 1
+                        longest_off_streak = max(longest_off_streak, current_off_streak)
                     current_work_streak = 0
                     current_kveld_streak = 0
 

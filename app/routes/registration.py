@@ -96,9 +96,16 @@ def verify_email(token):
         if "email" in result:
             email_utils.send_welcome_email(result["email"])
 
-        # Auto-login the user so they don't hit the login page twice
-        user_data = db_utils.get_user_by_email(result["email"])
-        if user_data:
+        # Auto-login the user so they don't hit the login page twice.
+        # Skip auto-login for accounts the login route would block (stubs and
+        # users flagged as not on the NLF list) — they fall through to the
+        # plain "verified, please log in" path and get the block message there.
+        user_data = db_utils.get_user_data(result["email"])
+        if (
+            user_data
+            and user_data.get("is_stub") != 1
+            and user_data.get("not_on_nlf_list") != 1
+        ):
             user = User(user_data["username"], user_data["id"], user_data["is_auth"])
             flask_login_user(user)
             session.permanent = True

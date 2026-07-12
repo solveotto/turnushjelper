@@ -157,18 +157,21 @@ def move_favorite():
                 {"status": "error", "message": "Cannot move in that direction"}
             )
 
-        # Swap the order_index values
-        current_favorite = current_favorites[current_index]
-        target_favorite = current_favorites[new_index]
-
-        # Store the current order_index values
-        temp_order = current_favorite.order_index
-        current_favorite.order_index = target_favorite.order_index
-        target_favorite.order_index = temp_order
+        # Reinsert at the new position and reassign sequential indices.
+        # (Swapping raw order_index values is a silent no-op when legacy
+        # rows share the same index.)
+        favorite_to_move = current_favorites.pop(current_index)
+        current_favorites.insert(new_index, favorite_to_move)
+        for i, favorite in enumerate(current_favorites):
+            favorite.order_index = i
 
         # Commit the changes
         db_session.commit()
         db_session.close()
+
+        # Invalidate cached pages that bake in favorite positions
+        cache.delete(f"view/turnusliste/{user_id}/{turnus_set_id}")
+        cache.delete(f"view/oversikt/{user_id}/{turnus_set_id}")
 
         return jsonify({"status": "success", "message": "Favorite moved successfully"})
 
@@ -258,6 +261,10 @@ def set_favorite_position():
 
         db_session.commit()
         db_session.close()
+
+        # Invalidate cached pages that bake in favorite positions
+        cache.delete(f"view/turnusliste/{user_id}/{turnus_set_id}")
+        cache.delete(f"view/oversikt/{user_id}/{turnus_set_id}")
 
         return jsonify({"status": "success", "message": "Favorite position updated"})
 
@@ -679,8 +686,9 @@ def get_shift_image(turnus_set_id, shift_nr):
             png_dir, f"{safe_shift_nr}.png", mimetype="image/png"
         )
 
-    # Try to find files that start with the shift number (handles suffixes like -Mod_1, -N05_1)
-    pattern = os.path.join(png_dir, f"{safe_shift_nr}*.png")
+    # Try to find files that start with the shift number (handles suffixes like -Mod_1, -N05_1).
+    # Escape the user-supplied part so glob metacharacters can't match other files.
+    pattern = os.path.join(png_dir, glob.escape(safe_shift_nr) + "*.png")
     matches = glob.glob(pattern)
     if matches:
         # Return the first match (prefer shorter names)

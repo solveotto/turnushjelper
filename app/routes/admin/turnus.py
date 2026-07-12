@@ -10,7 +10,7 @@ from app.database import get_db_session
 from app.extensions import cache
 from app.forms import CreateTurnusSetForm, UploadStreklisteForm
 from app.routes.admin import admin
-from app.utils import db_utils
+from app.utils import db_utils, df_utils
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
 from config import AppConfig
@@ -315,6 +315,10 @@ def refresh_turnus_set(turnus_set_id):
         # Update file paths in DB
         db_utils.update_turnus_set_paths(turnus_set_id, turnus_json_path, df_json_path)
 
+        # Drop cached turnus data / kompdag counts so the re-scraped files are
+        # served immediately instead of after the 1 h cache timeout.
+        df_utils.invalidate_turnus_cache(turnus_set_id)
+
         # Reload data manager if this is the active set
         active_set = db_utils.get_active_turnus_set()
         if active_set and active_set["id"] == turnus_set_id:
@@ -394,6 +398,8 @@ def upload_turnusnokkel(turnus_set_id):
 
     save_path = os.path.join(turnusfiler_dir, f"turnusnøkkel_{year_id}_org.xlsx")
     uploaded.save(save_path)
+    # Kompdag counts are derived from this template — drop the cached counts
+    cache.delete(f"kompdager_{turnus_set_id}")
     flash(f"Turnusnøkkel mal lastet opp for {year_id}.", "success")
     return redirect(url_for("admin.manage_turnus_sets"))
 
@@ -476,6 +482,7 @@ def delete_turnus_set(turnus_set_id):
     success, message = db_utils.delete_turnus_set(turnus_set_id)
 
     if success:
+        df_utils.invalidate_turnus_cache(turnus_set_id)
         # Also delete strekliste images if they exist
         if version:
             img_result = strekliste_generator.delete_all_images(version)
@@ -594,6 +601,10 @@ def generate_strekliste(turnus_set_id):
             )
             with open(double_shift_output, "w", encoding="utf-8") as f:
                 json.dump(double_shift_data, f, indent=2, ensure_ascii=False)
+
+            # Double-shift flags are baked into the cached turnus data at
+            # load time — drop the cache so the new flags take effect now.
+            df_utils.invalidate_turnus_cache(turnus_set_id)
         except Exception as e:
             double_shift_error = str(e)
 

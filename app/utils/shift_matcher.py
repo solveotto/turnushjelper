@@ -340,9 +340,15 @@ def find_matches_from_multiple_sources(user_id: int,
                 shift_name = match['source_shift']
 
                 # If we haven't seen this shift or this match is better, update it
-                if shift_name not in all_favorites_dict or \
-                   (match['matches'] and match['matches'][0]['similarity'] >
-                    all_favorites_dict[shift_name]['matches'][0]['similarity']):
+                # (entries can carry an empty matches list — guard the [0] access)
+                existing = all_favorites_dict.get(shift_name)
+                best_sim = match['matches'][0]['similarity'] if match['matches'] else 0
+                existing_sim = (
+                    existing['matches'][0]['similarity']
+                    if existing and existing['matches']
+                    else -1
+                )
+                if existing is None or best_sim > existing_sim:
                     all_favorites_dict[shift_name] = {
                         **match,
                         'from_source': {

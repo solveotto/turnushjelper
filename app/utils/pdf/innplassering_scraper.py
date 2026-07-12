@@ -283,7 +283,7 @@ def scrape_innplassering(pdf_path: str, json_path: str) -> list[dict]:
     top_to_data_range: dict[float, tuple[float, float]] = {}
     for i, ht in enumerate(header_tops):
         data_start = ht + 5
-        data_end = header_tops[i + 1] if i + 1 < len(header_tops) else page_width  # reuse as large number
+        data_end = header_tops[i + 1] if i + 1 < len(header_tops) else float("inf")
         top_to_data_range[ht] = (data_start, data_end)
 
     # --- For each section, collect words and parse data rows ---

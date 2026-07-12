@@ -170,7 +170,12 @@ def mintur():
 
     komp = count_kompdager(data["turnus_set_id"])
     counts = komp.get(data["shift_title"]) if komp else None
-    kompdager = counts[data["linjenummer"] - 1] if counts else None
+    linjenummer = data["linjenummer"]  # nullable in the DB — guard the indexing
+    kompdager = (
+        counts[linjenummer - 1]
+        if counts and linjenummer and 1 <= linjenummer <= len(counts)
+        else None
+    )
 
     return render_template(
         "mintur.html",
@@ -228,6 +233,12 @@ def export_ical():
 
     linjenummer = data["linjenummer"]
     shift_title = data["shift_title"]
+
+    # linjenummer is nullable in the DB and indexes a 6-element cells list
+    if not linjenummer or not 1 <= linjenummer <= 6:
+        from flask import jsonify
+
+        return jsonify({"error": "Ugyldig linjenummer i innplasseringen"}), 404
 
     emitted_uids: set[str] = set()
 

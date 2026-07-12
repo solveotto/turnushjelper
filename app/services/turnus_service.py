@@ -28,6 +28,8 @@ def create_turnus_set(name, year_identifier, is_active=False, turnus_file_path=N
         )
         db_session.add(new_set)
         db_session.commit()
+        if is_active:
+            cache.delete_memoized(get_active_turnus_set)
         return True, f"Turnus set {year_identifier} created successfully"
     except Exception as e:
         db_session.rollback()
@@ -248,6 +250,9 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
             if len(candidates) == 1:
                 rename_map[old_name] = candidates[0]
                 matched_new.add(candidates[0])
+                # Claim the candidate so a second old name can't be renamed to
+                # the same title (would violate the unique constraint).
+                unmatched_new.discard(candidates[0])
 
         removed = unmatched_old - set(rename_map.keys())
         added = unmatched_new - matched_new

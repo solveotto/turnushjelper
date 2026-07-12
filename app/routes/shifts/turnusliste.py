@@ -83,6 +83,16 @@ def switch_user_year(turnus_set_id):
     # Get the referring page (where user came from)
     next_page = request.args.get("next") or request.referrer
 
+    # Only follow same-host targets — prevents open redirect via ?next=
+    if next_page:
+        from urllib.parse import urljoin, urlparse
+
+        target = urlparse(urljoin(request.host_url, next_page))
+        if target.scheme not in ("http", "https") or target.netloc != urlparse(
+            request.host_url
+        ).netloc:
+            next_page = None
+
     # If no referrer or if it's the same switch route, default to turnusliste
     if not next_page or "/switch-year/" in next_page:
         next_page = url_for("shifts.turnusliste")

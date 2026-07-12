@@ -8,6 +8,19 @@ from config import AppConfig
 
 logger = logging.getLogger(__name__)
 
+
+def invalidate_turnus_cache(turnus_set_id):
+    """Drop cached turnus JSON/stats and kompdag counts for a turnus set.
+
+    Both keys default to a 1 h timeout, so any admin action that changes the
+    underlying files (re-scrape, double-shift rescan, nøkkel upload) must call
+    this or the app keeps serving the old data until the cache expires.
+    """
+    from app.extensions import cache
+    cache.delete(f"turnus_data_{turnus_set_id}")
+    cache.delete(f"kompdager_{turnus_set_id}")
+
+
 class DataframeManager():
     def __init__(self, turnus_set_id=None):
         """Initialize with either a specific turnus set or the active one"""
