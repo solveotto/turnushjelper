@@ -37,4 +37,5 @@ backups/
 tmpclaude-*
 .claude/*
 !.claude/settings.json
+!.claude/skills/
 *:Zone.Identifier
