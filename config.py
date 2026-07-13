@@ -51,6 +51,19 @@ class AppConfig:
     # Database
     DB_TYPE = _env("DB_TYPE", "sqlite")
 
+    # Session/auth cookie hardening.
+    # SESSION_COOKIE_SECURE defaults ON in production (DB_TYPE=mysql) so the
+    # session cookie is never transmitted over plaintext HTTP; it stays OFF for
+    # local sqlite dev (served over http://localhost, where a Secure cookie
+    # would never be sent). Override explicitly via the env var if needed.
+    SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", DB_TYPE == "mysql")
+    SESSION_COOKIE_HTTPONLY = _env_bool("SESSION_COOKIE_HTTPONLY", True)
+    SESSION_COOKIE_SAMESITE = _env("SESSION_COOKIE_SAMESITE", "Lax")
+    # Flask-Login "remember me" cookie (currently unused; hardened for defense).
+    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE
+
     # Email — Mailgun (primary)
     MAILGUN_API_KEY = _env("MAILGUN_API_KEY", "")
     MAILGUN_DOMAIN = _env("MAILGUN_DOMAIN", "mail.turnushjelper.no")

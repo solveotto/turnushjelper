@@ -200,3 +200,55 @@ def test_permanent_session_expiry_in_db_is_31_days(client, test_engine):
     expected_min = before + timedelta(days=30)
     expected_max = after + timedelta(days=32)
     assert expected_min <= row.expiry <= expected_max
+
+
+# ── Cookie hardening flags (fix #2) ─────────────────────────────────────────
+# The interface reads Secure/HttpOnly/SameSite from Flask config, so these
+# assert the wiring that AppConfig sets in production actually reaches the
+# Set-Cookie header.
+
+def test_secure_flag_set_when_configured(app, client):
+    app.config["SESSION_COOKIE_SECURE"] = True
+    set_cookie = client.get("/set").headers.get("Set-Cookie", "")
+    assert "Secure" in set_cookie
+
+
+def test_secure_flag_absent_when_disabled(app, client):
+    app.config["SESSION_COOKIE_SECURE"] = False
+    set_cookie = client.get("/set").headers.get("Set-Cookie", "")
+    assert "Secure" not in set_cookie
+
+
+def test_samesite_flag_applied(app, client):
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    set_cookie = client.get("/set").headers.get("Set-Cookie", "")
+    assert "SameSite=Lax" in set_cookie
+
+
+def test_httponly_flag_set_by_default(app, client):
+    # Flask defaults SESSION_COOKIE_HTTPONLY to True; the interface must honor it.
+    set_cookie = client.get("/set").headers.get("Set-Cookie", "")
+    assert "HttpOnly" in set_cookie
+
+
+def test_appconfig_secure_defaults_on_for_mysql(monkeypatch):
+    """AppConfig.SESSION_COOKIE_SECURE defaults ON in production (DB_TYPE=mysql)
+    and OFF for sqlite dev, unless explicitly overridden."""
+    import importlib
+
+    import config as config_mod
+
+    monkeypatch.delenv("SESSION_COOKIE_SECURE", raising=False)
+    monkeypatch.setenv("SECRET_KEY", "test-secret-key-for-pytest")
+    try:
+        monkeypatch.setenv("DB_TYPE", "mysql")
+        importlib.reload(config_mod)
+        assert config_mod.AppConfig.SESSION_COOKIE_SECURE is True
+
+        monkeypatch.setenv("DB_TYPE", "sqlite")
+        importlib.reload(config_mod)
+        assert config_mod.AppConfig.SESSION_COOKIE_SECURE is False
+    finally:
+        # Restore the module to the default sqlite test state.
+        monkeypatch.setenv("DB_TYPE", "sqlite")
+        importlib.reload(config_mod)
