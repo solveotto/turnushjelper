@@ -64,6 +64,17 @@ class AppConfig:
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE
 
+    # Reverse-proxy trust. In production the app runs behind nginx, which
+    # forwards the real client IP and scheme in X-Forwarded-* headers. ProxyFix
+    # (wired in create_app) trusts exactly this many proxy hops so the rate
+    # limiter sees real client IPs and url_for(_external=True) builds https
+    # links. Defaults to 1 in production (single nginx) and 0 in dev (no proxy —
+    # it MUST stay off there, or a forged X-Forwarded-For could spoof the client
+    # IP). Set to 2 if a CDN (e.g. Cloudflare) sits in front of nginx.
+    TRUSTED_PROXY_COUNT = _env_int(
+        "TRUSTED_PROXY_COUNT", 1 if DB_TYPE == "mysql" else 0
+    )
+
     # Email — Mailgun (primary)
     MAILGUN_API_KEY = _env("MAILGUN_API_KEY", "")
     MAILGUN_DOMAIN = _env("MAILGUN_DOMAIN", "mail.turnushjelper.no")
