@@ -1523,8 +1523,21 @@ def get_user_detail(user_id):
         db_session.close()
 
 
+# Passwords too trivial to ever provision an admin with. Guards against a
+# stale .env carrying the old insecure DEFAULT_ADMIN_PASSWORD=admin default.
+_WEAK_ADMIN_PASSWORDS = frozenset(
+    {"admin", "password", "passord", "changeme", "admin123", "test", "1234", "12345678"}
+)
+
+
 def init_default_admin():
-    """Creates a default admin user if no admin user exists yet"""
+    """Creates a default admin user if no admin user exists yet.
+
+    SECURITY: auto-provisioning is skipped unless DEFAULT_ADMIN_PASSWORD is set
+    to a non-trivial value. There is no built-in default password, so a fresh
+    deployment never ships with a guessable admin/admin account — the operator
+    must explicitly supply a strong password to bootstrap the first admin.
+    """
     from config import AppConfig
 
     db_session = get_db_session()
@@ -1533,14 +1546,27 @@ def init_default_admin():
         if db_session.query(DBUser).filter_by(username=target_username).first():
             return
 
-        if not AppConfig.DEFAULT_ADMIN_PASSWORD:
-            logger.warning("No DEFAULT_ADMIN_PASSWORD set, skipping admin creation")
+        password = AppConfig.DEFAULT_ADMIN_PASSWORD or ""
+        if not password:
+            logger.warning(
+                "DEFAULT_ADMIN_PASSWORD not set — skipping admin bootstrap. "
+                "Set a strong DEFAULT_ADMIN_PASSWORD in the environment to "
+                "create the initial admin user."
+            )
+            return
+
+        if password.strip().lower() in _WEAK_ADMIN_PASSWORDS or password == target_username:
+            logger.warning(
+                "DEFAULT_ADMIN_PASSWORD is trivially weak — refusing to bootstrap "
+                "admin '%s'. Choose a strong, unique password.",
+                target_username,
+            )
             return
 
         admin = DBUser(
-            username=AppConfig.DEFAULT_ADMIN_USERNAME,
-            email=AppConfig.DEFAULT_ADMIN_USERNAME,
-            password=hash_password(AppConfig.DEFAULT_ADMIN_PASSWORD),
+            username=target_username,
+            email=target_username,
+            password=hash_password(password),
             is_auth=1,
             email_verified=1,
         )

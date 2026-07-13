@@ -77,9 +77,13 @@ class AppConfig:
     MYSQL_PASSWORD = _env("MYSQL_PASSWORD", "")
     MYSQL_DATABASE = _env("MYSQL_DATABASE", "")
 
-    # Default admin credentials (used on first-time setup)
+    # Default admin bootstrap (optional, first-time setup only).
+    # SECURITY: there is deliberately NO default password. When
+    # DEFAULT_ADMIN_PASSWORD is unset (or trivially weak), init_default_admin()
+    # skips auto-provisioning instead of creating a guessable admin/admin
+    # account. Set a strong value in the environment to bootstrap an admin.
     DEFAULT_ADMIN_USERNAME = _env("DEFAULT_ADMIN_USERNAME", "admin")
-    DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD", "admin")
+    DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD", "")
 
     PERMANENT_SESSION_LIFETIME = timedelta(days=_env_int("SESSION_LIFETIME_DAYS", 30))
 

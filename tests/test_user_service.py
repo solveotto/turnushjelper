@@ -400,3 +400,61 @@ class TestRullenummerUniqueness:
         assert success is False
         assert "allerede i bruk" in msg
         assert uid is None
+
+
+class TestInitDefaultAdmin:
+    """The bootstrap admin must never be created with a guessable password.
+
+    Regression guard for the admin/admin default-credentials vulnerability:
+    auto-provisioning only happens when a strong, explicit password is set.
+    """
+
+    def _set_admin_config(self, monkeypatch, username, password):
+        from config import AppConfig
+
+        monkeypatch.setattr(AppConfig, "DEFAULT_ADMIN_USERNAME", username)
+        monkeypatch.setattr(AppConfig, "DEFAULT_ADMIN_PASSWORD", password)
+
+    def test_no_password_skips_creation(self, patch_db, monkeypatch):
+        self._set_admin_config(monkeypatch, "bootadmin", "")
+        user_service.init_default_admin()
+        assert user_service.get_user_by_username("bootadmin") is None
+
+    def test_weak_password_refused(self, patch_db, monkeypatch):
+        # The exact old insecure default must be rejected outright.
+        self._set_admin_config(monkeypatch, "bootadmin", "admin")
+        user_service.init_default_admin()
+        assert user_service.get_user_by_username("bootadmin") is None
+
+    def test_weak_password_refused_case_insensitively(self, patch_db, monkeypatch):
+        self._set_admin_config(monkeypatch, "bootadmin", "  Admin ")
+        user_service.init_default_admin()
+        assert user_service.get_user_by_username("bootadmin") is None
+
+    def test_password_equal_to_username_refused(self, patch_db, monkeypatch):
+        self._set_admin_config(monkeypatch, "bootadmin", "bootadmin")
+        user_service.init_default_admin()
+        assert user_service.get_user_by_username("bootadmin") is None
+
+    def test_strong_password_creates_admin(self, patch_db, monkeypatch):
+        self._set_admin_config(monkeypatch, "bootadmin", "S3cure-Boot!pw")
+        user_service.init_default_admin()
+
+        data = user_service.get_user_data("bootadmin")
+        assert data is not None
+        assert data["is_auth"] == 1
+        assert data["email_verified"] == 1
+        assert bcrypt.checkpw(
+            b"S3cure-Boot!pw", data["password"].encode("utf-8")
+        )
+
+    def test_idempotent_when_admin_exists(self, patch_db, db_session, monkeypatch):
+        from app.models import DBUser
+
+        self._set_admin_config(monkeypatch, "bootadmin", "S3cure-Boot!pw")
+        user_service.init_default_admin()
+        user_service.init_default_admin()  # second call must be a no-op
+
+        db_session.expire_all()
+        count = db_session.query(DBUser).filter_by(username="bootadmin").count()
+        assert count == 1

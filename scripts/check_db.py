@@ -13,7 +13,6 @@ sys.path.insert(0, project_root)
 
 from app.database import get_db_session
 from app.models import DBUser, Favorites, Shifts
-from app.services.user_service import create_new_user
 
 def check_database():
     try:
@@ -37,4 +36,3 @@ def check_database():
 
 if __name__ == "__main__":
     check_database()
-    create_new_user('admin', 'admin', is_auth=1)
