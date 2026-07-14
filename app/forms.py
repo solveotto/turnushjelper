@@ -36,7 +36,17 @@ class CreateTurnusSetForm(FlaskForm):
                       validators=[DataRequired(), Length(min=3, max=100)],
                       render_kw={"placeholder": "f.eks. OSL Togvakter 2025"})
     year_identifier = StringField('Årsidentifikator',
-                                 validators=[DataRequired(), Length(min=2, max=10)],
+                                 validators=[
+                                     DataRequired(),
+                                     Length(min=2, max=10),
+                                     # SECURITY: this value becomes a filesystem
+                                     # path component (turnusfiler/<id>/...) and is
+                                     # interpolated into filenames, so restrict it
+                                     # to letters/digits — blocks '.', '/', '\' and
+                                     # thus path traversal (e.g. '../../etc').
+                                     Regexp(r'^[A-Za-z0-9]+$',
+                                            message='Kun bokstaver og tall er tillatt (f.eks. R26).'),
+                                 ],
                                  render_kw={"placeholder": "f.eks. R25, R26"})
     is_active = BooleanField('Sett som aktivt turnussett')
 
