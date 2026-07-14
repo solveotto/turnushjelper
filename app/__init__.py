@@ -17,6 +17,17 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(AppConfig)
 
+    # Trust nginx's X-Forwarded-* headers in production so the app sees the real
+    # client IP (rate limiting keys on it) and the real scheme (https links in
+    # emails). Only enabled when TRUSTED_PROXY_COUNT > 0 — never in dev, where
+    # there is no proxy and a forged X-Forwarded-For could otherwise spoof the
+    # client IP. The count must equal the number of proxy hops we control.
+    proxy_hops = AppConfig.TRUSTED_PROXY_COUNT
+    if proxy_hops > 0:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_hops, x_proto=proxy_hops)
+
     # Email configuration (optional - using Mailgun API by default)
     app.config["MAIL_SERVER"] = AppConfig.SMTP_SERVER
     app.config["MAIL_PORT"] = AppConfig.SMTP_PORT

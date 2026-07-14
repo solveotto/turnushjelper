@@ -27,6 +27,18 @@ def hash_password(password):
     return hashed_pw.decode("utf-8")
 
 
+def _username_filter(username):
+    """Case-insensitive username predicate.
+
+    Usernames are case-insensitive identifiers (policy: "Admin" == "admin").
+    Comparing with lower() in the query makes lookups and uniqueness checks
+    behave identically on SQLite (dev, case-sensitive '=') and MySQL (prod,
+    case-insensitive collation), instead of silently relying on DB collation.
+    The stored value keeps its original case for display.
+    """
+    return func.lower(DBUser.username) == (username or "").lower()
+
+
 def create_new_user(username, password, is_auth):
     db_session = get_db_session()
     try:
@@ -51,7 +63,7 @@ def get_user_data(username_or_email):
     try:
         result = (
             db_session.query(DBUser)
-            .filter_by(username=username_or_email)
+            .filter(_username_filter(username_or_email))
             .first()
         )
 
@@ -92,7 +104,7 @@ def get_user_data(username_or_email):
 def get_user_password(username):
     db_session = get_db_session()
     try:
-        result = db_session.query(DBUser.password).filter_by(username=username).first()
+        result = db_session.query(DBUser.password).filter(_username_filter(username)).first()
         return result.password if result else None
     finally:
         db_session.close()
@@ -119,10 +131,10 @@ def get_user_by_email(email):
 
 
 def get_user_by_username(username):
-    """Get user by username"""
+    """Get user by username (case-insensitive)"""
     db_session = get_db_session()
     try:
-        user = db_session.query(DBUser).filter_by(username=username).first()
+        user = db_session.query(DBUser).filter(_username_filter(username)).first()
         if user:
             return {
                 "id": user.id,
@@ -145,7 +157,7 @@ def create_user_with_email(email, username, password, verified=False, rullenumme
             return False, "E-postadressen er allerede registrert", None
 
         existing_username = (
-            db_session.query(DBUser).filter_by(username=username).first()
+            db_session.query(DBUser).filter(_username_filter(username)).first()
         )
         if existing_username:
             return False, "Brukernavnet er allerede tatt", None
@@ -232,7 +244,7 @@ def create_user(username, password, is_auth=0):
     """Create a new user (admin-created users are auto-verified)"""
     db_session = get_db_session()
     try:
-        existing_user = db_session.query(DBUser).filter_by(username=username).first()
+        existing_user = db_session.query(DBUser).filter(_username_filter(username)).first()
         if existing_user:
             return False, "Brukernavnet finnes allerede"
 
@@ -289,9 +301,11 @@ def update_user(
         if not user:
             return False, "Bruker ikke funnet"
 
-        if username != user.username:
+        if (username or "").lower() != (user.username or "").lower():
             existing_user = (
-                db_session.query(DBUser).filter_by(username=username).first()
+                db_session.query(DBUser)
+                .filter(_username_filter(username), DBUser.id != user_id)
+                .first()
             )
             if existing_user:
                 return False, "Brukernavnet finnes allerede"
@@ -1208,7 +1222,7 @@ def activate_stub_user(user_id, username, email, password, rullenummer=None):
 
         # Uniqueness checks
         existing_username = (
-            db_session.query(DBUser).filter_by(username=username).first()
+            db_session.query(DBUser).filter(_username_filter(username)).first()
         )
         if existing_username and existing_username.id != user_id:
             return False, "Brukernavnet er allerede tatt", None
@@ -1523,24 +1537,50 @@ def get_user_detail(user_id):
         db_session.close()
 
 
+# Passwords too trivial to ever provision an admin with. Guards against a
+# stale .env carrying the old insecure DEFAULT_ADMIN_PASSWORD=admin default.
+_WEAK_ADMIN_PASSWORDS = frozenset(
+    {"admin", "password", "passord", "changeme", "admin123", "test", "1234", "12345678"}
+)
+
+
 def init_default_admin():
-    """Creates a default admin user if no admin user exists yet"""
+    """Creates a default admin user if no admin user exists yet.
+
+    SECURITY: auto-provisioning is skipped unless DEFAULT_ADMIN_PASSWORD is set
+    to a non-trivial value. There is no built-in default password, so a fresh
+    deployment never ships with a guessable admin/admin account — the operator
+    must explicitly supply a strong password to bootstrap the first admin.
+    """
     from config import AppConfig
 
     db_session = get_db_session()
     try:
         target_username = AppConfig.DEFAULT_ADMIN_USERNAME
-        if db_session.query(DBUser).filter_by(username=target_username).first():
+        if db_session.query(DBUser).filter(_username_filter(target_username)).first():
             return
 
-        if not AppConfig.DEFAULT_ADMIN_PASSWORD:
-            logger.warning("No DEFAULT_ADMIN_PASSWORD set, skipping admin creation")
+        password = AppConfig.DEFAULT_ADMIN_PASSWORD or ""
+        if not password:
+            logger.warning(
+                "DEFAULT_ADMIN_PASSWORD not set — skipping admin bootstrap. "
+                "Set a strong DEFAULT_ADMIN_PASSWORD in the environment to "
+                "create the initial admin user."
+            )
+            return
+
+        if password.strip().lower() in _WEAK_ADMIN_PASSWORDS or password == target_username:
+            logger.warning(
+                "DEFAULT_ADMIN_PASSWORD is trivially weak — refusing to bootstrap "
+                "admin '%s'. Choose a strong, unique password.",
+                target_username,
+            )
             return
 
         admin = DBUser(
-            username=AppConfig.DEFAULT_ADMIN_USERNAME,
-            email=AppConfig.DEFAULT_ADMIN_USERNAME,
-            password=hash_password(AppConfig.DEFAULT_ADMIN_PASSWORD),
+            username=target_username,
+            email=target_username,
+            password=hash_password(password),
             is_auth=1,
             email_verified=1,
         )

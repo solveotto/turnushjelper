@@ -51,6 +51,30 @@ class AppConfig:
     # Database
     DB_TYPE = _env("DB_TYPE", "sqlite")
 
+    # Session/auth cookie hardening.
+    # SESSION_COOKIE_SECURE defaults ON in production (DB_TYPE=mysql) so the
+    # session cookie is never transmitted over plaintext HTTP; it stays OFF for
+    # local sqlite dev (served over http://localhost, where a Secure cookie
+    # would never be sent). Override explicitly via the env var if needed.
+    SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", DB_TYPE == "mysql")
+    SESSION_COOKIE_HTTPONLY = _env_bool("SESSION_COOKIE_HTTPONLY", True)
+    SESSION_COOKIE_SAMESITE = _env("SESSION_COOKIE_SAMESITE", "Lax")
+    # Flask-Login "remember me" cookie (currently unused; hardened for defense).
+    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE
+
+    # Reverse-proxy trust. In production the app runs behind nginx, which
+    # forwards the real client IP and scheme in X-Forwarded-* headers. ProxyFix
+    # (wired in create_app) trusts exactly this many proxy hops so the rate
+    # limiter sees real client IPs and url_for(_external=True) builds https
+    # links. Defaults to 1 in production (single nginx) and 0 in dev (no proxy —
+    # it MUST stay off there, or a forged X-Forwarded-For could spoof the client
+    # IP). Set to 2 if a CDN (e.g. Cloudflare) sits in front of nginx.
+    TRUSTED_PROXY_COUNT = _env_int(
+        "TRUSTED_PROXY_COUNT", 1 if DB_TYPE == "mysql" else 0
+    )
+
     # Email — Mailgun (primary)
     MAILGUN_API_KEY = _env("MAILGUN_API_KEY", "")
     MAILGUN_DOMAIN = _env("MAILGUN_DOMAIN", "mail.turnushjelper.no")
@@ -77,9 +101,13 @@ class AppConfig:
     MYSQL_PASSWORD = _env("MYSQL_PASSWORD", "")
     MYSQL_DATABASE = _env("MYSQL_DATABASE", "")
 
-    # Default admin credentials (used on first-time setup)
+    # Default admin bootstrap (optional, first-time setup only).
+    # SECURITY: there is deliberately NO default password. When
+    # DEFAULT_ADMIN_PASSWORD is unset (or trivially weak), init_default_admin()
+    # skips auto-provisioning instead of creating a guessable admin/admin
+    # account. Set a strong value in the environment to bootstrap an admin.
     DEFAULT_ADMIN_USERNAME = _env("DEFAULT_ADMIN_USERNAME", "admin")
-    DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD", "admin")
+    DEFAULT_ADMIN_PASSWORD = _env("DEFAULT_ADMIN_PASSWORD", "")
 
     PERMANENT_SESSION_LIFETIME = timedelta(days=_env_int("SESSION_LIFETIME_DAYS", 30))
 

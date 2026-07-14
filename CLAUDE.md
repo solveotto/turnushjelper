@@ -43,6 +43,11 @@ DB_TYPE=sqlite
 SQLITE_PATH=./dummy.db
 ```
 
+**First-time admin:** there is no default admin password — a fresh database
+does not auto-create an `admin`/`admin` account. Bootstrap the first admin via
+`docs/guides/ADMIN_BOOTSTRAP.md` (set a strong `DEFAULT_ADMIN_PASSWORD` for one
+startup, or run the one-off `create_user(..., is_auth=1)` command).
+
 ## Architecture
 
 The app follows a strict three-layer pattern: **Routes → Services → Database**.
