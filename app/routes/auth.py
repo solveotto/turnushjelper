@@ -55,8 +55,10 @@ def login():
                     )
                     return render_template("login.html", form=form)
 
+                # Use the stored username (canonical case), not the raw input —
+                # usernames are case-insensitive, so "Admin" logs into "admin".
                 user = User(
-                    form.username.data, db_user_data["id"], db_user_data["is_auth"]
+                    db_user_data["username"], db_user_data["id"], db_user_data["is_auth"]
                 )
                 flask_login_user(user)
                 session.permanent = True

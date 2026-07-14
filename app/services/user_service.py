@@ -27,6 +27,18 @@ def hash_password(password):
     return hashed_pw.decode("utf-8")
 
 
+def _username_filter(username):
+    """Case-insensitive username predicate.
+
+    Usernames are case-insensitive identifiers (policy: "Admin" == "admin").
+    Comparing with lower() in the query makes lookups and uniqueness checks
+    behave identically on SQLite (dev, case-sensitive '=') and MySQL (prod,
+    case-insensitive collation), instead of silently relying on DB collation.
+    The stored value keeps its original case for display.
+    """
+    return func.lower(DBUser.username) == (username or "").lower()
+
+
 def create_new_user(username, password, is_auth):
     db_session = get_db_session()
     try:
@@ -51,7 +63,7 @@ def get_user_data(username_or_email):
     try:
         result = (
             db_session.query(DBUser)
-            .filter_by(username=username_or_email)
+            .filter(_username_filter(username_or_email))
             .first()
         )
 
@@ -92,7 +104,7 @@ def get_user_data(username_or_email):
 def get_user_password(username):
     db_session = get_db_session()
     try:
-        result = db_session.query(DBUser.password).filter_by(username=username).first()
+        result = db_session.query(DBUser.password).filter(_username_filter(username)).first()
         return result.password if result else None
     finally:
         db_session.close()
@@ -119,10 +131,10 @@ def get_user_by_email(email):
 
 
 def get_user_by_username(username):
-    """Get user by username"""
+    """Get user by username (case-insensitive)"""
     db_session = get_db_session()
     try:
-        user = db_session.query(DBUser).filter_by(username=username).first()
+        user = db_session.query(DBUser).filter(_username_filter(username)).first()
         if user:
             return {
                 "id": user.id,
@@ -145,7 +157,7 @@ def create_user_with_email(email, username, password, verified=False, rullenumme
             return False, "E-postadressen er allerede registrert", None
 
         existing_username = (
-            db_session.query(DBUser).filter_by(username=username).first()
+            db_session.query(DBUser).filter(_username_filter(username)).first()
         )
         if existing_username:
             return False, "Brukernavnet er allerede tatt", None
@@ -232,7 +244,7 @@ def create_user(username, password, is_auth=0):
     """Create a new user (admin-created users are auto-verified)"""
     db_session = get_db_session()
     try:
-        existing_user = db_session.query(DBUser).filter_by(username=username).first()
+        existing_user = db_session.query(DBUser).filter(_username_filter(username)).first()
         if existing_user:
             return False, "Brukernavnet finnes allerede"
 
@@ -289,9 +301,11 @@ def update_user(
         if not user:
             return False, "Bruker ikke funnet"
 
-        if username != user.username:
+        if (username or "").lower() != (user.username or "").lower():
             existing_user = (
-                db_session.query(DBUser).filter_by(username=username).first()
+                db_session.query(DBUser)
+                .filter(_username_filter(username), DBUser.id != user_id)
+                .first()
             )
             if existing_user:
                 return False, "Brukernavnet finnes allerede"
@@ -1208,7 +1222,7 @@ def activate_stub_user(user_id, username, email, password, rullenummer=None):
 
         # Uniqueness checks
         existing_username = (
-            db_session.query(DBUser).filter_by(username=username).first()
+            db_session.query(DBUser).filter(_username_filter(username)).first()
         )
         if existing_username and existing_username.id != user_id:
             return False, "Brukernavnet er allerede tatt", None
@@ -1543,7 +1557,7 @@ def init_default_admin():
     db_session = get_db_session()
     try:
         target_username = AppConfig.DEFAULT_ADMIN_USERNAME
-        if db_session.query(DBUser).filter_by(username=target_username).first():
+        if db_session.query(DBUser).filter(_username_filter(target_username)).first():
             return
 
         password = AppConfig.DEFAULT_ADMIN_PASSWORD or ""

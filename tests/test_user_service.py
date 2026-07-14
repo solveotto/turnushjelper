@@ -458,3 +458,55 @@ class TestInitDefaultAdmin:
         db_session.expire_all()
         count = db_session.query(DBUser).filter_by(username="bootadmin").count()
         assert count == 1
+
+
+class TestCaseInsensitiveUsernames:
+    """Usernames are case-insensitive identifiers, enforced in code so SQLite
+    (dev) behaves like MySQL (prod) instead of relying on DB collation. The
+    stored value keeps its original case for display."""
+
+    def test_get_user_data_case_insensitive(self, patch_db):
+        user_service.create_user("CaseUser", "pw123456")
+        assert user_service.get_user_data("caseuser") is not None
+        # The stored (display) case is preserved and returned.
+        assert user_service.get_user_data("CASEUSER")["username"] == "CaseUser"
+
+    def test_get_user_by_username_case_insensitive(self, patch_db):
+        user_service.create_user("Bob", "pw123456")
+        found = user_service.get_user_by_username("bob")
+        assert found is not None
+        assert found["username"] == "Bob"
+
+    def test_create_user_rejects_case_variant_duplicate(self, patch_db):
+        user_service.create_user("Alice", "pw123456")
+        success, msg = user_service.create_user("alice", "pw123456")
+        assert success is False
+        assert "finnes allerede" in msg
+
+    def test_create_user_with_email_rejects_case_variant_username(self, patch_db):
+        user_service.create_user("Charlie", "pw123456")
+        success, msg, uid = user_service.create_user_with_email(
+            email="c@test.com", username="charlie", password="pw123456"
+        )
+        assert success is False
+        assert "tatt" in msg  # "Brukernavnet er allerede tatt"
+        assert uid is None
+
+    def test_update_user_allows_changing_own_username_case(self, patch_db, db_session):
+        from app.models import DBUser
+
+        user_service.create_user("dave", "pw123456")
+        u = user_service.get_user_by_username("dave")
+        success, msg = user_service.update_user(user_id=u["id"], username="Dave")
+        assert success is True, msg
+        db_session.expire_all()
+        updated = db_session.query(DBUser).filter_by(id=u["id"]).first()
+        assert updated.username == "Dave"
+
+    def test_update_user_rejects_other_users_username_case_variant(self, patch_db):
+        user_service.create_user("Eve", "pw123456")
+        user_service.create_user("frank", "pw123456")
+        frank = user_service.get_user_by_username("frank")
+        success, msg = user_service.update_user(user_id=frank["id"], username="EVE")
+        assert success is False
+        assert "finnes allerede" in msg
