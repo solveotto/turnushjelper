@@ -14,7 +14,7 @@
 - **No inline `<style>` blocks** and no new inline `style=""` attributes — new CSS goes in shared CSS files (existing inline styles you are not asked to touch stay as they are).
 - Run all Python through the project venv: `./venv/bin/python`, `./venv/bin/pytest`.
 - Run the dev server with `./venv/bin/python run.py` (port 8080, debug on).
-- Local dev DB is `dummy.db` (sqlite). It has user `testuser2` / password `uxtest1234` (regular user, has favorites) and `admin` / `uxtest1234` (admin). Do not modify the DB; do not run alembic.
+- Local dev DB is `dummy.db` (sqlite). It has user `testuser2` / password `<dev-password>` (regular user, has favorites) and `admin` / `<dev-password>` (admin). Do not modify the DB; do not run alembic.
 - Playwright + chromium are already installed in the venv (verified 2026-07-12). Use them only for the verification scripts in this plan.
 - Never commit `dummy.db`, screenshots, or files under `scripts/verify_*` unless the task says so.
 - Every task ends with `./venv/bin/pytest -x` passing and a git commit. End commit messages with: `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`
@@ -341,7 +341,7 @@ from playwright.sync_api import sync_playwright
 
 BASE = "http://localhost:8080"
 USER = os.environ.get("TURNUS_USER", "testuser2")
-PASS = os.environ.get("TURNUS_PASS", "uxtest1234")
+PASS = os.environ.get("TURNUS_PASS", "<dev-password>")
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
@@ -513,7 +513,7 @@ Append to `app/static/css/turnusliste/view-options.css` (after the existing `.pr
 ./venv/bin/python run.py
 ```
 
-Open `http://localhost:8080/turnusliste` in a private/incognito window (empty localStorage), log in as `testuser2` / `uxtest1234`, and check:
+Open `http://localhost:8080/turnusliste` in a private/incognito window (empty localStorage), log in as `testuser2` / `<dev-password>`, and check:
 
 1. The list loads **compact**: card headers + stats rows, no 6-week tables. The whole list fits in a few screens.
 2. Each card header has a chevron button; clicking it expands that card's table in place (colors applied), clicking again collapses it.
@@ -655,7 +655,7 @@ Append to `app/static/css/turnusliste/toolbar.css`:
 
 - [ ] **Step 5: Verify in the browser**
 
-Start the server, log in as `testuser2` / `uxtest1234`, and check on `http://localhost:8080/turnusliste`:
+Start the server, log in as `testuser2` / `<dev-password>`, and check on `http://localhost:8080/turnusliste`:
 
 1. Toolbar shows search + "Visning". The Visning dropdown contains: Skjul favoritter, Kompakt visning/Vis alle tabeller, Størrelse slider, Ved siden av hverandre slider, Utskrift — and all of them still work (sliders keep the dropdown open while dragging).
 2. The account (hamburger) dropdown now contains only: user header, Min Side, (Velg Turnusår / Last ned PDF when present), Hjelp (mobile), Admin Panel (admin only), Personvern, Logg ut.
@@ -1327,7 +1327,7 @@ Expected: `OK: toolbar search works`
 
 - [ ] **Step 3: Manual sweep (server still running)**
 
-Log in as `testuser2` / `uxtest1234` and click through, checking against each task's verify list:
+Log in as `testuser2` / `<dev-password>` and click through, checking against each task's verify list:
 
 1. `/turnusliste` — compact by default, search, Visning dropdown, preset chips, Forklaring legend, per-card expand, soft colors, "Torsdag" in table headers, tab title "Turnusliste".
 2. `/favorites` — toolbar, compact cards, reorder arrows usable with several cards visible at once.
