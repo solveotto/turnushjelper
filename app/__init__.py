@@ -45,9 +45,6 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
-    # Creates default admin if no users in database
-    init_default_admin()
-
     @login_manager.user_loader
     def load_user(user_id):
         try:
@@ -173,5 +170,13 @@ def create_app():
 
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
+
+    # Creates default admin if no users in database.
+    # MUST run after the import above: that module configures the app.log
+    # handler as an import side effect. Called any earlier, this function's
+    # security-relevant warnings ("DEFAULT_ADMIN_PASSWORD not set", "Schema not
+    # ready yet") are emitted with no handler attached and Python's lastResort
+    # dumps them to stderr instead of app.log.
+    init_default_admin()
 
     return app
