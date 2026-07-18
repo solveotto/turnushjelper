@@ -43,26 +43,6 @@ class TestDuplicateHandling:
         assert lst.count("D1") == 1
 
 
-class TestUpdateFavoriteOrder:
-    def test_updates_order_index(self, patch_db, db_session, sample_user):
-        ts = TurnusSet(name="Test Set", year_identifier="T26", is_active=1)
-        db_session.add(ts)
-        db_session.commit()
-
-        favorites_service.add_favorite(sample_user["id"], "D1", 0, ts.id)
-        favorites_service.add_favorite(sample_user["id"], "N2", 1, ts.id)
-        favorites_service.add_favorite(sample_user["id"], "K3", 2, ts.id)
-
-        result = favorites_service.update_favorite_order(sample_user["id"], ts.id)
-        assert result is True
-
-        from app.models import Favorites
-        rows = db_session.query(Favorites).filter_by(
-            user_id=sample_user["id"], turnus_set_id=ts.id
-        ).order_by(Favorites.order_index).all()
-        assert [r.order_index for r in rows] == [0, 1, 2]
-
-
 class TestMaxOrderIndex:
     def test_get_max_ordered_index(self, patch_db, db_session, sample_user):
         ts = TurnusSet(name="Test Set", year_identifier="T25", is_active=1)
@@ -71,6 +51,18 @@ class TestMaxOrderIndex:
 
         # Empty should return 0
         assert favorites_service.get_max_ordered_index(sample_user["id"], ts.id) == 0
+
+    def test_no_turnus_set_and_no_active_set_returns_zero(
+        self, patch_db, db_session, sample_user
+    ):
+        """Without an active set there is no meaningful scope — must not fall
+        back to the max across all sets (mirrors get_favorite_lst)."""
+        ts = TurnusSet(name="Old Set", year_identifier="T24", is_active=0)
+        db_session.add(ts)
+        db_session.commit()
+        favorites_service.add_favorite(sample_user["id"], "D1", 5, ts.id)
+
+        assert favorites_service.get_max_ordered_index(sample_user["id"], None) == 0
 
         favorites_service.add_favorite(sample_user["id"], "D1", 5, ts.id)
         assert favorites_service.get_max_ordered_index(sample_user["id"], ts.id) == 5

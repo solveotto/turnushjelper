@@ -50,35 +50,6 @@ def user_has_favorites_in_other_sets(user_id, exclude_turnus_set_id):
         db_session.close()
 
 
-def update_favorite_order(user_id, turnus_set_id=None):
-    db_session = get_db_session()
-    try:
-        if not turnus_set_id:
-            from app.services.turnus_service import get_active_turnus_set
-            active_set = get_active_turnus_set()
-            if not active_set:
-                return False
-            turnus_set_id = active_set['id']
-
-        current_favorites = db_session.query(Favorites).filter_by(
-            user_id=user_id,
-            turnus_set_id=turnus_set_id
-        ).order_by(Favorites.order_index).all()
-
-        for index, favorite in enumerate(current_favorites):
-            favorite.order_index = index
-
-        db_session.commit()
-        logger.debug("Favorite order updated successfully")
-        return True
-    except Exception as e:
-        db_session.rollback()
-        logger.error("Failed to modify database. Changes only stored locally. Error = %s", e)
-        return False
-    finally:
-        db_session.close()
-
-
 def get_max_ordered_index(user_id, turnus_set_id=None):
     """Get the maximum order index for a user's favorites in a specific turnus set"""
     db_session = get_db_session()
@@ -90,8 +61,10 @@ def get_max_ordered_index(user_id, turnus_set_id=None):
         else:
             from app.services.turnus_service import get_active_turnus_set
             active_set = get_active_turnus_set()
-            if active_set:
-                query = query.filter_by(turnus_set_id=active_set['id'])
+            if not active_set:
+                # No scope at all — never fall back to the max across all sets
+                return 0
+            query = query.filter_by(turnus_set_id=active_set['id'])
 
         result = query.scalar()
         return result if result is not None else 0

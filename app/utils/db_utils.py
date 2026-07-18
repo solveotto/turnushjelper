@@ -45,7 +45,7 @@ from app.services.user_service import (  # noqa: F401
 # Favorites service
 from app.services.favorites_service import (  # noqa: F401
     get_favorite_lst, user_has_favorites_in_other_sets,
-    update_favorite_order, get_max_ordered_index,
+    get_max_ordered_index,
     cleanup_duplicate_favorites, add_favorite, remove_favorite,
 )
 

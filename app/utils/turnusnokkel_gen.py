@@ -1,10 +1,6 @@
-import pandas as pd
-import json
-import openpyxl
 import os
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from config import AppConfig
 from app.utils import db_utils, df_utils
 
 
@@ -15,47 +11,6 @@ class TurnusnokkelGen():
         self.sheet_name = 'Turnusnøkkel'
         self.start_row = 51
         self.start_col = 1
-        
-        # Set file path based on turnus set if available
-        if self.turnus_set_id:
-            turnus_set = db_utils.get_turnus_set_by_id(self.turnus_set_id)
-            if turnus_set:
-                year_identifier = turnus_set['year_identifier']
-                self.file_path = f'{AppConfig.turnusfiler_dir}/{year_identifier.lower()}/turnusnøkkel_{year_identifier}_org.xlsx'
-            else:
-                # Fallback to R25 if turnus set not found
-                self.file_path = f'{AppConfig.turnusfiler_dir}/turnusnøkkel_R25_org.xlsx'
-        else:
-            # Fallback to R25 if no turnus set ID provided
-            self.file_path = f'{AppConfig.turnusfiler_dir}/turnusnøkkel_R25_org.xlsx'
-        
-        # Only load workbook if we're not doing single turnus generation
-        # (single generation uses its own path logic)
-        if not self.turnus_name:
-            self.workbook, self.sheet = self.get_turnusnøkkel_excel_data()
-   
-    # Step 1: Load the existing Excel file
-    def get_turnusnøkkel_excel_data(self):
-        # This method is mainly used for the legacy generate_all_turnus_nokkel
-        # For single turnus generation, we use the proper path in generate_single_turnus_nokkel
-        excel_file = 'turnusnøkkel_R25_org.xlsx'
-        if os.path.exists(excel_file):
-            workbook = load_workbook(excel_file)
-            sheet = workbook.active
-            return workbook, sheet
-        else:
-            # Fallback: try to find it in the proper location
-            try:
-                from config import AppConfig
-                fallback_path = f'{AppConfig.turnusfiler_dir}/turnusnøkkel_R25_org.xlsx'
-                if os.path.exists(fallback_path):
-                    workbook = load_workbook(fallback_path)
-                    sheet = workbook.active
-                    return workbook, sheet
-            except (ImportError, AttributeError, FileNotFoundError):
-                pass
-            raise FileNotFoundError(f"Excel template file not found: {excel_file}")
-
 
     def generate_single_turnus_nokkel(self):
         """
@@ -164,68 +119,3 @@ class TurnusnokkelGen():
             
         except Exception as e:
             return {'success': False, 'error': f'Error generating turnusnøkkel: {str(e)}'}
-
-
-    def generate_all_turnus_nokkel(self):
-
-        # Step 2: Access a specific sheet by name
-        if self.sheet_name in self.workbook.sheetnames:
-            sheet = self.workbook[self.sheet_name]
-        else:
-            raise ValueError(f"Sheet '{self.sheet_name}' not found in the Excel file.")
-
-        # Step 2: Load the JSON file (assuming a 7x6 table structure)
-        with open('turnus_schedule_R25.json', 'r') as file:
-            json_data = json.load(file)
-
-        # Step 4: Specify where to start inserting the data
-        start_row = 51  # Row 2, for example
-        start_col = 1  # Column B (2nd column)
-
-
-        # Step 4: Extract 'start' and 'end' from each nested dictionary and insert them into cells
-        for turnus in json_data:
-            for turnus_navn, turnus_data in turnus.items():
-                # Step 1: Load the existing Excel file
-                excel_file = 'turnusnøkkel_R25_org.xlsx'
-                workbook = load_workbook(excel_file)
-                sheet = workbook.active  # Select the active sheet, or specify the sheet name
-
-                # Step 2: Access a specific sheet by name
-                sheet_name = 'Turnusnøkkel'
-                if sheet_name in workbook.sheetnames:
-                    sheet = workbook[sheet_name]
-                else:
-                    raise ValueError(f"Sheet '{sheet_name}' not found in the Excel file.")
-
-                for uke_nr, ukedata in turnus_data.items():
-                    if not isinstance(ukedata, dict):
-                        continue
-                    for dag_nr, dag_data in ukedata.items():
-                    
-                        try:
-                            start_value = dag_data['tid'][0]
-                        except IndexError:
-                            start_value = ''
-
-                        try:
-                            end_value = dag_data['tid'][1]
-                        except IndexError:
-                            end_value = ''
-                        
-                        
-                        cell_value = f'{start_value} - {end_value}' if start_value and end_value else f"{start_value}"
-
-                        # Set the 'start' value in the first column of this row
-                        col_letter_start = get_column_letter(start_col+int(dag_nr))
-                        sheet[f"{col_letter_start}{start_row + int(uke_nr)}"] = cell_value
-                    
-                # Save the updated Excel file with a new name
-                filename = f"Turnusnøkkel_{turnus_navn}.xlsx"
-                workbook.save(filename)
-                    
-
-if __name__ == "__main__":
-    # Example usage
-    generator = TurnusnokkelGen()
-    generator.generate_all_turnus_nokkel()

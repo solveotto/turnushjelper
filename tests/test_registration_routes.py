@@ -88,11 +88,21 @@ class TestRegister:
 
 
 class TestCheckMedlemsnummerApi:
-    def test_valid_stub_found(self, client, member_stub):
+    def test_valid_stub_found_no_pii_echo(self, client, member_stub):
+        """Unauthenticated endpoint must never echo name or rullenummer."""
         resp = client.get("/api/check-medlemsnummer?medlemsnummer=60011")
         data = resp.get_json()
-        assert data["found"] is True
-        assert "rullenummer" in data
+        assert data == {"found": True, "has_rullenummer": False}
+
+    def test_stub_with_rullenummer_reports_boolean_only(
+        self, client, member_stub, db_session
+    ):
+        user = db_session.query(DBUser).filter_by(id=member_stub["id"]).first()
+        user.rullenummer = "12345"
+        db_session.commit()
+        resp = client.get("/api/check-medlemsnummer?medlemsnummer=60011")
+        data = resp.get_json()
+        assert data == {"found": True, "has_rullenummer": True}
 
     def test_already_registered(self, client, member_stub, db_session):
         user = db_session.query(DBUser).filter_by(id=member_stub["id"]).first()
@@ -108,3 +118,69 @@ class TestCheckMedlemsnummerApi:
     def test_empty_number(self, client, patch_db):
         resp = client.get("/api/check-medlemsnummer?medlemsnummer=")
         assert resp.get_json() == {"found": False, "reason": "not_authorized"}
+
+
+class TestCheckRullenummerApi:
+    """The endpoint is unauthenticated: it must only return booleans, never
+    the seniority-list name/seniority_nr/ans_dato (employee enumeration)."""
+
+    @pytest.fixture()
+    def seniority_user(self, patch_db, db_session):
+        user = DBUser(
+            username="__stub_m70022",
+            password=hash_password("unusable"),
+            name="Nordmann, Ola",
+            medlemsnummer="70022",
+            rullenummer="12345",
+            seniority_nr=7,
+            ans_dato="01.01.2010",
+            is_stub=1,
+            email_verified=0,
+        )
+        db_session.add(user)
+        db_session.commit()
+        return {"id": user.id, "rullenummer": "12345"}
+
+    def test_found_returns_boolean_only(self, client, seniority_user):
+        resp = client.get("/api/check-rullenummer?rullenummer=12345")
+        assert resp.get_json() == {"found": True}
+
+    def test_unknown_rullenummer(self, client, patch_db):
+        resp = client.get("/api/check-rullenummer?rullenummer=99999")
+        assert resp.get_json() == {"found": False}
+
+    def test_name_match_via_medlemsnummer_true(
+        self, client, seniority_user, member_stub, db_session
+    ):
+        # member_stub (60011) is also "Nordmann, Ola" → names share words.
+        resp = client.get(
+            "/api/check-rullenummer?rullenummer=12345&medlemsnummer=60011"
+        )
+        assert resp.get_json() == {"found": True, "name_match": True}
+
+    def test_name_match_via_medlemsnummer_false(
+        self, client, seniority_user, member_stub, db_session
+    ):
+        stub = db_session.query(DBUser).filter_by(id=member_stub["id"]).first()
+        stub.name = "Hansen, Kari"
+        db_session.commit()
+        resp = client.get(
+            "/api/check-rullenummer?rullenummer=12345&medlemsnummer=60011"
+        )
+        assert resp.get_json() == {"found": True, "name_match": False}
+
+    def test_unknown_medlemsnummer_gives_no_name_match(
+        self, client, seniority_user
+    ):
+        resp = client.get(
+            "/api/check-rullenummer?rullenummer=12345&medlemsnummer=11111"
+        )
+        assert resp.get_json() == {"found": True}
+
+    def test_legacy_name_param_is_ignored(self, client, seniority_user):
+        """The old client sent ?name=...; it must no longer produce a match
+        (nor echo anything)."""
+        resp = client.get(
+            "/api/check-rullenummer?rullenummer=12345&name=Ola%20Nordmann"
+        )
+        assert resp.get_json() == {"found": True}

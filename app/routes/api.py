@@ -6,7 +6,6 @@ import re
 from flask import Blueprint, jsonify, request, send_from_directory, session
 from flask_login import current_user, login_required
 
-from app.database import get_db_session
 from app.extensions import cache, favorite_lock, limiter
 from app.models import DBUser, SoknadsskjemaChoice
 from app.services import user_service
@@ -719,7 +718,9 @@ def mark_tour_seen():
     if tour_name not in tour_columns:
         return jsonify({"status": "error", "message": "Unknown tour name"}), 400
 
-    db_session = get_db_session()
+    # Use db_utils (attribute lookup) so tests' per-test session patch applies;
+    # a from-import binds the factory of whichever test imported this module first.
+    db_session = db_utils.get_db_session()
     try:
         user = db_session.query(DBUser).filter_by(id=current_user.id).first()
         if user:
@@ -776,7 +777,9 @@ def soknadsskjema_choice():
     if turnus_set_id is None:
         return jsonify(status="error", message="No turnus set"), 400
 
-    db_session = get_db_session()
+    # Use db_utils (attribute lookup) so tests' per-test session patch applies;
+    # a from-import binds the factory of whichever test imported this module first.
+    db_session = db_utils.get_db_session()
     try:
         row = db_session.query(SoknadsskjemaChoice).filter_by(
             user_id=user_id, turnus_set_id=turnus_set_id, shift_title=shift_title
@@ -809,8 +812,11 @@ def soknadsskjema_choice():
 def check_medlemsnummer():
     """Return whether an NLF-medlemsnummer is a valid unactivated stub.
 
+    Unauthenticated — the response is booleans only, never the stub's
+    name or rullenummer (employee enumeration).
+
     Response shape:
-        {found: true}
+        {found: true, has_rullenummer: bool}
         {found: false, reason: "already_registered"}
         {found: false, reason: "not_authorized"}
     """
@@ -826,44 +832,42 @@ def check_medlemsnummer():
 
     return jsonify({
         "found": True,
-        "rullenummer": stub.get("rullenummer"),
-        "name": stub.get("name") or "",
+        "has_rullenummer": bool(stub.get("rullenummer")),
     })
 
 
 @api.route("/check-rullenummer")
 @limiter.limit("30 per hour")
 def check_rullenummer():
-    """Return seniority list info for a rullenummer, with optional name-match check.
+    """Return whether a rullenummer exists on the seniority list.
+
+    Unauthenticated — the response is booleans only, never the seniority
+    row's name/seniority_nr/ans_dato (employee enumeration). When the
+    caller also supplies their medlemsnummer, the stub-vs-seniority name
+    comparison happens server-side and only the verdict is returned.
 
     Query params:
-        rullenummer  — the rullenummer to look up
-        name         — (optional) the user's resolved NLF name for comparison
+        rullenummer   — the rullenummer to look up
+        medlemsnummer — (optional) the registrant's NLF-medlemsnummer
 
     Response shape:
         {found: false}
-        {found: true, name, seniority_nr, ans_dato, name_match?}
+        {found: true, name_match?: bool}
     """
     rullenummer = (request.args.get("rullenummer") or "").strip()
-    context_name = (request.args.get("name") or "").strip()
+    medlemsnummer = (request.args.get("medlemsnummer") or "").strip()
     if not rullenummer:
         return jsonify({"found": False})
 
-    db_session = get_db_session()
-    try:
-        user = db_session.query(DBUser).filter_by(rullenummer=rullenummer).first()
-        if user is None:
-            return jsonify({"found": False})
-        result = {
-            "found": True,
-            "name": user.name or "",
-            "seniority_nr": user.seniority_nr,
-            "ans_dato": user.ans_dato or "",
-        }
-        if context_name and user.name:
+    user = user_service.get_user_by_rullenummer(rullenummer)
+    if user is None:
+        return jsonify({"found": False})
+
+    result = {"found": True}
+    if medlemsnummer and user.get("name"):
+        stub = user_service.get_user_by_medlemsnummer(medlemsnummer)
+        if stub and stub.get("name"):
             def _words(s):
                 return set(s.replace("-", " ").replace(",", " ").casefold().split())
-            result["name_match"] = bool(_words(context_name) & _words(user.name))
-        return jsonify(result)
-    finally:
-        db_session.close()
+            result["name_match"] = bool(_words(stub["name"]) & _words(user["name"]))
+    return jsonify(result)

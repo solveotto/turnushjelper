@@ -12,7 +12,7 @@ import json
 from config import AppConfig
 
 '''
-- Fridays that goes over 2 hours into saturay counts as weekend days.
+- Friday hours after 17:00 count as weekend (evening) hours.
 '''
 
 

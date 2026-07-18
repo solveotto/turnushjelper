@@ -10,7 +10,9 @@ The PDF has four sections:
 Layout: multiple section headers per row (e.g. "Tur 1", "Tur 2", ... "Tur 5").
 Each section has a mini-table with unlabeled columns:
   linjenummer | Ans | Fornavn | Etternavn | Rullenr
-(for 7.fører also: Tur | L)
+(for 7.fører the first column is a sequential row counter instead, and the
+table continues: Tur | L | TVP — the L column is the driver's real linje
+within the target Tur; TVP is empty in R26)
 
 The section header "Tur N" appears above the right half of its mini-table.
 The linjenr column and Ans column are to the LEFT of the header word.
@@ -140,8 +142,11 @@ def _parse_data_row_7forer(
 ) -> dict | None:
     """Parse one data row from the 7.fører section.
 
-    Column layout: linjenr | Ans | Fornavn | Etternavn | Rullenr | Tur | L
-    We need Rullenr (index 4) and Tur (index 5 or a token that matches 'Tur N').
+    Column layout: rownum | Ans | Fornavn | Etternavn | Rullenr | Tur | L | (TVP)
+    texts[0] is the table's sequential row counter, NOT a linje — the driver's
+    real linje within the target Tur is the L column right after the Tur
+    number (verified against innplassering_R26.pdf 2026-07-18: counters run
+    1..10 while L holds valid linjer 1..6).
     """
     # Skip column header rows
     if any(t in _COL_HEADERS for t in texts):
@@ -149,45 +154,53 @@ def _parse_data_row_7forer(
     if len(texts) < 6:
         return None
 
-    linjenr_str = texts[0]
     ans_token = texts[1]
 
     # Skip "Ikke søkbar"
     if ans_token.lower().startswith("x"):
         return None
 
-    # Validate first token is a digit (linjenr)
-    try:
-        linjenr = int(linjenr_str)
-    except (ValueError, TypeError):
+    # Validate first token is a digit (the row counter) — row-shape sanity check
+    if not texts[0].isdigit():
         return None
 
     # Find the rullenr: it's a 5-digit number. Scan from right for it.
     rullenr_str = None
     tur_str = None
+    linje_str = None
     for i in range(len(texts) - 1, 1, -1):
         t = texts[i]
         if re.match(r"^Tur\s+\d+$", t):
             tur_str = t
+            if i + 1 < len(texts) and texts[i + 1].isdigit():
+                linje_str = texts[i + 1]
             continue
         if t.isdigit() and len(t) >= 4:
             rullenr_str = t
-            # The Tur value should come after rullenr (to the right)
-            # Check remaining tokens for Tur pattern
+            # The Tur value should come after rullenr (to the right),
+            # and the L column (real linje) directly after the Tur value.
             for j in range(i + 1, len(texts)):
                 if re.match(r"^Tur\s+\d+$", texts[j]):
                     tur_str = texts[j]
-                    break
-                if texts[j].isdigit() and int(texts[j]) <= 40:
+                elif texts[j].isdigit() and int(texts[j]) <= 40:
                     # bare number, likely the tur number
                     tur_str = f"Tur {texts[j]}"
-                    break
+                else:
+                    continue
+                if j + 1 < len(texts) and texts[j + 1].isdigit():
+                    linje_str = texts[j + 1]
+                break
             break
 
     if not rullenr_str or not tur_str:
         return None
     if rullenr_str == "0":
         return None
+    if linje_str is None:
+        # No L column → no trustworthy linje; a wrong linje would give the
+        # driver the wrong mintur column and kompdag count, so skip the row.
+        return None
+    linjenr = int(linje_str)
 
     # Resolve tur shift
     m = re.match(r"^Tur\s+(\d+)$", tur_str)

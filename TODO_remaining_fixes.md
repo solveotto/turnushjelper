@@ -16,6 +16,32 @@ shift_stats summary-row bug + regenerated stats JSONs, and several smaller guard
 > 254 passed). Task 5 is **DECIDED: Option A — implement it** (see the task).
 > Task 6 is **CLOSED**: Solve decided to keep the søknadsskjema as it is; no
 > change, no warning banner. Task 7 remains open (verification-first task).
+>
+> **Status (2026-07-18):** Task 5 is **DONE** — both check-endpoints return
+> booleans only (`has_rullenummer`, server-side `name_match` via the
+> `medlemsnummer` param); register.html updated; covered by
+> `tests/test_registration_routes.py::TestCheckRullenummerApi` and the
+> tightened `TestCheckMedlemsnummerApi`.
+>
+> Task 7 is **DONE — suspicion CONFIRMED and fixed.** In the 7.fører table,
+> `texts[0]` is a sequential row counter (ran 1..10 in R26), not a linje;
+> the real linje is the **L** column after the Tur number. Parser fixed
+> (`_parse_data_row_7forer` now reads L; rows without L are skipped),
+> covered by `tests/test_innplassering_scraper.py`. Dev DB re-imported
+> (339 records; the ten 7th-drivers now have linjer 1–6).
+> **PRODUCTION ACTION REQUIRED:** re-import the innplassering PDF for R26
+> (admin UI or `scripts/import_innplassering.py --year R26`) — until then,
+> prod 7th-drivers still have row-counter linjer (1..10) and see the wrong
+> mintur column / kompdag count.
+>
+> Part 3 is **DONE** (same day): stale shift_stats comment fixed, dead
+> `update_favorite_order` deleted (incl. re-export + test),
+> `get_max_ordered_index` returns 0 with no active set (new test), legacy
+> R25 paths / `generate_all_turnus_nokkel` / `__main__` removed from
+> turnusnokkel_gen.py. Bonus: all requirements.txt entries pinned; the two
+> remaining bare `get_db_session()` calls in api.py switched to
+> `db_utils.get_db_session()` (patch-at-use-site; the from-import bound the
+> first test's session factory and broke later tests hitting those routes).
 
 ## Ground rules — read before touching anything
 
