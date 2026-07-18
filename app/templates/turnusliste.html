@@ -323,6 +323,12 @@
 
         <div class="container-fluid printable"
             data-current-turnus-set-id="{% if current_turnus_set %}{{ current_turnus_set.id }}{% else %}null{% endif %}">
+            {% if current_turnus_set and active_set and current_turnus_set.id != active_set.id %}
+            <div class="alert alert-warning d-flex align-items-center gap-2 no-print" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <div>Du ser på <strong>{{ current_turnus_set.year_identifier | display_name }}</strong> – ikke det aktive turnussettet ({{ active_set.year_identifier | display_name }}).</div>
+            </div>
+            {% endif %}
             <div class="row justify-content-center">
                 <div class="col-auto">
                     <div class="table-responsive">
@@ -349,8 +355,9 @@
                                     <div>
                                         <p class="fs-6 fst-italic text-decoration-underline text-danger">
                                             {%if current_turnus_set.id !=
-                                            active_set.id %}Obs! Gammel turnus.
-                                            {{current_turnus_set.year_identifier | display_name}}.{%
+                                            active_set.id %}Obs! Du ser på
+                                            {{current_turnus_set.year_identifier | display_name}}
+                                            – ikke det aktive turnussettet.{%
                                             endif %}
                                         </p>
                                     </div>

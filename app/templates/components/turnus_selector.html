@@ -13,6 +13,7 @@
         href="/switch-year/{{ ts.id }}">
         <i class="bi bi-{% if current_turnus_set and ts.id == current_turnus_set.id %}check-circle{% else %}circle{% endif %}"></i>
         {{ ts.year_identifier | display_name }}
+        {% if ts.is_active %}<span class="badge bg-success ms-1">aktiv</span>{% endif %}
         </a>
     </li>
     {% endfor %}

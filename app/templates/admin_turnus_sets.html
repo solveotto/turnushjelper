@@ -36,6 +36,29 @@
             </div>
             {% endif %}
 
+            <!-- Pending imports awaiting approval -->
+            {% for pending in pending_imports %}
+            <div class="alert alert-warning mb-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1"><i class="bi bi-hourglass-split"></i> Import venter på godkjenning</h5>
+                    <strong>{{ pending.year_id }}</strong> ({{ pending.meta.name }})
+                    — lastet opp av {{ pending.meta.uploader }} {{ pending.meta.staged_at }}
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin.import_turnusset_review', year_id=pending.year_id) }}"
+                       class="btn btn-sm btn-primary">
+                        <i class="bi bi-eye"></i> Se gjennom
+                    </a>
+                    <form method="POST" action="{{ url_for('admin.import_turnusset_cancel', year_id=pending.year_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-x-circle"></i> Avbryt
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
             <!-- Turnus Sets Table -->
             <div class="card">
                 <div class="card-header">
@@ -183,7 +206,7 @@
                                         </form>
 
                                         <form method="POST" action="{{ url_for('admin.delete_turnus_set', turnus_set_id=turnus_set.id) }}"
-                                              style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier | display_name }}? Dette vil også slette alle tilknyttede vakter og favoritter.')">
+                                              style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier | display_name }}? Dette vil også slette alle tilknyttede vakter, favoritter og innplasseringsdata.')">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="bi bi-trash"></i> Slett

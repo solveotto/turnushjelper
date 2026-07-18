@@ -48,6 +48,8 @@ def _log_ingest_success(year_id, count):
 @admin_required
 def manage_turnus_sets():
     """Manage turnus sets"""
+    from app.services import import_turnusset_service
+
     turnus_sets = db_utils.get_all_turnus_sets()
     active_set = db_utils.get_active_turnus_set()
     upload_form = UploadStreklisteForm()
@@ -58,6 +60,7 @@ def manage_turnus_sets():
         turnus_sets=turnus_sets,
         active_set=active_set,
         upload_form=upload_form,
+        pending_imports=import_turnusset_service.list_pending_imports(),
     )
 
 
@@ -108,10 +111,13 @@ def create_turnus_set():
                 "info",
             )
         else:
-            # Handle PDF upload
-            if not form.pdf_file.data:
+            # Handle schedule upload (timeskjema or PDF, sniffed by content)
+            from app.utils.timeskjema_parser import sniff_format
+
+            schedule_file = form.schedule_file.data
+            if not schedule_file:
                 flash(
-                    "Vennligst last opp en PDF-fil eller bruk eksisterende filer.",
+                    "Vennligst last opp en turnusfil eller bruk eksisterende filer.",
                     "danger",
                 )
                 return render_template(
@@ -120,11 +126,28 @@ def create_turnus_set():
                     form=form,
                 )
 
-            # PDF upload - scrape it
-            turnus_json_path, df_json_path = handle_pdf_upload(
-                form.pdf_file.data, year_id
-            )
-            if not turnus_json_path:
+            file_bytes = schedule_file.read()
+            schedule_file.seek(0)
+            file_format = sniff_format(file_bytes)
+
+            if file_format == "timeskjema":
+                return _handle_timeskjema_create(form, year_id, file_bytes)
+            if file_format == "pdf":
+                turnus_json_path, df_json_path = handle_pdf_upload(
+                    schedule_file, year_id
+                )
+                if not turnus_json_path:
+                    return render_template(
+                        "admin_create_turnus_set.html",
+                        page_name="Opprett turnussett",
+                        form=form,
+                    )
+            else:
+                flash(
+                    "Ukjent filformat: filen er verken et timeskjema-eksport "
+                    "eller en PDF. Import avvist.",
+                    "danger",
+                )
                 return render_template(
                     "admin_create_turnus_set.html",
                     page_name="Opprett turnussett",
@@ -225,6 +248,171 @@ def handle_pdf_upload(pdf_file, year_id):
         return None, None
 
 
+def _handle_timeskjema_create(form, year_id, file_bytes):
+    """Timeskjema import: parse, self-check, validate; optionally cross-verify
+    against a PDF. Diffs stage for approval; otherwise finalize directly."""
+    import tempfile
+
+    from app.services import import_turnusset_service
+    from app.utils.pdf.scraper_validator import validate_turnus_json
+    from app.utils.timeskjema_parser import TimeskjemaParseError, parse_timeskjema
+    from app.utils.turnus_diff import diff_turnus_data, enrich_dagsverk
+
+    def render_form():
+        return render_template(
+            "admin_create_turnus_set.html", page_name="Opprett turnussett", form=form
+        )
+
+    try:
+        result = parse_timeskjema(file_bytes)
+    except TimeskjemaParseError as e:
+        _flash_validation_errors(e.errors, year_id)
+        return render_form()
+
+    warning = result.year_id_warning(year_id)
+    if warning:
+        flash(warning, "warning")
+
+    turnuser = result.turnuser
+    valid, errors = validate_turnus_json(turnuser)
+    if not valid:
+        _flash_validation_errors(errors, year_id)
+        return render_form()
+
+    diff = None
+    pdf_bytes = None
+    if form.verify_pdf_file.data:
+        from app.utils.pdf.shiftscraper import ShiftScraper
+
+        pdf_bytes = form.verify_pdf_file.data.read()
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+                tmp.write(pdf_bytes)
+                tmp.flush()
+                scraper = ShiftScraper()
+                scraper.scrape_pdf(tmp.name, year_id)
+        except Exception as e:
+            ingest_logger.exception(
+                "Turnus verify-PDF scrape CRASHED %s (user=%s)",
+                year_id, _current_username(),
+            )
+            flash(
+                f"Verifiserings-PDF kunne ikke leses ({e}). Importen er avvist — "
+                "last opp på nytt uten verifiserings-PDF for å importere uten kontroll.",
+                "danger",
+            )
+            return render_form()
+        diff = diff_turnus_data(turnuser, scraper.turnuser)
+        turnuser = enrich_dagsverk(turnuser, scraper.turnuser)
+
+    _log_ingest_success(year_id, len(turnuser))
+    flash(
+        f"Validering OK: {len(turnuser)} av {len(turnuser)} turnuser godkjent.",
+        "info",
+    )
+
+    meta = {
+        "name": form.name.data,
+        "year_identifier": year_id,
+        "is_active": bool(form.is_active.data),
+        "uploader": _current_username(),
+    }
+    import_turnusset_service.stage_pending_import(
+        year_id, turnuser, diff or {"is_empty": True}, meta, file_bytes, pdf_bytes
+    )
+
+    if diff is not None and not diff["is_empty"]:
+        n_cells = len(diff["cells"]) + len(diff["totals"])
+        flash(
+            f"PDF-verifisering fant {n_cells} avvik. Se gjennom og godkjenn "
+            "eller avbryt importen.",
+            "warning",
+        )
+        return redirect(url_for("admin.import_turnusset_review", year_id=year_id))
+
+    if diff is not None:
+        flash("PDF-verifisering: ingen avvik.", "info")
+
+    success, message = import_turnusset_service.finalize_turnusset_import(
+        year_id, meta["name"], meta["is_active"], turnuser
+    )
+    if not success:
+        import_turnusset_service.clear_pending_import(year_id)
+        flash(message, "danger")
+        return render_form()
+    flash(message, "success")
+    return redirect(url_for("admin.manage_turnus_sets"))
+
+
+@admin.route("/import-turnusset/review/<year_id>")
+@admin_required
+def import_turnusset_review(year_id):
+    """Review page for a staged timeskjema import with PDF differences."""
+    from app.services import import_turnusset_service
+
+    if not import_turnusset_service.is_valid_year_id(year_id):
+        flash("Ugyldig årsidentifikator.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+    staged = import_turnusset_service.load_pending_import(year_id)
+    if staged is None:
+        flash(f"Ingen ventende import for {year_id}.", "warning")
+        return redirect(url_for("admin.manage_turnus_sets"))
+    return render_template(
+        "admin_import_review.html",
+        page_name="Godkjenn turnusimport",
+        year_id=year_id.upper(),
+        diff=staged["diff"],
+        meta=staged["meta"],
+        turnus_count=len(staged["turnuser"]),
+    )
+
+
+@admin.route("/import-turnusset/approve/<year_id>", methods=["POST"])
+@admin_required
+def import_turnusset_approve(year_id):
+    """Finalize a staged import after admin adjudication of the diff."""
+    from app.services import import_turnusset_service
+
+    if not import_turnusset_service.is_valid_year_id(year_id):
+        flash("Ugyldig årsidentifikator.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+    staged = import_turnusset_service.load_pending_import(year_id)
+    if staged is None:
+        flash(f"Ingen ventende import for {year_id}.", "warning")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    meta = staged["meta"]
+    success, message = import_turnusset_service.finalize_turnusset_import(
+        year_id, meta["name"], meta["is_active"], staged["turnuser"]
+    )
+    if success:
+        ingest_logger.info(
+            "Turnus import APPROVED %s (user=%s, staged by %s)",
+            year_id, _current_username(), meta.get("uploader", "?"),
+        )
+        flash(message, "success")
+    else:
+        flash(message, "danger")
+    return redirect(url_for("admin.manage_turnus_sets"))
+
+
+@admin.route("/import-turnusset/cancel/<year_id>", methods=["POST"])
+@admin_required
+def import_turnusset_cancel(year_id):
+    """Discard a staged import."""
+    from app.services import import_turnusset_service
+
+    if not import_turnusset_service.is_valid_year_id(year_id):
+        flash("Ugyldig årsidentifikator.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+    import_turnusset_service.clear_pending_import(year_id)
+    ingest_logger.info(
+        "Turnus import CANCELLED %s (user=%s)", year_id, _current_username()
+    )
+    flash(f"Import av {year_id.upper()} avbrutt. Ingen data er endret.", "info")
+    return redirect(url_for("admin.manage_turnus_sets"))
+
+
 @admin.route("/switch-turnus-set", methods=["POST"])
 @admin_required
 def switch_turnus_set():
@@ -247,7 +435,8 @@ def switch_turnus_set():
 @admin.route("/refresh-turnus-set/<int:turnus_set_id>", methods=["POST"])
 @admin_required
 def refresh_turnus_set(turnus_set_id):
-    """Re-scrape the PDF and update shift names in the database, preserving favorites."""
+    """Re-ingest the stored source file (timeskjema preferred, PDF fallback)
+    and update shift names in the database, preserving favorites."""
     turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         flash("Turnussett ikke funnet.", "danger")
@@ -260,38 +449,89 @@ def refresh_turnus_set(turnus_set_id):
         from app.utils.pdf.scraper_validator import validate_turnus_json
         from app.utils.pdf.shiftscraper import ShiftScraper
         from app.utils.shift_stats import Turnus
+        from app.utils.timeskjema_parser import TimeskjemaParseError, parse_timeskjema
+        from app.utils.turnus_diff import enrich_dagsverk
 
-        # Find the original PDF
-        turnusfiler_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version, "pdf")
-        pdf_path = os.path.join(turnusfiler_dir, f"turnuser_{year_id}.pdf")
+        version_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version)
+        timeskjema_path = os.path.join(version_dir, f"turnuser_{year_id}.xls")
+        pdf_path = os.path.join(version_dir, "pdf", f"turnuser_{year_id}.pdf")
 
-        if not os.path.exists(pdf_path):
-            flash(f"PDF ikke funnet: {pdf_path}", "danger")
+        if os.path.exists(timeskjema_path):
+            # Primary source. Deliberately no diff step here: the stored PDF
+            # may be an older revision, and re-surfacing the same known diff on
+            # every refresh helps no one. Enrichment, by contrast, is safe to
+            # re-run (non-matching base numbers never enrich) and without it a
+            # refresh would strip the dagsverk suffixes.
+            try:
+                result = parse_timeskjema(timeskjema_path)
+            except TimeskjemaParseError as e:
+                _flash_validation_errors(e.errors, year_id)
+                flash("Eksisterende turnusdata er ikke endret.", "warning")
+                return redirect(url_for("admin.manage_turnus_sets"))
+
+            turnuser = result.turnuser
+            valid, errors = validate_turnus_json(turnuser)
+            if not valid:
+                _flash_validation_errors(errors, year_id)
+                flash("Eksisterende turnusdata er ikke endret.", "warning")
+                return redirect(url_for("admin.manage_turnus_sets"))
+
+            if os.path.exists(pdf_path):
+                try:
+                    scraper = ShiftScraper()
+                    scraper.scrape_pdf(pdf_path, year_id)
+                    turnuser = enrich_dagsverk(turnuser, scraper.turnuser)
+                except Exception:
+                    ingest_logger.exception(
+                        "Turnus refresh enrichment failed %s (user=%s)",
+                        year_id, _current_username(),
+                    )
+                    flash(
+                        "Kunne ikke lese lagret PDF for dagsverk-berikelse; "
+                        "oppdaterer med rene vaktnumre.",
+                        "warning",
+                    )
+
+            count = len(turnuser)
+            turnus_json_path = os.path.join(
+                version_dir, f"turnus_schedule_{year_id}.json"
+            )
+            with open(turnus_json_path, "w") as f:
+                json.dump(turnuser, f, indent=4)
+        elif os.path.exists(pdf_path):
+            # Fallback: re-scrape the PDF into memory
+            scraper = ShiftScraper()
+            scraper.scrape_pdf(pdf_path, year_id)
+
+            # Validate before overwriting the existing JSON on disk
+            valid, errors = validate_turnus_json(scraper.turnuser)
+            if not valid:
+                _flash_validation_errors(errors, year_id)
+                flash("Eksisterende turnusdata er ikke endret.", "warning")
+                return redirect(url_for("admin.manage_turnus_sets"))
+
+            count = len(scraper.turnuser)
+            turnus_json_path = scraper.create_json(year_id=year_id)
+        else:
+            flash(
+                f"Fant verken timeskjema ({timeskjema_path}) eller PDF ({pdf_path}).",
+                "danger",
+            )
             return redirect(url_for("admin.manage_turnus_sets"))
 
-        # Re-scrape the PDF into memory
-        scraper = ShiftScraper()
-        scraper.scrape_pdf(pdf_path, year_id)
-
-        # Validate before overwriting the existing JSON on disk
-        valid, errors = validate_turnus_json(scraper.turnuser)
-        if not valid:
-            _flash_validation_errors(errors, year_id)
-            flash("Eksisterende turnusdata er ikke endret.", "warning")
-            return redirect(url_for("admin.manage_turnus_sets"))
-
-        _log_ingest_success(year_id, len(scraper.turnuser))
+        _log_ingest_success(year_id, count)
         flash(
-            f"Validering OK: {len(scraper.turnuser)} av {len(scraper.turnuser)} turnuser godkjent.",
+            f"Validering OK: {count} av {count} turnuser godkjent.",
             "info",
         )
-        turnus_json_path = scraper.create_json(year_id=year_id)
 
         # Regenerate statistics JSON
         stats = Turnus(turnus_json_path)
-        version_dir = os.path.dirname(turnusfiler_dir)
         df_json_path = os.path.join(version_dir, f"turnus_stats_{year_id}.json")
         stats.stats_df.to_json(df_json_path)
+
+        # Counts are derived from the schedule data; drop the stale cache entry
+        cache.delete(f"kompdager_{turnus_set_id}")
 
         # Update shift names in DB (preserving favorites)
         summary = db_utils.refresh_turnus_set_shifts(turnus_set_id, turnus_json_path)

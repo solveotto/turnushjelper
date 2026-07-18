@@ -183,7 +183,7 @@ def delete_turnus_set(turnus_set_id):
     """Delete a turnus set and all its associated data"""
     db_session = get_db_session()
     try:
-        from app.models import SoknadsskjemaChoice
+        from app.models import Innplassering, SoknadsskjemaChoice
         turnus_set = db_session.query(TurnusSet).filter_by(id=turnus_set_id).first()
         if not turnus_set:
             return False, "Turnussett ikke funnet"
@@ -191,6 +191,7 @@ def delete_turnus_set(turnus_set_id):
         db_session.query(Shifts).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.query(Favorites).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.query(SoknadsskjemaChoice).filter_by(turnus_set_id=turnus_set_id).delete()
+        db_session.query(Innplassering).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.delete(turnus_set)
         db_session.commit()
         cache.delete_memoized(get_active_turnus_set)

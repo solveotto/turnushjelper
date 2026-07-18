@@ -67,21 +67,39 @@
                         </div>
 
                         <div class="file-upload-section">
-                            <h6>Last opp PDF-fil</h6>
-                            <p class="text-muted small">Last opp en PDF-fil for å automatisk skrape og generere JSON/Excel-filer.</p>
+                            <h6>Last opp turnusfil</h6>
+                            <p class="text-muted small">
+                                Timeskjema-eksport (.xls) er hovedkilden. PDF støttes som
+                                reserveløsning. Formatet gjenkjennes automatisk fra innholdet.
+                            </p>
 
                             <div class="mb-3">
-                                {{ form.pdf_file.label(class="form-label") }}
-                                {{ form.pdf_file(class="form-control") }}
-                                {% if form.pdf_file.errors %}
+                                {{ form.schedule_file.label(class="form-label") }}
+                                {{ form.schedule_file(class="form-control") }}
+                                {% if form.schedule_file.errors %}
                                     <div class="text-danger">
-                                        {% for error in form.pdf_file.errors %}
+                                        {% for error in form.schedule_file.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.verify_pdf_file.label(class="form-label") }}
+                                {{ form.verify_pdf_file(class="form-control") }}
+                                {% if form.verify_pdf_file.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.verify_pdf_file.errors %}
                                             <small>{{ error }}</small>
                                         {% endfor %}
                                     </div>
                                 {% endif %}
                                 <small class="form-text text-muted">
-                                    <strong>PDF-en vil automatisk bli skrapet</strong> for å generere JSON- og Excel-filer
+                                    Gjelder kun timeskjema-import: dataene sammenlignes med
+                                    PDF-en, avvik må godkjennes før importen fullføres, og
+                                    vaktnumre berikes med PDF-ens tilleggskoder (f.eks.
+                                    3006_SKNO).
                                 </small>
                             </div>
                         </div>

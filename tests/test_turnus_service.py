@@ -40,12 +40,28 @@ class TestDelete:
         ))
         db_session.commit()
 
-        success, _ = turnus_service.delete_turnus_set(ts["id"])
-        assert success is True
+        success, msg = turnus_service.delete_turnus_set(ts["id"])
+        assert success is True, msg
 
         assert turnus_service.get_turnus_set_by_year("D25") is None
         assert db_session.query(Shifts).filter_by(turnus_set_id=ts["id"]).count() == 0
         assert db_session.query(Favorites).filter_by(turnus_set_id=ts["id"]).count() == 0
+
+    def test_delete_removes_innplassering(self, patch_db, db_session):
+        from app.models import Innplassering
+
+        turnus_service.create_turnus_set("Del Set", "D25")
+        ts = turnus_service.get_turnus_set_by_year("D25")
+
+        db_session.add(Innplassering(
+            turnus_set_id=ts["id"], rullenummer="123", shift_title="X1",
+        ))
+        db_session.commit()
+
+        success, msg = turnus_service.delete_turnus_set(ts["id"])
+        assert success is True, msg
+
+        assert db_session.query(Innplassering).filter_by(turnus_set_id=ts["id"]).count() == 0
 
 
 class TestDeleteTurnusSetCleansUpSoknadsskjema:
