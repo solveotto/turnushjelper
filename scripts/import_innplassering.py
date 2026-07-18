@@ -27,7 +27,7 @@ def main():
 
     from app.services.turnus_service import get_turnus_set_by_year
     from app.services.innplassering_service import import_innplassering
-    from config import AppConfig
+    from app.utils import protected_paths
 
     turnus_set = get_turnus_set_by_year(year_id)
     if not turnus_set:
@@ -43,8 +43,8 @@ def main():
     if args.pdf_path:
         pdf_path = args.pdf_path
     else:
-        version = year_id.lower()
-        pdf_path = os.path.join(AppConfig.static_dir, "turnusfiler", version, f"Innplassering {year_id}.pdf")
+        # PII file — lives in instance/protected/, never under app/static/.
+        pdf_path = protected_paths.innplassering_pdf_path(year_id)
 
     if not os.path.exists(pdf_path):
         print(f"Error: Innplassering PDF not found: {pdf_path}")

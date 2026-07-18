@@ -1,6 +1,6 @@
 import os
 
-from flask import current_app, flash, redirect, render_template, url_for
+from flask import flash, redirect, render_template, url_for
 from flask_login import current_user
 
 from app.database import get_db_session
@@ -9,7 +9,7 @@ from app.extensions import cache
 from app.models import DBUser
 from app.routes.admin import admin
 from app.services import user_service
-from app.utils import db_utils
+from app.utils import db_utils, protected_paths
 
 
 @admin.route("/dashboard")
@@ -22,8 +22,7 @@ def admin_dashboard():
     turnus_sets = db_utils.get_all_turnus_sets()
     active_set = db_utils.get_active_turnus_set()
 
-    pdf_path = os.path.join(current_app.root_path, "static", "turnusfiler", "ansinitet.pdf")
-    pdf_exists = os.path.exists(pdf_path)
+    pdf_exists = os.path.exists(protected_paths.ansinitet_pdf_path())
 
     return render_template(
         "admin.html",

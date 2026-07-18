@@ -33,10 +33,15 @@ Place in `app/static/turnusfiler/{rXX}/` (match R26's naming):
 |---|---|
 | turnus PDF (e.g. `Oslo R27 ....pdf`) | schedule scrape source |
 | Timeskjema `.xls` | TSV cross-check / future primary |
-| `innplassering_RXX.pdf` | who is placed on which tur |
 | `streklister/{rxx}_streker.pdf` | strekliste PNGs + double shifts |
 | `turnusnøkkel_RXX_org.xlsx` | only calendar-date source; kompdager |
 | `søknadsskjema_org.docx` | application form template |
+
+**PII exception:** `innplassering_RXX.pdf` (who is placed on which tur) goes in
+`instance/protected/{rXX}/` (`AppConfig.protected_dir`), NOT under `app/static/` —
+everything under static is served without authentication. Same for
+`medlemsliste.xlsx` and `ansinitet.pdf`. `tests/test_protected_files.py`
+enforces this.
 
 ## Steps
 

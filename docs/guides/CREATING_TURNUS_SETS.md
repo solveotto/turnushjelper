@@ -119,7 +119,7 @@ existing data is left untouched.**
 | `turnusfiler/{year}/turnusnøkkel_{YEAR}_org.xlsx` | Manual upload (Step 2) | Yes |
 | `turnusfiler/{year}/double_shifts_{year}.json` | Strekliste generate (Step 2) | No (gitignored) |
 | strekliste PNG images | Strekliste generate (Step 2) | No (gitignored) |
-| `turnusfiler/{year}/innplassering_{YEAR}.pdf` + `Innplassering` rows | Innplassering import (Step 2) | No (gitignored) |
+| `instance/protected/{year}/innplassering_{YEAR}.pdf` + `Innplassering` rows | Innplassering import (Step 2) | No (PII — outside static, gitignored) |
 | `TurnusSet` row, `Shifts` rows | Create flow (Step 1) | DB |
 | `app/logs/turnus_import.log` | Every import (success/failure/crash) | No (log) |
 

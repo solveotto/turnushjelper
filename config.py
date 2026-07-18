@@ -123,3 +123,7 @@ class AppConfig:
     turnusfiler_dir = os.path.abspath(
         os.path.join(base_dir, "app", "static", "turnusfiler")
     )
+    # Member/employee PII files (medlemsliste, ansinitet, innplassering PDFs).
+    # MUST stay outside app/static — everything under static is served without
+    # authentication. instance/ is gitignored, so these files never enter git.
+    protected_dir = os.path.abspath(os.path.join(base_dir, "instance", "protected"))

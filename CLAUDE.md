@@ -97,6 +97,8 @@ Static JSON files live in `app/static/turnusfiler/{year_id}/`:
 
 Active turnus set is stored in `TurnusSet` table (`is_active=1`). `DataframeManager` in `app/utils/df_utils.py` loads and caches the JSON into a pandas DataFrame.
 
+**PII files never go under `app/static/`** — everything there is served without authentication. `medlemsliste.xlsx`, `ansinitet.pdf`, and `innplassering_{YEAR}.pdf` live in `instance/protected/` via `app/utils/protected_paths.py` (`AppConfig.protected_dir`); enforced by `tests/test_protected_files.py`. See `docs/guides/PROTECTED_FILES.md`.
+
 The schedule JSON is an abstract 6-week rotation with no calendar dates. The only calendar-date source is the Excel template `turnusnøkkel_{YEAR}_org.xlsx` (sheet `Turnusnøkkel`, 6 groups × 8 rows, dates in columns H–P). A worker on linje `j` follows rotation week `((g + j - 1) % 6) + 1` during nøkkel group `g`.
 
 ### Turnus Data Sources & Ingestion

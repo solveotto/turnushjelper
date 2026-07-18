@@ -7,6 +7,10 @@ instance/
 app/static/turnusfiler/**/*.pdf
 app/static/turnusfiler/**/*.png
 app/static/turnusfiler/**/double_shifts_*.json
+# PII files must never live under app/static (served without auth) — they
+# belong in instance/protected/. These rules block accidental re-adds.
+app/static/**/medlemsliste*.xlsx
+app/static/**/ansinitet*.pdf
 nul
 General/
 .metadata

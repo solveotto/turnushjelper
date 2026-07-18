@@ -10,7 +10,7 @@ from app.database import get_db_session
 from app.extensions import cache
 from app.forms import CreateTurnusSetForm, UploadStreklisteForm
 from app.routes.admin import admin
-from app.utils import db_utils, df_utils
+from app.utils import db_utils, df_utils, protected_paths
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
 from config import AppConfig
@@ -420,11 +420,7 @@ def innplassering_status(turnus_set_id):
     if not turnus_set:
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
-    version = turnus_set["year_identifier"].lower()
-    pdf_path = os.path.join(
-        AppConfig.static_dir, "turnusfiler", version,
-        f"innplassering_{turnus_set['year_identifier']}.pdf"
-    )
+    pdf_path = protected_paths.innplassering_pdf_path(turnus_set["year_identifier"])
     return jsonify({
         "status": "success",
         "record_count": count,
@@ -444,11 +440,9 @@ def import_innplassering_route(turnus_set_id):
         return redirect(url_for("admin.manage_turnus_sets"))
 
     year_id = turnus_set["year_identifier"]
-    version = year_id.lower()
-    turnusfiler_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version)
-    os.makedirs(turnusfiler_dir, exist_ok=True)
-
-    pdf_save_path = os.path.join(turnusfiler_dir, f"innplassering_{year_id}.pdf")
+    pdf_save_path = protected_paths.ensure_parent_dir(
+        protected_paths.innplassering_pdf_path(year_id)
+    )
 
     # Accept an uploaded file, or fall back to the previously-saved PDF
     uploaded = request.files.get("pdf_file")

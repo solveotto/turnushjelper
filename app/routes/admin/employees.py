@@ -20,14 +20,17 @@ from app.extensions import cache
 from app.models import DBUser, Favorites
 from app.routes.admin import admin
 from app.services import user_service
-from app.utils import db_utils, df_utils
+from app.utils import db_utils, df_utils, protected_paths
 
 
 def _member_excel_path():
-    """Storage path for the uploaded NLF member list."""
-    return os.path.join(
-        current_app.root_path, "static", "turnusfiler", "medlemsliste.xlsx"
-    )
+    """Storage path for the uploaded NLF member list (PII — never under static)."""
+    return protected_paths.member_excel_path()
+
+
+def _ansinitet_pdf_path():
+    """Storage path for the seniority-list PDF (PII — never under static)."""
+    return protected_paths.ansinitet_pdf_path()
 
 
 @admin.route("/employees")
@@ -60,9 +63,7 @@ def manage_employees():
             # Medlemsnummer-only stub from the member list import
             stub_list.append(emp)
 
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
+    pdf_path = _ansinitet_pdf_path()
     pdf_exists = os.path.exists(pdf_path)
 
     pdf_date = None
@@ -122,6 +123,7 @@ def upload_member_excel():
         flash("Kun Excel-filer (.xlsx) er tillatt.", "danger")
         return redirect(url_for("admin.manage_employees"))
 
+    protected_paths.ensure_protected_dir()
     excel_path = _member_excel_path()
     excel_file.save(excel_path)
 
@@ -166,9 +168,7 @@ def import_employees():
     """Enrich existing member-list users with rullenummer/HR data from the seniority PDF."""
     from app.utils.pdf.employee_scraper import scrape_employees
 
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
+    pdf_path = _ansinitet_pdf_path()
     if not os.path.exists(pdf_path):
         flash(f"PDF ikke funnet: {pdf_path}", "danger")
         return redirect(url_for("admin.manage_employees"))
@@ -261,9 +261,8 @@ def upload_ansinitet_pdf():
         flash("Kun PDF-filer er tillatt.", "danger")
         return redirect(url_for("admin.manage_employees"))
 
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
+    protected_paths.ensure_protected_dir()
+    pdf_path = _ansinitet_pdf_path()
     pdf_file.save(pdf_path)
 
     try:
@@ -302,9 +301,7 @@ def sync_employees():
     """Re-import PDF, updating changed HR data on existing member-list users."""
     from app.utils.pdf.employee_scraper import scrape_employees
 
-    pdf_path = os.path.join(
-        current_app.root_path, "static", "turnusfiler", "ansinitet.pdf"
-    )
+    pdf_path = _ansinitet_pdf_path()
     if not os.path.exists(pdf_path):
         flash(f"PDF ikke funnet: {pdf_path}", "danger")
         return redirect(url_for("admin.manage_employees"))
