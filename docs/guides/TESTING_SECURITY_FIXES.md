@@ -17,6 +17,12 @@ The fixes under test:
 > **No database migration is required.** None of these fixes changed `app/models.py`,
 > so there is no Alembic step — deploy is just code + config + restart.
 
+> **Known limitation (not one of these fixes):** the rate limiter uses `memory://`
+> storage, which is per-process. With 2 gunicorn workers each keeping its own
+> counter, per-route limits are effectively **~2x** the documented number — the
+> `10/hour` on `/register` allows ~20/hour in production. Give the limiter a shared
+> backend (Redis) via `storage_uri` if a true shared limit is required.
+
 ---
 
 ## Part A — Development machine (SQLite, http://localhost:8080)
@@ -191,11 +197,26 @@ The single most telling end-to-end check:
 2. Open the email → the reset link **must start with `https://`** (not `http://`).
    This proves nginx's `X-Forwarded-Proto` is being read via ProxyFix.
 
-Optionally confirm the app sees the real client IP (not `127.0.0.1`) — the rate
-limiter now buckets per real IP. You can spot-check in the app/journal logs while
-hitting a rate-limited route (`/register`, 10/hour) from your own machine.
+The `X-Forwarded-Proto` half is proven above. To prove the `X-Forwarded-For`
+half — that the limiter buckets per *real* client IP, not one shared upstream IP
+— you must exercise it directly (the nginx access log shows the real IP even when
+ProxyFix is broken, and the app logs no `remote_addr`, so neither log tells you
+anything):
 
-> nginx already forwards the needed headers (verified: `proxy_params` sets
+1. From **machine A**, exhaust `/register`'s POST limit. Reloading the URL does
+   nothing — it's a GET, and the limit is POST-only. A curl loop must send a
+   `Referer` header (WTF_CSRF_SSL_STRICT rejects https POSTs without one with a
+   302, before the limiter counts them) and a fresh `csrf_token` per request.
+   Send ~25: the limit is `10/hour` **per gunicorn worker** (memory:// storage
+   isn't shared across the 2 workers), so the real ceiling is ~20 and `429`
+   starts around POST 20.
+2. From **machine B on a different public IP** (e.g. a phone on mobile data,
+   WiFi off), submit `/register` **once**, within the hour.
+   - Normal "ikke autorisert" page → per-IP buckets work, `x_for` is correct. ✅
+   - Immediate `429` → all clients share one bucket, `x_for` is misconfigured. ❌
+
+> Verified correct on staging 2026-07-18 with exactly this test.
+> nginx already forwards the needed headers (`proxy_params` sets
 > `X-Forwarded-For` and `X-Forwarded-Proto` inside the app `location`). If email
 > links ever come out `http://`, re-check those headers.
 
