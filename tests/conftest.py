@@ -126,6 +126,15 @@ def app(patch_db, monkeypatch):
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["SERVER_NAME"] = "localhost"
 
+    # Disable rate limiting at runtime, NOT via RATELIMIT_ENABLED config:
+    # with the config flag off, init_app returns before creating the storage
+    # backend, and the limiter can never be re-enabled for the 429 tests.
+    # init_app above ran with the flag on, so storage exists (and is rebuilt
+    # per test app, isolating counters); this just switches enforcement off.
+    # login_user() runs far more than 10 logins/minute across the suite.
+    from app.extensions import limiter
+    limiter.enabled = False
+
     yield app
 
 

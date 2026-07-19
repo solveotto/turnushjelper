@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -6,6 +7,17 @@ from app.database import get_db_session
 from app.models import DBUser, EmailVerificationToken
 
 logger = logging.getLogger(__name__)
+
+
+def _hash_token(token):
+    """SHA-256 hex digest of a raw token; only the hash is stored at rest.
+
+    A leaked database or backup must not yield usable verification or
+    password-reset links — the raw token exists only in the emailed URL.
+    Deploying this invalidates tokens issued before it (stored raw); they
+    expire within 48h anyway and users can simply request a new link.
+    """
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def purge_expired_tokens():
@@ -46,7 +58,7 @@ def create_verification_token(user_id, token):
 
         new_token = EmailVerificationToken(
             user_id=user_id,
-            token=token,
+            token=_hash_token(token),
             expires_at=expires_at
         )
         db_session.add(new_token)
@@ -65,7 +77,7 @@ def verify_token(token):
     db_session = get_db_session()
     try:
         token_record = db_session.query(EmailVerificationToken).filter_by(
-            token=token,
+            token=_hash_token(token),
             used=0
         ).first()
 
@@ -147,7 +159,7 @@ def create_password_reset_token(user_id, token):
 
         new_token = EmailVerificationToken(
             user_id=user_id,
-            token=token,
+            token=_hash_token(token),
             expires_at=expires_at,
             token_type='password_reset'
         )
@@ -167,7 +179,7 @@ def verify_password_reset_token(token):
     db_session = get_db_session()
     try:
         token_record = db_session.query(EmailVerificationToken).filter_by(
-            token=token,
+            token=_hash_token(token),
             token_type='password_reset',
             used=0
         ).first()

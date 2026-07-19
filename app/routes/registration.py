@@ -138,6 +138,7 @@ def verify_email(token):
 
 
 @registration.route("/resend-verification", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])
 def resend_verification():
     """Resend verification email for unverified users"""
     form = ResendVerificationForm()

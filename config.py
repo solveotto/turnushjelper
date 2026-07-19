@@ -75,6 +75,12 @@ class AppConfig:
         "TRUSTED_PROXY_COUNT", 1 if DB_TYPE == "mysql" else 0
     )
 
+    # Rate-limiting kill-switch (emergency use). With the flag off,
+    # Flask-Limiter's init_app skips storage setup entirely — the limiter
+    # cannot be re-enabled at runtime afterwards. Tests therefore keep this
+    # on and instead flip limiter.enabled after init (see tests/conftest.py).
+    RATELIMIT_ENABLED = _env_bool("RATELIMIT_ENABLED", True)
+
     # Email — Mailgun (primary)
     MAILGUN_API_KEY = _env("MAILGUN_API_KEY", "")
     MAILGUN_DOMAIN = _env("MAILGUN_DOMAIN", "mail.turnushjelper.no")

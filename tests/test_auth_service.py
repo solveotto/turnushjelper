@@ -20,12 +20,27 @@ class TestVerificationToken:
         data = user_service.get_user_data(sample_user["username"])
         assert data["email_verified"] == 1
 
+    def test_token_stored_hashed_not_raw(self, patch_db, db_session, sample_user):
+        token = uuid.uuid4().hex
+        auth_service.create_verification_token(sample_user["id"], token)
+
+        stored = db_session.query(EmailVerificationToken).filter_by(
+            user_id=sample_user["id"], used=0
+        ).first()
+        assert stored.token != token
+        assert stored.token == auth_service._hash_token(token)
+
+        # The raw (emailed) token still verifies end-to-end
+        assert auth_service.verify_token(token)["success"] is True
+
     def test_verify_expired_token(self, patch_db, db_session, sample_user):
         token = uuid.uuid4().hex
         auth_service.create_verification_token(sample_user["id"], token)
 
-        # Manually expire the token
-        record = db_session.query(EmailVerificationToken).filter_by(token=token).first()
+        # Manually expire the token (stored under its hash)
+        record = db_session.query(EmailVerificationToken).filter_by(
+            token=auth_service._hash_token(token)
+        ).first()
         record.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
         db_session.commit()
 
@@ -67,7 +82,7 @@ class TestTokenExpiry:
 
         expired_token = EmailVerificationToken(
             user_id=sample_user["id"],
-            token="expired-tok-123",
+            token=auth_service._hash_token("expired-tok-123"),
             expires_at=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=1),
             used=0,
         )
@@ -83,7 +98,7 @@ class TestTokenExpiry:
 
         valid_token = EmailVerificationToken(
             user_id=sample_user["id"],
-            token="valid-tok-456",
+            token=auth_service._hash_token("valid-tok-456"),
             expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=48),
             used=0,
         )

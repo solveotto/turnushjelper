@@ -6,6 +6,7 @@ from flask import Blueprint, flash, redirect, render_template, session, url_for
 from flask_login import current_user, login_required, logout_user
 from flask_login import login_user as flask_login_user
 
+from app.extensions import limiter
 from app.forms import ForgotPasswordForm, LoginForm, ResetPasswordForm
 from app.models import User
 from app.utils import db_utils
@@ -17,6 +18,7 @@ auth = Blueprint("auth", __name__)
 
 
 @auth.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute", methods=["POST"])
 def login():
     # from app.routes.main import current_user  # Import here to avoid circular imports
 
@@ -115,6 +117,7 @@ def logout():
 
 
 @auth.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(url_for("shifts.index"))
@@ -159,6 +162,7 @@ def forgot_password():
 
 
 @auth.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("10 per hour", methods=["POST"])
 def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for("shifts.index"))
