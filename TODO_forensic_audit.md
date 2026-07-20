@@ -50,26 +50,45 @@ time. Until the re-import runs, prod 7th-drivers have row-counter linjer
 
 **Action:** admin UI → import innplassering for R26, or
 `scripts/import_innplassering.py --year R26` on the server.
-**Verify:** the ten 7th-drivers have linjer 1–6 in the `innplassering` table.
+**Verify:** `venv/bin/python scripts/check_7th_drivers.py --year R26` on the
+server — exits 0 and prints "All linjenummer values are in 1-6" when correct;
+exits 1 and flags rows with `<-- INVALID` if the row-counter bug is still
+present (re-run the import). Re-run this same check after any future
+innplassering import (R27, ...).
+
+> **Status (2026-07-19): DONE.** Re-imported on prod; verified with
+> `scripts/check_7th_drivers.py` (written same day so this doesn't require
+> hand-written SQL or a pasted Python snippet next time) — all 10 R26
+> 7.fører rows have `linje` in 1-6.
 
 ### Task 0.2: Move PII files on the prod server (git-history purge deferred)
 
 The code-side fix (`instance/protected/` + `app/utils/protected_paths.py`) is
 done.
 
-**Do now — the live web-exposure fix.** Prod still needs `medlemsliste.xlsx` /
-`ansinitet.pdf` / `innplassering_*.pdf` moved out of `app/static/` (served
-without auth) into `instance/protected/` (see `docs/guides/PROTECTED_FILES.md`).
+> **Status (2026-07-19): DONE** — Solve committed + pushed the backlog
+> (`99252d5` and 6 following commits, none of which had reached `origin`
+> before), pulled on the prod server, and ran the `mv` migration from
+> `docs/guides/PROTECTED_FILES.md` (`medlemsliste.xlsx`, `ansinitet.pdf`,
+> `r26/innplassering_R26.pdf` → `instance/protected/`), then restarted the
+> service. Verified: `medlemsliste.xlsx`/`ansinitet.pdf`-adding commits
+> (`da67f59`, `cbc6ef6`, `7c68683`, `29d226e`) were already on `origin/main`
+> from an earlier push — pushing now added no new exposure there, it only
+> shipped the fix. One follow-up surfaced during verification: the admin
+> employees page still *displayed* the old `app/static/turnusfiler/…` path
+> for medlemsliste/ansinitet (cosmetic only — the actual read path was
+> already correct) — fixed same day, see Phase 3 Task 8 step 5.
 
 **Deferred — git-history purge (conditional, not urgent).**
 `medlemsliste.xlsx` is still recoverable from git history — added/modified in
-commits `da67f59`, `cbc6ef6`, `7c68683`, `29d226e`. While Solve is the **only**
-account with repo access, the history is readable only by someone who already
-has every file on the server, so the purge defends against no real threat and
-carries the highest irreversibility risk in this file. **Run `git filter-repo`
-to purge it ONLY before the repo is ever pushed to a shared remote, given a
-collaborator, or handed to a contractor — and do it first, before sharing**
-(coordinate with any clones; the history rewrite invalidates them).
+commits `da67f59`, `cbc6ef6`, `7c68683`, `29d226e`, and confirmed live on
+`origin/main` (private GitHub repo, Solve's sole account). Since Solve is the
+**only** account with repo access, the purge defends against no real threat
+today and carries the highest irreversibility risk in this file. **Run
+`git filter-repo` to purge it ONLY before the repo is ever pushed to a shared
+remote, given a collaborator, or handed to a contractor — and do it first,
+before sharing** (coordinate with any clones; the history rewrite invalidates
+them).
 
 ### Task 0.3: Decide which gunicorn config is canonical
 
@@ -316,10 +335,11 @@ read-pickle/write-JSON transition period is implemented. Options:
       `@login_required`, resolve the year dir from the user's turnus set,
       sanitize with `os.path.basename`, serve with `send_from_directory`
       (mirror the pattern in `api.py::get_shift_image`).
-   5. Fix the stale PII-path text in `app/templates/admin_employees.html`
-      (~lines 69 and 147) — it still names `app/static/turnusfiler/…` for
-      medlemsliste/ansinitet, which have lived in `instance/protected/`
-      since 2026-07-18.
+   5. ~~Fix the stale PII-path text in `app/templates/admin_employees.html`~~
+      **DONE 2026-07-19** — lines 69/147 now show `instance/protected/…`
+      instead of the old `app/static/turnusfiler/…` (display text only; the
+      actual read path via `app/utils/protected_paths.py` was already
+      correct, so no functional bug — just a misleading admin-page label).
    6. Update path references in tests (`test_data_integrity.py`,
       `test_import_turnusset_routes.py`, `test_kompdag_routes.py`,
       `test_protected_files.py`, `test_shift_stats.py`,
