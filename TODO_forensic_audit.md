@@ -309,7 +309,40 @@ Options:
   Zero infra. The favorites race stays theoretical (same user, two tabs,
   two workers, same second).
 
-### Task 2.2: DB unique constraint on `users.rullenummer`
+### DONE (code) Task 2.2: DB unique constraint on `users.rullenummer`
+
+> **Status (2026-07-20): implemented locally, NOT yet applied to prod.**
+>
+> Prod audit ran clean via the new `scripts/check_rullenummer_duplicates.py`
+> (`DB_TYPE=mysql`, 395 users, 320 with a rullenummer, 0 duplicates, 0 empty
+> strings) → migration written but **not deployed**. Remaining step is
+> `venv/bin/alembic upgrade head` on the server.
+>
+> - `migrations/versions/017_unique_rullenummer.py` — note it **replaces**
+>   the existing non-unique `ix_users_rullenummer` from migration 015 rather
+>   than adding a second index. Up/down roundtrip verified on dev.
+> - `app/models.py` — `rullenummer` gains `unique=True, index=True`
+>   (mirroring `medlemsnummer`); model and DB had already drifted since 015
+>   added its index out-of-band.
+> - Tests: `test_models.py::TestDBUser::test_unique_rullenummer` and
+>   `test_multiple_null_rullenummer_allowed` (NULL stays exempt — 75 prod
+>   users depend on that).
+>
+> **Real bug the constraint exposed — `sync_members_from_excel` would have
+> broken in production.** `absorb_twins()` and `absorb_fuzzy_twins()`
+> (`app/services/user_service.py`) copied `rullenummer` from a duplicate stub
+> onto the kept user and only *then* called `delete_stub()`, whose query
+> autoflushes — so both rows briefly held the same value and the flush
+> violated the index. Nulling the donor in memory first is **not** enough: a
+> flush orders same-table UPDATEs by primary key, not assignment order, so
+> the target's UPDATE can still land while the donor row exists. Both
+> functions now capture the values, delete the stub (which flushes), then
+> write to the target. 3 member-import tests caught this; all pass now.
+> The same hazard already existed for `medlemsnummer` — hence the
+> pre-existing flush comment inside `delete_stub()`.
+>
+> **Deploy order matters:** push this code *before* running the migration.
+> The old absorb logic against a unique index breaks Excel member import.
 
 App-level collision checks exist (`activate_stub_user`,
 `create_user_with_email`, `update_user`), but any future write path that

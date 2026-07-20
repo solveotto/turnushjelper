@@ -813,13 +813,23 @@ def sync_members_from_excel(members: list) -> dict:
                 and u.id not in claimed_user_ids
             ]
             for twin in twins:
-                for attr in ("rullenummer", "stasjoneringssted", "ans_dato",
-                             "fodt_dato", "seniority_nr"):
-                    if getattr(target, attr) in (None, "") and getattr(
-                        twin, attr
-                    ) not in (None, ""):
-                        setattr(target, attr, getattr(twin, attr))
+                # Capture first, delete the twin, THEN write to target.
+                # rullenummer is unique (migration 017), so target must not
+                # hold the twin's value while the twin's row still exists —
+                # delete_stub() flushes, so afterwards the row is gone and the
+                # UPDATE below is safe. Assigning before the delete fails:
+                # a flush orders same-table UPDATEs by primary key, not by
+                # assignment order, so target's UPDATE can land first.
+                moved = {
+                    attr: getattr(twin, attr)
+                    for attr in ("rullenummer", "stasjoneringssted", "ans_dato",
+                                 "fodt_dato", "seniority_nr")
+                    if getattr(target, attr) in (None, "")
+                    and getattr(twin, attr) not in (None, "")
+                }
                 delete_stub(twin)
+                for attr, val in moved.items():
+                    setattr(target, attr, val)
 
         def absorb_fuzzy_twins(target, stub_ans_dato):
             """Absorb stubs that share an ans_dato and at least one last-name
@@ -841,13 +851,17 @@ def sync_members_from_excel(members: list) -> dict:
                     _normalize_name(u.name.split(",", 1)[0].strip()).split()
                 )
                 if target_last_words & u_last_words:
-                    for attr in ("rullenummer", "stasjoneringssted", "ans_dato",
-                                 "fodt_dato", "seniority_nr"):
-                        if getattr(target, attr) in (None, "") and getattr(
-                            u, attr
-                        ) not in (None, ""):
-                            setattr(target, attr, getattr(u, attr))
+                    # Capture, delete, then write — see absorb_twins().
+                    moved = {
+                        attr: getattr(u, attr)
+                        for attr in ("rullenummer", "stasjoneringssted", "ans_dato",
+                                     "fodt_dato", "seniority_nr")
+                        if getattr(target, attr) in (None, "")
+                        and getattr(u, attr) not in (None, "")
+                    }
                     delete_stub(u)
+                    for attr, val in moved.items():
+                        setattr(target, attr, val)
 
         for member in members:
             name = (member.get("name") or "").strip()

@@ -29,6 +29,33 @@ class TestDBUser:
             db_session.commit()
         db_session.rollback()
 
+    def test_unique_rullenummer(self, patch_db, db_session):
+        """Two users may not share a rullenummer.
+
+        Innplassering joins on this string, so a shared value would show one
+        user another's innplassering data. App-level checks exist, but this
+        asserts the DB itself refuses (migration 017).
+        """
+        db_session.add(DBUser(username="carol", password="x", is_auth=0,
+                              email_verified=0, rullenummer="12345"))
+        db_session.commit()
+
+        db_session.add(DBUser(username="dave", password="y", is_auth=0,
+                              email_verified=0, rullenummer="12345"))
+        with pytest.raises(IntegrityError):
+            db_session.commit()
+        db_session.rollback()
+
+    def test_multiple_null_rullenummer_allowed(self, patch_db, db_session):
+        """NULL is exempt — the 75 prod users without a rullenummer must coexist."""
+        db_session.add(DBUser(username="erin", password="x", is_auth=0,
+                              email_verified=0, rullenummer=None))
+        db_session.add(DBUser(username="frank", password="y", is_auth=0,
+                              email_verified=0, rullenummer=None))
+        db_session.commit()
+
+        assert db_session.query(DBUser).filter(DBUser.rullenummer.is_(None)).count() == 2
+
 
 class TestTurnusSet:
     def test_unique_year_identifier(self, patch_db, db_session):
