@@ -311,12 +311,17 @@ Options:
 
 ### DONE (code) Task 2.2: DB unique constraint on `users.rullenummer`
 
-> **Status (2026-07-20): implemented locally, NOT yet applied to prod.**
+> **Status (2026-07-20): applied + verified on STAGING, NOT yet on prod.**
 >
-> Prod audit ran clean via the new `scripts/check_rullenummer_duplicates.py`
-> (`DB_TYPE=mysql`, 395 users, 320 with a rullenummer, 0 duplicates, 0 empty
-> strings) → migration written but **not deployed**. Remaining step is
-> `venv/bin/alembic upgrade head` on the server.
+> Staging (`turnushjelper-2`, a prod copy): audit clean via
+> `scripts/check_rullenummer_duplicates.py` (`DB_TYPE=mysql`, 395 users, 320
+> with a rullenummer, 0 duplicates, 0 empty strings); migration applied
+> (`alembic current` → `017_unique_rullenummer (head)`); index confirmed
+> unique (`inspect(engine).get_indexes('users')` →
+> `('ix_users_rullenummer', True)`); service restarted. Member-import absorb
+> path still to be exercised on staging via
+> `scripts/verify_rullenummer_absorb.py` (see runbook) — a restart does NOT
+> exercise it. **Production has had none of this yet.**
 >
 > - `migrations/versions/017_unique_rullenummer.py` — note it **replaces**
 >   the existing non-unique `ix_users_rullenummer` from migration 015 rather
@@ -344,16 +349,43 @@ Options:
 > **Deploy order matters:** push this code *before* running the migration.
 > The old absorb logic against a unique index breaks Excel member import.
 
-App-level collision checks exist (`activate_stub_user`,
+**Why:** app-level collision checks exist (`activate_stub_user`,
 `create_user_with_email`, `update_user`), but any future write path that
-forgets the check reintroduces cross-user innplassering exposure (the join
-is on the rullenummer string). Blocked on a prod data audit:
+forgets the check reintroduces cross-user innplassering exposure (the join is
+on the rullenummer string). The DB now enforces it.
 
-1. Run on prod: `SELECT rullenummer, COUNT(*) FROM users WHERE rullenummer
-   IS NOT NULL GROUP BY rullenummer HAVING COUNT(*) > 1;`
-2. If clean → Alembic migration adding a unique index (partial/NULL-safe:
-   MySQL allows multiple NULLs in a unique index, so plain unique works).
-3. If duplicates → Solve adjudicates which user keeps the number first.
+**Production runbook (not yet done).** Run in order; each step gates the next.
+All commands from the repo root on the prod server, `venv/bin/` prefix.
+
+1. **Finish staging first.** `venv/bin/python scripts/verify_rullenummer_absorb.py`
+   on staging → must end `PASS` / exit 0. If it raises an IntegrityError on
+   `users.rullenummer`, the fix is not on that server — stop, do not proceed
+   to prod.
+2. **Confirm the code is on prod.** `git pull` (must include commits with
+   migration 017, the `user_service.py` absorb fix, and both scripts).
+   Deploy order is load-bearing: the old absorb logic against a unique index
+   breaks Excel member import, so the code must land *before* the migration.
+3. **Audit prod data.** `venv/bin/python scripts/check_rullenummer_duplicates.py`
+   → must exit 0. A stale staging audit does not count — users register
+   between snapshots. If it reports duplicates, **stop and adjudicate which
+   user keeps each number** (clear the others) before migrating; if it reports
+   empty strings, `UPDATE users SET rullenummer = NULL WHERE rullenummer = '';`
+   first.
+4. **Apply the migration.** `venv/bin/alembic upgrade head` →
+   `alembic current` shows `017_unique_rullenummer (head)`.
+5. **Restart** so every gunicorn worker runs the new module (per Task 2.1 —
+   a running worker does not reload changed code): `sudo systemctl restart
+   turnushjelper`.
+6. **Verify the index is unique on prod:**
+   `venv/bin/python -c "from sqlalchemy import inspect; from app.database import engine; print([(i['name'], i['unique']) for i in inspect(engine).get_indexes('users') if i['column_names']==['rullenummer']])"`
+   → `[('ix_users_rullenummer', True)]`.
+7. **Verify the absorb path on prod:**
+   `venv/bin/python scripts/verify_rullenummer_absorb.py` → `PASS` / exit 0.
+   Self-cleaning (sentinel rows only); this is the real proof member import
+   still works under the constraint.
+
+Rollback: `venv/bin/alembic downgrade -1` restores the non-unique index
+(migration 017 is reversible). The absorb-fix code is safe to keep either way.
 
 ### Task 2.3: Session serialization: pickle → JSON
 

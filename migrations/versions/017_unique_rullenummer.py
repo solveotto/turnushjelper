@@ -22,8 +22,10 @@ exempt — it is an ordinary colliding value.
 
 IMPORTANT: Before running this on production, verify there are no duplicates:
     venv/bin/python scripts/check_rullenummer_duplicates.py
-It must exit 0. Verified clean on prod 2026-07-20 (395 users, 320 with a
-rullenummer, 0 duplicates, 0 empty strings).
+It must exit 0. Verified clean on STAGING 2026-07-20 (395 users, 320 with a
+rullenummer, 0 duplicates, 0 empty strings) and applied there. Re-run the
+check against PRODUCTION immediately before upgrading prod — users register
+between snapshots, so a stale audit is not a guarantee.
 """
 from typing import Sequence, Union
 
