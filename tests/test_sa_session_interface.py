@@ -5,6 +5,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest")
 os.environ.setdefault("DB_TYPE", "sqlite")
 os.environ.setdefault("DEFAULT_ADMIN_PASSWORD", "testadmin123")
 
+import json
 import pickle
 from datetime import datetime, timedelta, timezone
 
@@ -101,12 +102,36 @@ def test_new_session_sets_cookie(client):
     assert "session" in rv.headers.get("Set-Cookie", "")
 
 
-def test_session_data_stored_in_db(client, test_engine):
+def test_session_data_stored_as_json(client, test_engine):
     client.get("/set")
     row = _get_session_row(test_engine)
     assert row is not None
-    data = pickle.loads(row.data)
+    # Sessions are serialized as JSON (not pickle) — no deserialization gadget.
+    data = json.loads(row.data)
     assert data.get("key") == "value"
+    with pytest.raises((pickle.UnpicklingError, KeyError, EOFError, ValueError)):
+        pickle.loads(row.data)
+
+
+def test_legacy_pickle_row_yields_fresh_session(client, test_engine):
+    """A row written by the old pickle serializer must not crash the app; it
+    fails to parse as JSON and is treated as a new empty session (the one-time
+    global logout on the JSON cut-over)."""
+    client.get("/set")
+    row = _get_session_row(test_engine)
+    sid = row.session_id
+    # Overwrite the DB row with legacy pickle bytes for the same sid.
+    Session = sessionmaker(bind=test_engine)
+    db = Session()
+    try:
+        legacy = db.query(FlaskSessionModel).filter_by(session_id=sid).first()
+        legacy.data = pickle.dumps({"key": "legacy-value"})
+        db.commit()
+    finally:
+        db.close()
+    # The still-valid cookie points at the pickled row; it must not load it.
+    rv = client.get("/get")
+    assert rv.data == b"missing"
 
 
 def test_existing_session_loads_data(client):

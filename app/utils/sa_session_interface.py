@@ -1,6 +1,6 @@
+import json
 import logging
 import os
-import pickle
 import random
 from datetime import datetime, timedelta, timezone
 
@@ -28,7 +28,7 @@ class FlaskSession(CallbackDict, SessionMixin):
 
 
 class SqlAlchemySessionInterface(SessionInterface):
-    """Stores sessions in the flask_sessions DB table via existing SQLAlchemy engine."""
+    """Stores sessions (JSON-serialized) in the flask_sessions DB table via the existing SQLAlchemy engine."""
 
     def __init__(self, cleanup_probability: float = 0.01):
         self.cleanup_probability = cleanup_probability
@@ -56,8 +56,11 @@ class SqlAlchemySessionInterface(SessionInterface):
                     db.delete(row)
                     db.commit()
                 return FlaskSession(sid=self._generate_sid(), new=True)
-            return FlaskSession(pickle.loads(row.data), sid=sid)
+            return FlaskSession(json.loads(row.data), sid=sid)
         except Exception:
+            # Includes legacy pickle-serialized rows written before the JSON
+            # cut-over: they fail json.loads and are treated as a fresh session
+            # (a one-time logout on deploy — acceptable, tokens re-issued).
             logger.exception("Session open failed")
             return FlaskSession(sid=self._generate_sid(), new=True)
         finally:
@@ -88,7 +91,7 @@ class SqlAlchemySessionInterface(SessionInterface):
         expiry = datetime.now(timezone.utc).replace(tzinfo=None) + app.permanent_session_lifetime
 
         sid = session.sid
-        data = pickle.dumps(dict(session))
+        data = json.dumps(dict(session)).encode("utf-8")
 
         from app.models import FlaskSessionModel
 

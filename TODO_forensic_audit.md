@@ -311,17 +311,24 @@ Options:
 
 ### DONE (code) Task 2.2: DB unique constraint on `users.rullenummer`
 
-> **Status (2026-07-20): applied + verified on STAGING, NOT yet on prod.**
+> **Status (2026-07-20): fully applied + verified on STAGING, NOT yet on prod.**
 >
-> Staging (`turnushjelper-2`, a prod copy): audit clean via
-> `scripts/check_rullenummer_duplicates.py` (`DB_TYPE=mysql`, 395 users, 320
-> with a rullenummer, 0 duplicates, 0 empty strings); migration applied
-> (`alembic current` → `017_unique_rullenummer (head)`); index confirmed
-> unique (`inspect(engine).get_indexes('users')` →
-> `('ix_users_rullenummer', True)`); service restarted. Member-import absorb
-> path still to be exercised on staging via
-> `scripts/verify_rullenummer_absorb.py` (see runbook) — a restart does NOT
-> exercise it. **Production has had none of this yet.**
+> Staging (`turnushjelper-2`, a prod copy), all green:
+> - audit clean via `scripts/check_rullenummer_duplicates.py` (`DB_TYPE=mysql`,
+>   395 users, 320 with a rullenummer, 0 duplicates, 0 empty strings);
+> - migration applied (`alembic current` → `017_unique_rullenummer (head)`);
+> - index confirmed unique (`inspect(engine).get_indexes('users')` →
+>   `('ix_users_rullenummer', True)`);
+> - service restarted;
+> - **member-import absorb path verified on MySQL** via
+>   `scripts/verify_rullenummer_absorb.py` → `PASS`. This is the real proof
+>   the fix below holds against the constraint (a restart does not exercise
+>   it). Note: that script's *verification* reads must use a fresh session —
+>   MySQL's REPEATABLE READ pins the seeding session to a pre-sync snapshot,
+>   which produced a false FAIL on the first run (the app code was already
+>   correct); fixed in the script, not the app.
+>
+> **Production has had none of this yet — execute the runbook below.**
 >
 > - `migrations/versions/017_unique_rullenummer.py` — note it **replaces**
 >   the existing non-unique `ix_users_rullenummer` from migration 015 rather

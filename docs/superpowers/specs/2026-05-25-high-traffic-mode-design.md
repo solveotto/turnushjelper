@@ -38,12 +38,15 @@ New table `flask_sessions`:
 |---|---|---|
 | `id` | Integer PK | auto-increment |
 | `session_id` | String(255) | unique, indexed |
-| `data` | LargeBinary | pickle-serialized session dict |
+| `data` | LargeBinary | JSON-serialized session dict (UTF-8 bytes) |
 | `expiry` | DateTime | used to prune stale sessions |
 
 Created via Alembic migration `011_flask_sessions.py`.
 
-Serialization uses Python's `pickle` — same as Flask-Session's filesystem backend.
+Serialization uses JSON (UTF-8 bytes), not pickle — session dicts hold only
+JSON-safe primitives, and JSON removes the pickle deserialization gadget surface
+should the DB ever be compromised. Legacy pickle rows written before the
+cut-over fail to parse and are treated as a fresh session (a one-time logout).
 
 ### Session Interface
 
@@ -53,7 +56,7 @@ Serialization uses Python's `pickle` — same as Flask-Session's filesystem back
 - Read signed `session_id` from cookie
 - Look up row in `flask_sessions` by `session_id`
 - If row not found or `expiry < now`: return empty session
-- Unpickle `data` and return
+- JSON-decode `data` and return (unparseable legacy rows → empty session)
 
 **`save_session()`:**
 
