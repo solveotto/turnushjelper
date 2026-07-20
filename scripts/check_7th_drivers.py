@@ -20,7 +20,12 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-os.environ.setdefault("DB_TYPE", "sqlite")
+# Deliberately no os.environ.setdefault("DB_TYPE", ...) here: config.py's
+# load_dotenv() does not override an already-set env var, so forcing a
+# default here BEFORE .env loads would silently shadow a real DB_TYPE=mysql
+# in production and redirect every query to an empty local SQLite file
+# instead (this bit us once — see TODO_forensic_audit.md Task 0.1). Let
+# config.py's own load_dotenv() + its own internal default handle it.
 
 VALID_LINJER = {1, 2, 3, 4, 5, 6}
 
@@ -33,14 +38,22 @@ def main():
     args = parser.parse_args()
     year_id = args.year.upper()
 
+    from config import AppConfig
     from app.database import get_db_session
     from app.models import Innplassering, TurnusSet
+
+    # Print which DB this is actually about to hit — a wrong DB_TYPE here
+    # (e.g. accidentally defaulting to sqlite in production) fails loudly
+    # instead of silently querying an unrelated empty database.
+    print(f"DB_TYPE={AppConfig.DB_TYPE}")
 
     db = get_db_session()
     try:
         turnus_set = db.query(TurnusSet).filter_by(year_identifier=year_id).first()
         if not turnus_set:
+            available = [t.year_identifier for t in db.query(TurnusSet).all()]
             print(f"Error: No turnus set found for year '{year_id}'")
+            print(f"Available year_identifier values: {available}")
             sys.exit(1)
 
         rows = (

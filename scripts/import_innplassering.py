@@ -14,7 +14,13 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-os.environ.setdefault("DB_TYPE", "sqlite")
+# Deliberately no os.environ.setdefault("DB_TYPE", ...) here: config.py's
+# load_dotenv() does not override an already-set env var, so forcing a
+# default here BEFORE .env loads would silently shadow a real DB_TYPE=mysql
+# in production and redirect every write to an empty local SQLite file
+# instead (found 2026-07-20 via scripts/check_7th_drivers.py — see
+# TODO_forensic_audit.md Task 0.1). Let config.py's own load_dotenv() +
+# its own internal default handle it.
 
 
 def main():
@@ -25,9 +31,15 @@ def main():
 
     year_id = args.year.upper()
 
+    from config import AppConfig
     from app.services.turnus_service import get_turnus_set_by_year
     from app.services.innplassering_service import import_innplassering
     from app.utils import protected_paths
+
+    # Print which DB this is actually about to write to — a wrong DB_TYPE
+    # here fails loudly instead of silently writing to an unrelated
+    # (and possibly empty) database.
+    print(f"DB_TYPE={AppConfig.DB_TYPE}")
 
     turnus_set = get_turnus_set_by_year(year_id)
     if not turnus_set:
