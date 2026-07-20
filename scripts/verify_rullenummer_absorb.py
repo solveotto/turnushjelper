@@ -40,21 +40,26 @@ def main():
     from app.services import user_service
 
     print(f"DB_TYPE={AppConfig.DB_TYPE}")
+
+    def sentinel_rows(session):
+        return (
+            session.query(DBUser)
+            .filter(
+                (DBUser.medlemsnummer == TEST_MNR)
+                | (DBUser.rullenummer == TEST_RULLENR)
+                | (DBUser.username.in_(
+                    ["__test_target_absorb", "__test_stub_absorb"]))
+            )
+            .all()
+        )
+
     db = get_db_session()
 
     seeded_ids = []
     try:
         # Guard: refuse to run if the sentinels already exist (a prior crashed
         # run) — don't compound the mess.
-        existing = (
-            db.query(DBUser)
-            .filter(
-                (DBUser.medlemsnummer == TEST_MNR)
-                | (DBUser.rullenummer == TEST_RULLENR)
-                | (DBUser.username.in_(["__test_target_absorb", "__test_stub_absorb"]))
-            )
-            .all()
-        )
+        existing = sentinel_rows(db)
         if existing:
             print("ABORT: sentinel rows already present (leftover from a failed run):")
             for u in existing:
@@ -91,6 +96,12 @@ def main():
         seeded_ids = [target.id, stub.id]
         print(f"Seeded target id={target.id}, duplicate stub id={stub.id} "
               f"(both name 'Testesen, Absorb', stub holds rullenummer {TEST_RULLENR})")
+        # Close the seeding session NOW so its read snapshot cannot go stale.
+        # MySQL defaults to REPEATABLE READ: a session that has begun a
+        # transaction keeps seeing its first snapshot, so reusing this session
+        # to verify would read PRE-sync state even though sync committed. Every
+        # read below uses a fresh session instead.
+        db.close()
 
         # Run the REAL sync with a one-row list. This is the exact code path a
         # member-list import takes; the twin-absorb fires and (pre-fix) crashes.
@@ -104,10 +115,15 @@ def main():
               f"deleted_stubs={report.get('deleted_stubs')} "
               f"conflicts={report.get('conflicts')}")
 
-        # Verify: target now owns the rullenummer, the stub is gone.
-        db.expire_all()
-        target = db.query(DBUser).filter_by(medlemsnummer=TEST_MNR).first()
-        stub_still = db.query(DBUser).filter_by(username="__test_stub_absorb").first()
+        # Verify in a FRESH session (fresh snapshot) that the sync persisted:
+        # target now owns the rullenummer, the stub is gone.
+        vdb = get_db_session()
+        try:
+            target = vdb.query(DBUser).filter_by(medlemsnummer=TEST_MNR).first()
+            stub_still = vdb.query(DBUser).filter_by(
+                username="__test_stub_absorb").first()
+        finally:
+            vdb.close()
 
         ok = True
         if target is None:
@@ -135,32 +151,33 @@ def main():
         print(f"ERROR during absorb: {type(e).__name__}: {e}")
         print("If this is an IntegrityError on users.rullenummer, the fix did "
               "NOT land on this server — do not migrate prod.")
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
         sys.exit(1)
     finally:
-        # Clean up whatever survived, by sentinel, regardless of outcome.
         try:
-            leftovers = (
-                db.query(DBUser)
-                .filter(
-                    (DBUser.medlemsnummer == TEST_MNR)
-                    | (DBUser.rullenummer == TEST_RULLENR)
-                    | (DBUser.username.in_(
-                        ["__test_target_absorb", "__test_stub_absorb"]))
-                )
-                .all()
-            )
+            db.close()
+        except Exception:
+            pass
+        # Clean up whatever survived, by sentinel, in a FRESH session so the
+        # reads reflect committed truth (not a stale snapshot).
+        cdb = get_db_session()
+        try:
+            leftovers = sentinel_rows(cdb)
             for u in leftovers:
-                db.delete(u)
-            db.commit()
+                cdb.delete(u)
+            cdb.commit()
             if leftovers:
                 print(f"Cleaned up {len(leftovers)} test row(s).")
         except Exception as ce:
+            cdb.rollback()
             print(f"WARNING: cleanup failed: {ce}")
             print(f"  Manually delete users with medlemsnummer={TEST_MNR} / "
                   f"rullenummer={TEST_RULLENR} / usernames __test_*_absorb.")
         finally:
-            db.close()
+            cdb.close()
 
 
 if __name__ == "__main__":
