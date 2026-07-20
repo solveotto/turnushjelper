@@ -20,6 +20,13 @@ rullenummer collision checks, check-endpoint boolean responses, 7.fører parser)
 > updated direct-insert tests. Deploy note: outstanding raw-stored tokens
 > become invalid — users just request a new link (≤48h expiry anyway).
 
+> **Status (2026-07-20): Phase 0 is DONE.** Task 0.1 (R26 innplassering
+> re-import) and Task 0.2 (prod PII file move) both verified — see their
+> sections below for the full trail, including a real bug found and fixed
+> along the way (a stale, non-restarted server process was silently writing
+> wrong data during the first re-import attempt). Task 0.3 (gunicorn config)
+> still open.
+
 This file covers what the audit found still open, split into:
 
 - **Phase 0** — operations, no code. Highest value, do first.
@@ -42,7 +49,7 @@ This file covers what the audit found still open, split into:
 
 ## Phase 0 — Operations (no code, ~30 min total)
 
-### Task 0.1: Re-import innplassering R26 in PRODUCTION
+### DONE Task 0.1: Re-import innplassering R26 in PRODUCTION
 
 The parser fix for 7.fører linjer (2026-07-18) only corrects the DB at import
 time. Until the re-import runs, prod 7th-drivers have row-counter linjer
@@ -56,10 +63,67 @@ exits 1 and flags rows with `<-- INVALID` if the row-counter bug is still
 present (re-run the import). Re-run this same check after any future
 innplassering import (R27, ...).
 
-> **Status (2026-07-19): DONE.** Re-imported on prod; verified with
-> `scripts/check_7th_drivers.py` (written same day so this doesn't require
-> hand-written SQL or a pasted Python snippet next time) — all 10 R26
-> 7.fører rows have `linje` in 1-6.
+> **Status (2026-07-19): re-import DONE** (via admin UI — confirmed the safe
+> path, see below). **Verification pending re-run** — see 2026-07-20 note.
+>
+> **2026-07-20 — bug found in both standalone scripts, now fixed.**
+> `scripts/check_7th_drivers.py` (written 2026-07-19) and the pre-existing
+> `scripts/import_innplassering.py` both had
+> `os.environ.setdefault("DB_TYPE", "sqlite")` near the top, run before
+> `config.py`'s `load_dotenv()`. Since `load_dotenv()` never overrides an
+> already-set env var, this silently shadowed a real `DB_TYPE=mysql` from
+> `.env` — any standalone script run on the server queried/wrote to an
+> **empty local SQLite file**, not production MySQL, with no error until a
+> query needed a table that (obviously) didn't exist there
+> (`sqlite3.OperationalError: no such table: turnus_sets`). Confirmed the
+> R26 re-import itself is unaffected — Solve ran it via the **admin UI**,
+> which runs inside the live Flask app where config loads correctly with no
+> script-level override. Both scripts fixed (the `setdefault` line removed;
+> each now prints `DB_TYPE=...` on startup so a future wrong-DB run fails
+> loudly instead of silently). Ran the fixed script on the server
+> (`DB_TYPE=mysql` confirmed correct) and found a **second, real** bug: 4 of
+> 10 R26 7.fører rows had `linjenummer` 7-10 instead of 1-6.
+>
+> **2026-07-20 — root cause of the real data bug: stale running process, not
+> stale code.** Full systematic-debugging investigation (see conversation for
+> detail): re-parsing the actual PDF's raw text (via pdfplumber) proved the
+> real "L" column values for all 10 rows are ordinary 1-6 — no PDF/data
+> anomaly. Comparing prod's stored values against the PDF's row-counter
+> column (position 1..10) row-for-row showed an **exact match**: prod's
+> `linjenummer` was the row-counter for literally all 10 rows, not just the
+> 4 that happened to also exceed 6 — the check script's 1-6 range check
+> missed the other 6 because a row-counter value can coincidentally also be
+> ≤6. Confirmed on the server: the checked-out file already had the
+> 2026-07-18 fix (`grep -c "L column"` → `4`; `git log` → `b1a4a8a`, current
+> HEAD) — so the code on disk was correct. The gunicorn process serving the
+> admin-UI import had simply **never been restarted** since before that fix
+> landed; Python caches an imported module in memory per-process and does
+> not reload it when the file on disk changes, so the running worker kept
+> executing the old row-counter-based parser regardless of what was on disk.
+> **Fix is operational, not code:** `sudo systemctl restart turnushjelper`,
+> re-run the R26 import via the admin UI (full delete+reinsert, so no
+> partial/stale-row risk), then re-verify.
+>
+> Also hardened `scripts/check_7th_drivers.py` itself: it now re-parses the
+> PDF fresh and compares row-for-row against the DB (immune to the
+> coincidental-range-match blind spot above) instead of only checking
+> "is linjenummer in 1-6" — verified locally by deliberately corrupting the
+> dev DB with row-counter values and confirming all 10 are now flagged as
+> `MISMATCH` (the old range-only check would have missed 6 of them). Falls
+> back to the weaker range check only if the PDF can't be found to re-parse.
+>
+> **VERIFIED — Task 0.1 genuinely DONE.** Restarted `turnushjelper` on the
+> server, re-ran the R26 innplassering import via the admin UI, ran
+> `check_7th_drivers.py --year R26` on the server: `DB_TYPE=mysql`, all 10
+> rows now match the ground-truth "L" column values independently extracted
+> from the raw PDF during root-cause investigation (27180→4, 31397→6,
+> 31482→2, 34290→1, 36022→1, 64895→3, 92468→5, 92707→4, 93235→3, 93386→2 —
+> all confirmed). Note: the server ran the pre-strengthening version of the
+> check script (weak 1-6 range check, not the fresh-parse comparison) —
+> correctness here was confirmed by manual cross-check against the raw PDF,
+> not by the script alone. The strengthened script exists only in the local
+> repo; **push it before the next re-import** (R27, etc.) so the stronger
+> check is what actually runs next time.
 
 ### Task 0.2: Move PII files on the prod server (git-history purge deferred)
 
