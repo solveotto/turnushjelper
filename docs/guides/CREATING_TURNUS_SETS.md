@@ -107,6 +107,27 @@ correction. It runs the same validation gate; on success it **renames/adds/remov
 rows while **preserving users' favorites**, and regenerates the stats JSON. **On failure the
 existing data is left untouched.**
 
+### Restart the service after any import (important)
+
+**Always run `sudo systemctl restart turnushjelper` after an import, refresh, or
+activation on production.**
+
+Production runs 2 gunicorn workers, each with its own in-process cache
+(`CACHE_TYPE: 'simple'`). Cache invalidation on import only clears the worker that
+handled *your* admin request — the other worker keeps serving the **old** turnus data,
+stats, kompdager and rendered `/turnusliste` / `/oversikt` pages until those entries
+expire (up to **1 hour**). Roughly half of all users hit that worker, so the symptom is
+"some users see the new turnus, some see the old one" — with no error anywhere.
+
+A restart clears every worker at once and is the only reliable way to close the window.
+This is a deliberate trade-off, not a bug: imports are rare, and the alternative
+(shared Redis cache) adds a service to run and monitor. See Task 2.1 in
+`TODO_forensic_audit.md`.
+
+> Restarting also guarantees the running code matches what's on disk. During the R26
+> innplassering re-import a stale, non-restarted process silently wrote **wrong data**
+> before anyone noticed — restart first, then verify.
+
 ---
 
 ## Files & data produced
@@ -134,6 +155,8 @@ existing data is left untouched.**
 - [ ] Upload the turnusnøkkel template (for søknadsskjema).
 - [ ] Upload strekliste PDF and generate images (also scans double shifts).
 - [ ] *(Optional)* Import the innplassering PDF.
+- [ ] **On production: `sudo systemctl restart turnushjelper`** — otherwise one of the
+      2 workers serves stale data for up to 1 h (see "Restart the service after any import").
 
 ---
 

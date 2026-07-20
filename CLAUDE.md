@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **`python`, `pytest`, and `alembic` are NOT on PATH on the dev machine — always use the `venv/bin/` prefix.**
 
 ```bash
-# Run development server (port 8080, debug on by default)
+# Run development server (port 8080; debug off unless FLASK_DEBUG=true in .env)
 venv/bin/python run.py
 
 # Run all tests

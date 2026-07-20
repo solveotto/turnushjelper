@@ -125,7 +125,7 @@ innplassering import (R27, ...).
 > repo; **push it before the next re-import** (R27, etc.) so the stronger
 > check is what actually runs next time.
 
-### Task 0.2: Move PII files on the prod server (git-history purge deferred)
+### DONE Task 0.2: Move PII files on the prod server (git-history purge deferred)
 
 The code-side fix (`instance/protected/` + `app/utils/protected_paths.py`) is
 done.
@@ -154,7 +154,7 @@ remote, given a collaborator, or handed to a contractor — and do it first,
 before sharing** (coordinate with any clones; the history rewrite invalidates
 them).
 
-### Task 0.3: Decide which gunicorn config is canonical
+### [DONE] Task 0.3: Decide which gunicorn config is canonical
 
 Root `gunicorn.conf.py` (bind :8080, timeout 60) and `deploy/gunicorn.conf.py`
 (unix socket, timeout 300) diverge. Check what the systemd unit actually
@@ -164,7 +164,7 @@ references, then delete the other or mark it dev-only in a comment.
 
 ## Phase 1 — Security hardening, ready to implement
 
-### Task 1.1: Rate-limit login and password-reset flows
+### DONE Task 1.1: Rate-limit login and password-reset flows
 
 **Priority: highest code fix in this file.**
 
@@ -203,7 +203,7 @@ stay unlimited (`methods=["POST"]` on every limit).
 
 **Verify.** Full suite + a new test: POST /login 11 times → 429.
 
-### Task 1.2: Store verification/reset tokens hashed
+### DONE Task 1.2: Store verification/reset tokens hashed
 
 **Problem.** `EmailVerificationToken.token` stores the raw
 `secrets.token_urlsafe(32)`. A DB/backup leak turns every outstanding
@@ -228,7 +228,7 @@ password-reset token into account takeover.
 `tests/test_auth_routes.py`; add a test that the stored token differs from
 the emailed one and that verification still succeeds end-to-end.
 
-### Task 1.3: Flip the `run.py` debug default to off
+### DONE Task 1.3: Flip the `run.py` debug default to off
 
 `run.py` enables the Werkzeug debugger unless `FLASK_DEBUG` is explicitly
 false. If ever run directly on a server, that is remote code execution.
@@ -238,7 +238,7 @@ false. If ever run directly on a server, that is remote code execution.
 current behavior after copying the example. Update the CLAUDE.md line
 "debug on by default" to match.
 
-### Task 1.4: Delete the stale CSRF claim in docs/FORBEDRINGER.md
+### DONE Task 1.4: Delete the stale CSRF claim in docs/FORBEDRINGER.md
 
 The file claims 18 admin routes lack CSRF validation. False since
 `CSRFProtect` went global (`csrf.init_app` in `app/__init__.py`, meta token
@@ -250,7 +250,39 @@ NLF-nummer bullet somewhere it will be seen.
 
 ## Phase 2 — Needs a decision from Solve first. Present options, do not implement.
 
-### Task 2.1: Per-process shared state vs 2 gunicorn workers
+### DONE Task 2.1: Per-process shared state vs 2 gunicorn workers
+
+> **Decision (2026-07-20): Option B.** Solve chose to document the envelope
+> rather than add Redis. Redis buys automatic correctness for an event that
+> happens a few times a year and charges a permanent new dependency on the
+> single Hetzner box — and a Redis outage would take down caching *and* rate
+> limiting, which is worse than the status quo's worst case (1 h of stale
+> turnus data after an import you performed yourself).
+>
+> Two findings refined the original framing:
+> - The **favorites race is already handled at the DB level** —
+>   `UniqueConstraint('user_id', 'shift_title', 'turnus_set_id')`
+>   (`app/models.py`) prevents duplicate favorites across workers. The
+>   `favorite_lock` only orders `order_index` assignment; a cross-worker
+>   collision is cosmetic and self-corrects on the next reorder. The lock was
+>   kept and documented, not deleted.
+> - **A service restart clears every worker at once**, closing the staleness
+>   window to zero for the only case that matters. This was already informal
+>   practice (see Task 0.1) and is now an explicit runbook step.
+>
+> Implemented: per-worker caveats on `invalidate_turnus_cache()` /
+> `get_turnus_cache_generation()` (`app/utils/df_utils.py`, replacing the
+> misleading "at once" wording), rationale comments on `cache` and
+> `favorite_lock` (`app/extensions.py`), and a "Restart the service after any
+> import" section + checklist item in
+> `docs/guides/CREATING_TURNUS_SETS.md`. No behavior change; 371 passed.
+>
+> **Revisit Option A (Redis) when any of these becomes true:**
+> 1. gunicorn workers scale past 2 (see `docs/guides/HIGH_TRAFFIC_MODE.md`,
+>    which suggests 4 on a CX32) — the restart trick still works but the
+>    stale-worker window widens;
+> 2. cache invalidation becomes user-triggered rather than admin-rare;
+> 3. a second app server is added (restart no longer covers the fleet).
 
 Production runs `workers = 2`, but three mechanisms assume one process:
 

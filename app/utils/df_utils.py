@@ -15,14 +15,22 @@ def invalidate_turnus_cache(turnus_set_id):
     Both keys default to a 1 h timeout, so any admin action that changes the
     underlying files (re-scrape, double-shift rescan, nøkkel upload) must call
     this or the app keeps serving the old data until the cache expires.
+
+    IMPORTANT — this only clears the worker that handled the admin request.
+    The cache is SimpleCache (per-process) and production runs 2 gunicorn
+    workers, so the *other* worker keeps serving pre-import data for up to
+    1 h. This is a known, accepted envelope (imports are rare); restart the
+    service after an import to clear every worker at once. See
+    docs/guides/CREATING_TURNUS_SETS.md and Task 2.1 in TODO_forensic_audit.md.
     """
     from app.extensions import cache
     cache.delete(f"turnus_data_{turnus_set_id}")
     cache.delete(f"kompdager_{turnus_set_id}")
     # Bump the view-cache generation so every user's cached /turnusliste and
-    # /oversikt page keys change at once (SimpleCache cannot enumerate keys, so
-    # the per-user page caches can't be deleted directly). The orphaned entries
-    # expire naturally; CACHE_THRESHOLD bounds memory in the meantime.
+    # /oversikt page keys change in one step (SimpleCache cannot enumerate
+    # keys, so the per-user page caches can't be deleted directly). The
+    # orphaned entries expire naturally; CACHE_THRESHOLD bounds memory in the
+    # meantime. Per-worker, like the deletes above.
     gen_key = f"turnus_gen_{turnus_set_id}"
     cache.set(gen_key, (cache.get(gen_key) or 0) + 1, timeout=0)  # 0 = no expiry
 
@@ -31,7 +39,8 @@ def get_turnus_cache_generation(turnus_set_id):
     """Monotonic counter bumped on every turnus-data invalidation.
 
     Baked into the per-user view-cache keys so bumping it invalidates all
-    users' cached pages at once (SimpleCache cannot enumerate keys).
+    users' cached pages in one step (SimpleCache cannot enumerate keys).
+    The counter itself is per-worker — see invalidate_turnus_cache().
     """
     from app.extensions import cache
     return cache.get(f"turnus_gen_{turnus_set_id}") or 0
