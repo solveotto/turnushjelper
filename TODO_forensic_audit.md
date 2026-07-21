@@ -394,7 +394,56 @@ All commands from the repo root on the prod server, `venv/bin/` prefix.
 Rollback: `venv/bin/alembic downgrade -1` restores the non-unique index
 (migration 017 is reversible). The absorb-fix code is safe to keep either way.
 
-### Task 2.3: Session serialization: pickle → JSON
+### DONE (code) Task 2.3: Session serialization: pickle → JSON
+
+> **Decision (2026-07-20): Option A (hard cut).** Implemented and tested;
+> **not yet deployed to prod.**
+>
+> - `app/utils/sa_session_interface.py` — `save_session` now writes
+>   `json.dumps(dict(session)).encode("utf-8")`; `open_session` reads
+>   `json.loads(row.data)`. No schema change (JSON bytes still fit the
+>   `LargeBinary` column). The pre-existing `try/except` in `open_session`
+>   already turns any unparseable legacy pickled row into a fresh session —
+>   that *is* the one-time global logout, no transition code needed.
+> - **Serializability audited:** grepped every `session[...]` write — all
+>   values are JSON-safe (ints, strings, isoformat strings, turnus-set ids,
+>   and the `medlemsliste_report` dict of counts/strings/list-of-dicts).
+>   Flask-Login's `_user_id/_fresh/_id`, the CSRF token, and `_flashes`
+>   (tuples → lists, still unpack) round-trip cleanly.
+> - Tests (`tests/test_sa_session_interface.py`):
+>   `test_session_data_stored_as_json` (row is JSON, not unpicklable) and
+>   `test_legacy_pickle_row_yields_fresh_session` (a pickled row for a still
+>   valid cookie → empty session, not a crash). Full suite: **374 passed**.
+> - Docs flipped from pickle→JSON:
+>   `docs/superpowers/specs/2026-05-25-high-traffic-mode-design.md` (data
+>   column, serialization note, `open_session` step) and the interface class
+>   docstring. Historical implementation-plan doc left as a dated record.
+>
+> **Status: committed `27914a1` + pushed to origin/main, verified on staging.
+> NOT yet on prod.**
+>
+> **Production runbook (not yet done).** Purely operational — code is already
+> on `origin/main` and there is **no schema change**, so no commit and no
+> Alembic migration. Repo root on the prod server, `venv/bin/` prefix.
+>
+> 1. **Pick a low-traffic window.** The restart in step 3 logs out *every*
+>    user once (incl. you) — pickled rows fail `json.loads` → fresh session.
+>    Make sure you can re-login right after.
+> 2. **Pull the code:** `git pull` → `git log --oneline -1` shows `27914a1`
+>    (or later).
+> 3. **Restart — the load-bearing step:** `sudo systemctl restart
+>    turnushjelper`. Per Task 2.1, a running gunicorn worker does not reload
+>    changed code on `git pull` alone; the restart swaps in the JSON
+>    serializer (and performs the one-time logout, clearing all workers at
+>    once). Skipping it = old pickle code keeps running.
+> 4. **Verify a fresh session is JSON:** log in once (writes a new row), then
+>    `venv/bin/python -c "from app.database import SessionLocal; from app.models import FlaskSessionModel; r=SessionLocal().query(FlaskSessionModel).order_by(FlaskSessionModel.id.desc()).first(); import json; json.loads(r.data); print('OK', len(r.data))"`
+>    → exit 0 + `OK` (a pickled row would raise on `json.loads`). Then click
+>    around logged in. Old pickled rows self-clean via the normal expiry
+>    sweep — no manual DB cleanup.
+> 5. **Rollback:** `git checkout <prev-sha>` + restart. Safe — JSON rows
+>    written since deploy then fail `pickle.loads` and yield fresh sessions
+>    (another one-time logout, no corruption).
 
 `app/utils/sa_session_interface.py` pickles session dicts into
 `flask_sessions.data`. Only exploitable after DB compromise, but JSON removes
@@ -408,17 +457,56 @@ read-pickle/write-JSON transition period is implemented. Options:
 
 ## Phase 3 — Structural cleanups (opportunistic, one PR each)
 
-1. **Session-interface test coupling:** `SqlAlchemySessionInterface` calls
-   `SessionLocal` directly, bypassing `patch_db` — a fresh clone fails ~30
-   login tests until a dev `dummy.db` with `flask_sessions` exists. Fix by
-   monkeypatching `app.utils.sa_session_interface.SessionLocal` in
-   `tests/conftest.py` (patch-at-use-site) so the suite passes from a clean
-   checkout. Then delete the dummy.db workaround note in docs/memory.
-2. **Split `app/services/user_service.py` (1,652 lines):** extract
-   `member_sync_service.py` (`sync_members_from_excel`,
+1. **[DONE 2026-07-21] Session-interface test coupling:**
+   `SqlAlchemySessionInterface` calls `SessionLocal` directly, bypassing
+   `patch_db` — a fresh clone fails ~30 login tests until a dev `dummy.db` with
+   `flask_sessions` exists. Fix by monkeypatching
+   `app.utils.sa_session_interface.SessionLocal` in `tests/conftest.py`
+   (patch-at-use-site) so the suite passes from a clean checkout. Then delete
+   the dummy.db workaround note in docs/memory.
+
+   > **DONE.** Patched two use sites in `patch_db` (`tests/conftest.py`), both
+   > bound to the test connection: `app.database.SessionLocal` and
+   > `app.utils.sa_session_interface.SessionLocal`. **The brief undercounted the
+   > coupling** — patching only the session interface still left login tests
+   > failing on `no such table: users`, because the `app` package's
+   > `inject_tour_state` context processor, `innplassering_service`, and the
+   > admin/shift route blueprints also `from app.database import get_db_session`
+   > but are absent from `modules_to_patch`. Patching `app.database.SessionLocal`
+   > (which `get_db_session()` resolves at call time) covers that whole class in
+   > one line. Verified with the full suite run against an *empty* throwaway
+   > `SQLITE_PATH` (the real fresh-clone proxy): **374 passed, dummy.db never
+   > touched**; normal run also 374 (baseline held). Deleted the obsolete
+   > `test-suite-needs-dev-dummy-db` memory + its index line; no docs needed
+   > edits (all remaining `dummy.db` mentions are legit dev-DB references). Not
+   > committed — Solve commits.
+2. **[DONE 2026-07-21] Split `app/services/user_service.py` (1,652 lines):**
+   extract `member_sync_service.py` (`sync_members_from_excel`,
    `normalize_medlemsnummer`, `_normalize_name`) and `stub_service.py`
    (create/activate/delete/reset stub functions). Keep `db_utils` re-exports
    working during the move.
+
+   > **DONE.** `user_service.py` shrank **1,666 → 904 lines**. Three new
+   > modules: `member_sync_service.py` (412 lines, `sync_members_from_excel`
+   > + its nested absorb/delete closures), `stub_service.py` (367 lines, all
+   > stub CRUD + `get_user_by_rullenummer/medlemsnummer`), and — a **deviation
+   > from the brief** — `user_helpers.py` (68 lines). The deviation was
+   > forced: the brief put `normalize_medlemsnummer`/`_normalize_name` in
+   > `member_sync_service`, but retained code (`sync_employees_from_scrape`,
+   > `update_user`) *also* calls them, and the new modules need `hash_password`
+   > from core — so the brief's layout produces a circular import
+   > (`user_service` ⇄ `member_sync_service`). The fix is a leaf
+   > `user_helpers.py` holding the 5 genuinely-shared helpers (`hash_password`,
+   > `_username_filter`, `normalize_medlemsnummer`, `_normalize_name`,
+   > `_user_identity_dict`); all three services import *down* from it and
+   > nothing points back, so a cycle is structurally impossible (chosen by
+   > Solve over the lazy-import alternative). `user_service` re-exports the
+   > moved public functions at the bottom, so every `user_service.<name>`
+   > caller and the `db_utils` facade keep working unchanged (verified: object
+   > identity matches across modules; import succeeds in every load order;
+   > `db_utils` exposes all names). Removed the now-unused `import secrets`
+   > from `user_service`. No behavior change; **374 passed** (baseline held).
+   > Not committed — Solve commits.
 3. **Retire the `db_utils` facade route-by-route:** routes import services
    directly instead of the compat shim. Do it per-blueprint; the facade's
    from-import pattern already caused one real test bug (see comment in
