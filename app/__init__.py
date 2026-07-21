@@ -166,6 +166,19 @@ def create_app():
         flash('Sesjonen din har utløpt, prøv igjen.', 'warning')
         return redirect(request.referrer or url_for('shifts.turnusliste'))
 
+    @app.after_request
+    def no_store_dynamic_html(response):
+        # Rendered pages show per-user, mutable state (favorites, min turnus,
+        # etc.). Without an explicit directive, browsers reuse the cached HTML
+        # on back/forward navigation instead of re-fetching, so a just-added or
+        # -removed favorite reappears/vanishes until a manual refresh. no-store
+        # forces a fresh fetch on every view. Scoped to HTML only, so static
+        # JS/CSS/image caching is unaffected; the server-side view cache still
+        # handles performance.
+        if response.mimetype == "text/html":
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
     from app.routes.main import blueprints
 
     for blueprint in blueprints:
