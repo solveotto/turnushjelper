@@ -106,6 +106,21 @@ def patch_db(db_session, monkeypatch):
     for mod in modules_to_patch:
         monkeypatch.setattr(f"{mod}.get_db_session", make_session)
 
+    # Some code paths bypass the loop above and reach the real .env dummy.db,
+    # which silently "works" only because this checkout's dummy.db happens to
+    # have the right tables — a fresh clone/worktree fails ~30 login tests with
+    # "no such table". Two more use sites need binding to the test connection:
+    #
+    #  1. app.database.SessionLocal — get_db_session() resolves this at call
+    #     time, so patching it redirects EVERY module that imported the
+    #     function, including ones absent from modules_to_patch (the `app`
+    #     package's inject_tour_state context processor, innplassering_service,
+    #     the admin/shift route blueprints).
+    #  2. The server-side session interface imports SessionLocal by name and
+    #     calls it from its own namespace, so it needs patching at its use site.
+    monkeypatch.setattr("app.database.SessionLocal", TestSession)
+    monkeypatch.setattr("app.utils.sa_session_interface.SessionLocal", TestSession)
+
     yield db_session
 
 
