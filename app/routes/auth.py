@@ -1,6 +1,6 @@
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, flash, redirect, render_template, session, url_for
 from flask_login import current_user, login_required, logout_user
@@ -72,7 +72,10 @@ def login():
                 session['has_seen_compare_tour'] = db_user_data.get('has_seen_compare_tour', 0)
                 session['has_seen_welcome'] = db_user_data.get('has_seen_welcome', 0)
                 session['has_seen_soknadsskjema_tour'] = db_user_data.get('has_seen_soknadsskjema_tour', 0)
-                session['login_at'] = datetime.utcnow().isoformat()
+                # Naive UTC, matching the convention in auth_service.py — the
+                # stored isoformat string stays naive so sessions written by
+                # the previous build still parse in logout() below.
+                session['login_at'] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
 
                 from app.services.activity_service import log_event
                 log_event(db_user_data['id'], 'login')
@@ -104,7 +107,8 @@ def logout():
     login_at_str = session.get('login_at')
     if login_at_str:
         try:
-            duration = int((datetime.utcnow() - datetime.fromisoformat(login_at_str)).total_seconds())
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            duration = int((now - datetime.fromisoformat(login_at_str)).total_seconds())
         except Exception:
             pass
 
