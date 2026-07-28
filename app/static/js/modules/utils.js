@@ -93,3 +93,26 @@ export function apiFetch(url, options = {}) {
 }
 
 window.apiFetch = apiFetch;
+
+/**
+ * Escape a value for interpolation into an HTML template literal.
+ *
+ * Use on anything that came from server JSON (turnus names, shift times,
+ * dagsverk codes, metric values) before it goes into an `innerHTML` string.
+ * Module-local constants — DAY_LABELS, the RECORDS icons/labels — don't need
+ * it and are left alone.
+ *
+ * Quotes are escaped too, so the result is safe inside a quoted attribute
+ * (e.g. data-turnus="${escapeHtml(name)}"), not just in text position.
+ */
+export function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+window.escapeHtml = escapeHtml;

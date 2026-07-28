@@ -1,7 +1,7 @@
 // Oversikt (compare) page — charts, heatmap, modal, highlights, weekday grid.
 // Loaded only on /oversikt via {% block extra_js %} after Chart.js CDN script.
 
-import { apiFetch } from './utils.js';
+import { apiFetch, escapeHtml } from './utils.js';
 
 const turnusLabels = JSON.parse(document.getElementById('compare-labels').textContent);
 const metricsData  = JSON.parse(document.getElementById('compare-data').textContent);
@@ -112,8 +112,8 @@ function buildScheduleTableHTML(sched) {
             const bgStyle = bgVar ? `background-color:var(${bgVar});` : '';
             const fgStyle = WHITE_TEXT_CLASSES.has(cls) ? 'color:#fff;' : '';
             html += `<td class="${cls} text-center align-middle" style="${bgStyle}${fgStyle}padding:.15rem .2rem;border:1px solid #555;overflow:hidden">`;
-            if (dg) html += `<div style="font-size:.62rem;line-height:1.1;opacity:.85">${dg}</div>`;
-            html += `<div style="font-size:.72rem;line-height:1.2">${tid || '<span style="opacity:.3">·</span>'}</div>`;
+            if (dg) html += `<div style="font-size:.62rem;line-height:1.1;opacity:.85">${escapeHtml(dg)}</div>`;
+            html += `<div style="font-size:.72rem;line-height:1.2">${tid ? escapeHtml(tid) : '<span style="opacity:.3">·</span>'}</div>`;
             html += '</td>';
         }
         html += '</tr>';
@@ -186,7 +186,7 @@ function showTurnusModal(turnusName) {
         if (val !== undefined) {
             html += `<div class="border rounded text-center px-2 py-1" style="min-width:4.5rem">` +
                     `<div class="text-secondary" style="font-size:.68rem;line-height:1.2">${label}</div>` +
-                    `<div class="fw-bold" style="font-size:1rem;line-height:1.4">${val}</div>` +
+                    `<div class="fw-bold" style="font-size:1rem;line-height:1.4">${escapeHtml(val)}</div>` +
                     `</div>`;
         }
     });
@@ -534,8 +534,8 @@ function renderHighlights() {
             `<span class="record-icon">${rec.icon}</span>` +
             `<span>${rec.label}:</span>` +
             `<a href="#" class="record-value text-decoration-none modal-turnus-link"` +
-            ` data-turnus="${turnusLabels[bestIdx]}">${turnusLabels[bestIdx]}</a>` +
-            `<span class="text-secondary">— ${arr[bestIdx]}</span>`;
+            ` data-turnus="${escapeHtml(turnusLabels[bestIdx])}">${escapeHtml(turnusLabels[bestIdx])}</a>` +
+            `<span class="text-secondary">— ${escapeHtml(arr[bestIdx])}</span>`;
         strip.appendChild(badge);
     });
 }

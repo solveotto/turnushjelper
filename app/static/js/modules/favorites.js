@@ -1,7 +1,7 @@
 // Favorites Module
 // Handles favorite toggle functionality
 
-import { apiFetch } from './utils.js';
+import { apiFetch, escapeHtml } from './utils.js';
 
 export class Favorites {
     constructor() {
@@ -126,7 +126,7 @@ export class Favorites {
                     badge.className = 'd-flex align-items-center gap-2 turnus-favorite-badge';
                     badge.innerHTML =
                         '<span class="text-muted small">Favoritt:</span>' +
-                        `<span class="badge bg-primary rounded-pill">#${position}</span>`;
+                        `<span class="badge bg-primary rounded-pill">#${escapeHtml(position)}</span>`;
                     // Insert after the first child (name div)
                     const firstChild = headerRow.firstElementChild;
                     if (firstChild && firstChild.nextSibling) {
