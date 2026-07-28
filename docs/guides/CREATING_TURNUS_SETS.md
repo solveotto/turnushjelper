@@ -115,8 +115,9 @@ activation on production.**
 Production runs 2 gunicorn workers, each with its own in-process cache
 (`CACHE_TYPE: 'simple'`). Cache invalidation on import only clears the worker that
 handled *your* admin request — the other worker keeps serving the **old** turnus data,
-stats, kompdager and rendered `/turnusliste` / `/oversikt` pages until those entries
-expire (up to **1 hour**). Roughly half of all users hit that worker, so the symptom is
+stats and kompdager until those entries expire (up to **1 hour**). Pages themselves are
+no longer cached, but they render from these caches, so a stale worker still shows stale
+turnus data. Roughly half of all users hit that worker, so the symptom is
 "some users see the new turnus, some see the old one" — with no error anywhere.
 
 A restart clears every worker at once and is the only reliable way to close the window.

@@ -133,6 +133,15 @@ Flask-Caching (in-memory, simple). Key patterns:
 
 When modifying a user's DB columns, invalidate the relevant cache keys.
 
+**Rendered pages are never cached.** `/turnusliste` and `/oversikt` were cached per
+user until 2026-07-28; because SimpleCache is per-process and production runs 2
+gunicorn workers, an invalidation only ever reached one worker, which cost two
+stale-favorites bugs and a query-string key collision. They render in 33 ms / 17 ms
+with the data caches warm, so the cache bought little and made every writer of user
+state responsible for invalidating it. Do not reintroduce a per-user page cache; if a
+page ever needs caching, key it on the turnus set alone. Guarded by
+`tests/test_view_freshness.py`.
+
 ### Frontend
 
 `app/static/js/main.js` is the ES module entry point, importing from `app/static/js/modules/`. Each module is a class. CSS is organized in `app/static/css/` by `base/`, `components/`, `layout/`, and per-feature files.

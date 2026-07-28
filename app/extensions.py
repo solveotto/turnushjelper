@@ -12,8 +12,14 @@ csrf = CSRFProtect()
 # SimpleCache is per-process and production runs 2 gunicorn workers, so an
 # invalidation only reaches the worker that served the admin request. Accepted
 # trade-off (see Task 2.1 in TODO_forensic_audit.md): admin imports are rare
-# and a service restart clears every worker. Switch CACHE_TYPE to RedisCache
-# if workers ever scale past 2 or invalidation becomes user-triggered.
+# and a service restart clears every worker.
+#
+# What lives here is deliberately limited to shared data (turnus_data_*,
+# kompdager_*, pdf_downloads_*) plus two tiny 60 s per-user flags. Rendered
+# pages are NOT cached: per-user HTML made every writer of user state
+# responsible for invalidating it, which cost two stale-favorites bugs before
+# the cache was removed. Keep it that way — if a page ever needs caching
+# again, key it on the turnus set alone, never on the user.
 cache = Cache(config={
     'CACHE_TYPE': 'simple',
     'CACHE_DEFAULT_TIMEOUT': 3600,

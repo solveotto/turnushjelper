@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from app.extensions import cache, favorite_lock, limiter
 from app.models import DBUser, SoknadsskjemaChoice
 from app.services import user_service
-from app.utils import db_utils, df_utils, shift_matcher
+from app.utils import db_utils, shift_matcher
 from app.utils.turnus_helpers import get_user_turnus_set
 from config import AppConfig
 
@@ -49,10 +49,11 @@ def toggle_favorite():
             def _build_favorites_payload(message):
                 updated = db_utils.get_favorite_lst(user_id, turnus_set_id)
                 positions = {name: idx + 1 for idx, name in enumerate(updated)}
-                # Invalidate the cached turnusliste page so the next full load reflects the change
-                from app.extensions import cache as _cache
-                _cache.delete(df_utils.turnusliste_view_key(user_id, turnus_set_id))
-                _cache.delete(df_utils.oversikt_view_key(user_id, turnus_set_id))
+                # No cache invalidation needed: the /turnusliste and /oversikt
+                # view keys are content-addressed on the favorites list, so the
+                # changed list yields a new key on *every* gunicorn worker —
+                # including ones that never saw this request. The pre-change
+                # entries expire on their own (120 s / 300 s).
                 return {"status": "success", "message": message, "favorites": updated, "positions": positions}
 
             if favorite:
@@ -168,10 +169,9 @@ def move_favorite():
         db_session.commit()
         db_session.close()
 
-        # Invalidate cached pages that bake in favorite positions
-        cache.delete(df_utils.turnusliste_view_key(user_id, turnus_set_id))
-        cache.delete(df_utils.oversikt_view_key(user_id, turnus_set_id))
-
+        # The cached pages bake in favorite positions, but their keys are
+        # content-addressed on the favorites list — the new order produces a
+        # new key on every worker, so there is nothing to delete here.
         return jsonify({"status": "success", "message": "Favorite moved successfully"})
 
     except Exception as e:
@@ -261,10 +261,7 @@ def set_favorite_position():
         db_session.commit()
         db_session.close()
 
-        # Invalidate cached pages that bake in favorite positions
-        cache.delete(df_utils.turnusliste_view_key(user_id, turnus_set_id))
-        cache.delete(df_utils.oversikt_view_key(user_id, turnus_set_id))
-
+        # Content-addressed view keys — see move_favorite above.
         return jsonify({"status": "success", "message": "Favorite position updated"})
 
     except Exception as e:
@@ -740,11 +737,6 @@ def mark_tour_seen():
                 session['has_seen_welcome'] = 1
             elif tour_name == 'soknadsskjema':
                 session['has_seen_soknadsskjema_tour'] = 1
-            # Invalidate the cached turnusliste page so the next load renders
-            # with the updated has_seen_tour value instead of the stale cached one.
-            ts = get_user_turnus_set()
-            ts_id = ts["id"] if ts else "none"
-            cache.delete(df_utils.turnusliste_view_key(current_user.get_id(), ts_id))
             return jsonify({"status": "success", "message": "Tour marked as seen"})
         return jsonify({"status": "error", "message": "User not found"}), 404
     except Exception as e:

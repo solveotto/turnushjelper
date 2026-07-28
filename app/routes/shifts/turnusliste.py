@@ -1,29 +1,19 @@
-import uuid
-
 from flask import redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
-from app.extensions import cache
 from app.routes.shifts import shifts
 from app.utils import db_utils, df_utils
 from app.utils.kompdag_utils import count_kompdager, kompdager_max_label
 from app.utils.turnus_helpers import get_user_turnus_set
 
 
-def _turnusliste_cache_key():
-    """Per-user, per-turnus-set cache key for the /turnusliste response."""
-    ts = get_user_turnus_set()
-    ts_id = ts["id"] if ts else "none"
-    # Bypass cache when there are pending flash messages so they are never
-    # baked into the stored HTML and re-shown on subsequent visits.
-    if session.get("_flashes"):
-        return f"view/turnusliste/{current_user.get_id()}/{ts_id}/flash/{uuid.uuid4()}"
-    return df_utils.turnusliste_view_key(current_user.get_id(), ts_id)
-
-
+# This page is rendered fresh on every request. It used to be cached per user
+# for 120 s, which cost two stale-favorites bugs, a query-string key collision
+# and four invalidation mechanisms, to save the ~33 ms this render takes while
+# storing a ~3.7 MiB entry per user per worker. The shared turnus_data_* /
+# kompdager_* caches (which do the expensive work) are untouched.
 @shifts.route("/turnusliste")
 @login_required
-@cache.cached(timeout=120, key_prefix=_turnusliste_cache_key)
 def turnusliste():
     # Get the turnus set for this user (their choice or system default)
     user_turnus_set = get_user_turnus_set()
@@ -73,10 +63,6 @@ def turnusliste():
 @login_required
 def switch_user_year(turnus_set_id):
     """Allow user to switch which year they're viewing (stored in session)"""
-    # Invalidate cached page for the previous turnus set before switching
-    from app.routes.shifts.oversikt import _oversikt_cache_key
-    cache.delete(_turnusliste_cache_key())
-    cache.delete(_oversikt_cache_key())
     # Store user's choice in their session
     session["user_selected_turnus_set"] = turnus_set_id
 

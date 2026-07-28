@@ -9,10 +9,16 @@ These improvements are already active in `main`/`development`:
 | Feature | Status |
 |---|---|
 | SQLAlchemy-backed sessions | Active |
-| 120s route cache on `/turnusliste` | Active |
-| Cache invalidation on favorite toggle | Active |
+| Shared data caches (`turnus_data_*`, `kompdager_*`) | Active |
+| Per-user route cache on `/turnusliste` and `/oversikt` | **Removed** (2026-07-28) |
 | MySQL connection pool (10/20) | Active |
 | Gunicorn gthread config | Available (`gunicorn.conf.py`) |
+
+`/turnusliste` and `/oversikt` render fresh on every request — measured at **33 ms**
+and **17 ms** with the data caches warm. The per-user page cache they replaced saved
+about that much while storing a **3.7 MiB** entry per user per worker, and made every
+writer of user state responsible for invalidating it (two stale-favorites bugs). If
+page caching is ever needed again, key it on the turnus set alone, never on the user.
 
 ## Step 1: Check what's slow
 
@@ -26,7 +32,9 @@ sudo mysql -e "SHOW STATUS LIKE 'Threads_connected';"
 ```
 
 - If you see MySQL "too many connections" errors → reduce `pool_size` in `app/database.py`
-- If you see slow page loads → likely the `/turnusliste` cache miss; check cache hit rate
+- If you see slow `/turnusliste` loads → check whether `turnus_data_*` / `kompdager_*` are
+  being repopulated on every request (the render itself is ~33 ms; a cold kompdag count
+  parses the nøkkel Excel). The page is 3.7 MiB, so also rule out client bandwidth.
 
 ## Step 2: Restart the app
 

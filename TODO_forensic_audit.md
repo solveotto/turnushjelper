@@ -283,6 +283,19 @@ NLF-nummer bullet somewhere it will be seen.
 >    stale-worker window widens;
 > 2. cache invalidation becomes user-triggered rather than admin-rare;
 > 3. a second app server is added (restart no longer covers the fleet).
+>
+> **Update (2026-07-28): trigger 2 fired, and was resolved by deleting the
+> cache rather than by adding Redis.** The favorites toggle made invalidation
+> user-triggered — every click called `cache.delete()` on a per-user page key,
+> which only ever reached one of the 2 workers. Users saw the favorite star and
+> `#N` pill appear and disappear on reload, unaffected by a hard refresh.
+> Measurement settled it: `/turnusliste` renders in 33 ms and `/oversikt` in
+> 17 ms with the data caches warm, while each cached entry was 3.7 MiB per user
+> per worker. Both per-user page caches are gone, along with the generation
+> counter, the `_flashes` uuid-key bypass and six scattered invalidation call
+> sites. What remains in the cache is shared, admin-invalidated data, so the
+> envelope documented above is back to its original "imports are rare" shape
+> and triggers 1 and 3 still stand.
 
 Production runs `workers = 2`, but three mechanisms assume one process:
 

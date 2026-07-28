@@ -20,7 +20,7 @@ from app.extensions import cache
 from app.models import DBUser, Favorites
 from app.routes.admin import admin
 from app.services import user_service
-from app.utils import db_utils, df_utils, protected_paths
+from app.utils import db_utils, protected_paths
 
 
 def _member_excel_path():
@@ -402,13 +402,8 @@ def reset_to_stub(user_id):
     target = user_service.get_user_by_id(user_id)
     success, message = user_service.reset_user_to_stub(user_id)
     if success:
-        # Evict only the target user's cached pages/flags (targeted so the
-        # shared turnus_data_* caches survive). Their selected turnus set isn't
-        # reachable from here, so fall back to the active set (the default).
-        active = db_utils.get_active_turnus_set()
-        ts_id = active["id"] if active else "none"
-        cache.delete(df_utils.turnusliste_view_key(user_id, ts_id))
-        cache.delete(df_utils.oversikt_view_key(user_id, ts_id))
+        # Evict only the target user's cached flags (targeted so the shared
+        # turnus_data_* caches survive).
         cache.delete(f"tour_state_{user_id}")
         cache.delete(f"has_min_turnus_{user_id}")
         if target:
