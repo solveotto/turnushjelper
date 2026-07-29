@@ -3,6 +3,8 @@ from __future__ import annotations
 import io
 import os
 import re
+import shutil
+import tempfile
 from typing import TYPE_CHECKING
 
 from config import AppConfig
@@ -558,6 +560,28 @@ def get_all_shifts(version: str) -> list:
     return all_shifts
 
 
+def _swap_in(work_dir: str, images_dir: str) -> None:
+    """Atomically replace `images_dir` with `work_dir`.
+
+    Both must live on the same filesystem (the caller creates `work_dir`
+    alongside `images_dir`), so the renames are atomic and the window in which
+    no image directory exists is a few microseconds rather than the ~35 s a
+    regeneration takes.
+    """
+    backup = f"{images_dir}.replaced-{os.getpid()}"
+    had_existing = os.path.exists(images_dir)
+    if had_existing:
+        os.rename(images_dir, backup)
+    try:
+        os.rename(work_dir, images_dir)
+    except OSError:
+        if had_existing:  # put the old set back rather than leave nothing
+            os.rename(backup, images_dir)
+        raise
+    if had_existing:
+        shutil.rmtree(backup, ignore_errors=True)
+
+
 def generate_all_images(
     version: str, force: bool = False, progress_callback=None
 ) -> dict:
@@ -591,12 +615,34 @@ def generate_all_images(
     # Ensure output directory exists
     os.makedirs(paths["images_dir"], exist_ok=True)
 
-    # Clear existing images if force regeneration
+    # A full regeneration builds into a sibling temp directory and swaps it in
+    # only once every image is written. Clearing in place used to mean any
+    # interruption — most often gunicorn's 30 s worker timeout, since this takes
+    # ~35 s for a 423-shift set — destroyed the working set and left a partial
+    # one behind, which looks fine until someone opens a high-numbered shift.
+    work_dir = paths["images_dir"]
+    tmp_dir = None
     if force:
-        for filename in os.listdir(paths["images_dir"]):
-            if filename.endswith(".png"):
-                os.remove(os.path.join(paths["images_dir"], filename))
+        tmp_dir = tempfile.mkdtemp(
+            dir=os.path.dirname(paths["images_dir"]), prefix=".png-gen-"
+        )
+        work_dir = tmp_dir
 
+    try:
+        result = _generate_into(
+            paths, work_dir, force=force, progress_callback=progress_callback
+        )
+        if tmp_dir is not None:
+            _swap_in(tmp_dir, paths["images_dir"])
+            tmp_dir = None  # ownership transferred; nothing left to clean up
+        return result
+    finally:
+        if tmp_dir is not None:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def _generate_into(paths: dict, images_dir: str, force: bool, progress_callback) -> dict:
+    """Render every shift image into `images_dir`. See generate_all_images."""
     # Open PDF once
     doc = fitz.open(paths["pdf_path"])
 
@@ -631,7 +677,7 @@ def generate_all_images(
 
     for idx, shift in enumerate(all_shifts):
         full_name = shift["full_name"]
-        img_path = os.path.join(paths["images_dir"], f"{full_name}.png")
+        img_path = os.path.join(images_dir, f"{full_name}.png")
 
         if os.path.exists(img_path) and not force:
             skipped.append(full_name)

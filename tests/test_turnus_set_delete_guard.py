@@ -10,12 +10,27 @@ guarded much more heavily. Two guards are tested here:
     (or a forged POST that skips the browser prompt) cannot delete anything.
 """
 
+import pytest
+
 from app.models import DBUser, Favorites, SoknadsskjemaChoice, TurnusSet
 from app.services import turnus_service
 from tests.conftest import login_user
 
+# Deleting a turnus set also deletes its strekliste PNGs on disk
+# (admin.delete_turnus_set -> strekliste_generator.delete_all_images), which
+# resolves through AppConfig.turnusfiler_dir. Seeding a *real* year identifier
+# here wiped the committed R26 image set — 423 files — on every suite run.
+# Two defences: never name a real rutetermin, and point the data store at a
+# tmp dir so even a real name cannot reach it.
+FAKE_YEAR = "T99"
 
-def _seed_set_with_user_data(db_session, year="R26", n_users=3):
+
+@pytest.fixture(autouse=True)
+def isolate_data_store(tmp_path, monkeypatch):
+    monkeypatch.setattr("config.AppConfig.turnusfiler_dir", str(tmp_path / "turnusdata"))
+
+
+def _seed_set_with_user_data(db_session, year=FAKE_YEAR, n_users=3):
     ts = TurnusSet(name=year, year_identifier=year, is_active=0)
     db_session.add(ts)
     db_session.commit()
@@ -47,7 +62,7 @@ class TestDeletionImpact:
 
     def test_two_favorites_one_user_counts_one_user(self, patch_db, db_session):
         ts = _seed_set_with_user_data(db_session, n_users=1)
-        u = db_session.query(DBUser).filter_by(username="bruker_R26_0").first()
+        u = db_session.query(DBUser).filter_by(username=f"bruker_{FAKE_YEAR}_0").first()
         db_session.add(Favorites(
             user_id=u.id, shift_title="OSL_extra",
             turnus_set_id=ts.id, order_index=1,
@@ -60,8 +75,8 @@ class TestDeletionImpact:
         assert impact["users"] == 1
 
     def test_other_sets_are_not_counted(self, patch_db, db_session):
-        ts = _seed_set_with_user_data(db_session, year="R26", n_users=2)
-        _seed_set_with_user_data(db_session, year="R25", n_users=5)
+        ts = _seed_set_with_user_data(db_session, year=FAKE_YEAR, n_users=2)
+        _seed_set_with_user_data(db_session, year="T98", n_users=5)
 
         assert turnus_service.get_turnus_set_deletion_impact(ts.id)["favorites"] == 2
 
@@ -93,7 +108,7 @@ class TestTypedConfirmation:
 
         resp = client.post(
             f"/admin/delete-turnus-set/{ts.id}",
-            data={"confirm_identifier": "R25"},
+            data={"confirm_identifier": "WRONG"},
             follow_redirects=True,
         )
 
@@ -116,7 +131,7 @@ class TestTypedConfirmation:
 
         client.post(
             f"/admin/delete-turnus-set/{ts.id}",
-            data={"confirm_identifier": "R26"},
+            data={"confirm_identifier": FAKE_YEAR},
             follow_redirects=True,
         )
 
@@ -131,7 +146,7 @@ class TestTypedConfirmation:
 
         client.post(
             f"/admin/delete-turnus-set/{ts.id}",
-            data={"confirm_identifier": "  r26 "},
+            data={"confirm_identifier": f"  {FAKE_YEAR.lower()} "},
             follow_redirects=True,
         )
 
