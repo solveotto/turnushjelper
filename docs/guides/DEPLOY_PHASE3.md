@@ -57,19 +57,9 @@ force-tracked despite matching `turnusdata/**/double_shifts_*.json` in
 before committing:
 
 ```bash
-git diff --cached --name-status -- '*double_shifts*'   # both must be R100 (rename), not D
-git ls-files turnusdata | wc -l                        # must be 11
+git diff --cached --stat | grep double_shifts   # both must show as renames, not deletions
+git ls-files turnusdata | wc -l                 # must be 11
 ```
-
-Expected:
-
-```
-R100  app/static/turnusfiler/r25/double_shifts_r25.json  turnusdata/r25/double_shifts_r25.json
-R100  app/static/turnusfiler/r26/double_shifts_r26.json  turnusdata/r26/double_shifts_r26.json
-```
-
-Do not use `--stat` for this check: it truncates the path prefix to `...`, so a
-rename and a deletion look nearly identical.
 
 Then commit and push the branch:
 
@@ -151,19 +141,115 @@ In a browser:
 
 ### A3. Production
 
-Same commands as A1. **Pick a quiet window** — the restart is the moment every
-session dies — and have your own credentials to hand.
+**Production is 54 commits behind, not 3** (`6e5168e` → `55712d3`: 125 files,
++14 593 / −2 776). This is not the small pull staging got. Everything since
+2026-07-12 lands at once, including four things that need action beyond
+`git pull`:
+
+| What | Commit | Consequence |
+|---|---|---|
+| `users.rullenummer` becomes UNIQUE | migration `017` | **fails and aborts** if prod has duplicates |
+| PII moved out of the static tree | `99252d5` | code reads `instance/protected/` only; files must be moved by hand |
+| Strekliste geometry auto-calibration | `5b47b1f` | existing PNGs were rendered by the old code — stale until regenerated |
+| Usernames case-insensitive | `76526d4` | two accounts differing only in case would now collide |
+
+Pick a quiet window — the restart is the moment every session dies — and have
+your own credentials to hand.
+
+#### A3.0 Pre-flight (before `git pull`)
 
 ```bash
 ssh <prod>
 cd /home/deploy/turnushjelper
 
-git log -1 --oneline                      # record — Pass A rollback target
-git pull
+git log -1 --oneline        # 6e5168e — record it, this is the rollback target
+venv/bin/alembic current    # expect 016_add_fk_constraints
+```
+
+**Verify a fresh DB backup exists.** Migration 017 rewrites an index on
+`users`; there is a `downgrade()`, but a backup is the only real undo.
+
+```bash
+ls -lt ~/backups/ | head -3     # or wherever daily_mysql_backup.py writes
+```
+
+**The rullenummer duplicate check is a hard gate.** Migration 017's own
+docstring requires it, and it must be run against *production*, not from a
+staging result — users register between snapshots:
+
+```bash
+venv/bin/python scripts/check_rullenummer_duplicates.py   # must exit 0
+```
+
+If it reports duplicates or empty strings, **stop**. Resolve them in the admin
+UI first; `alembic upgrade` will otherwise fail partway and leave the DB on 016
+with the app expecting newer code.
+
+While you are there, check the case-collision the same release introduces:
+
+```sql
+SELECT LOWER(username), COUNT(*) FROM users GROUP BY 1 HAVING COUNT(*) > 1;
+```
+
+Empty result = safe.
+
+#### A3.1 Deploy
+
+```bash
+git pull                                  # expect 55712d3
 venv/bin/pip install -r requirements.txt
-venv/bin/alembic upgrade head
+venv/bin/alembic upgrade head             # applies 017
 sudo systemctl restart turnushjelper
 ```
+
+`requirements.txt` pinned six previously unpinned packages in this range —
+`gunicorn==26.0.0`, `PyMuPDF==1.27.2.3`, `icalendar`, `python-dotenv`,
+`requests`, `alembic`, `reportlab`, `flask-limiter`, `b2sdk`. Expect pip to
+upgrade or downgrade several, gunicorn among them. `b1aa24e` also deleted the
+root `gunicorn.conf.py`; the systemd unit is supposed to hardcode every flag,
+so confirm it does not reference that file:
+
+```bash
+systemctl cat turnushjelper | grep -i conf
+```
+
+#### A3.2 One-time PII migration
+
+`99252d5` never ran here, so member PII is still under `app/static/turnusfiler/`
+where it is served **without authentication**. The new code reads only
+`instance/protected/`, so this is both a security fix and a functional one —
+skip it and the admin pages show "PDF ikke funnet" until the files are
+re-uploaded.
+
+```bash
+find app/static/turnusfiler -iname 'medlemsliste*' -o -iname 'ansinitet*' -o -iname 'innplassering*'
+
+mkdir -p instance/protected/r26
+mv app/static/turnusfiler/medlemsliste.xlsx         instance/protected/ 2>/dev/null
+mv app/static/turnusfiler/ansinitet.pdf             instance/protected/ 2>/dev/null
+mv app/static/turnusfiler/r26/innplassering_R26.pdf instance/protected/r26/ 2>/dev/null
+```
+
+Do **not** leave the old copies behind — that is the exposure being removed.
+This also clears the way for Pass B's `rsync`, which would otherwise drag PII
+into `turnusdata/`; B0 becomes a no-op check on this server.
+
+#### A3.3 Regenerate strekliste PNGs
+
+`5b47b1f` changed how ruler geometry is derived (auto-calibrated from the PDF's
+printed hour labels instead of hand-tuned constants). Prod's PNGs came from the
+old code and are **not** regenerated by a pull — they will look plausible and be
+misaligned.
+
+```bash
+md5sum app/static/turnusfiler/r26/streklister/r26_streker.pdf   # want 9091cf5ee5b1fd5db797a6dc3ccf6888
+venv/bin/python -c "import app.utils.pdf.strekliste_generator as sg; print(sg.generate_all_images('r26', force=True)['total'])"   # expect 423
+```
+
+If the md5 differs, upload the correct 54-page PDF first. Run this **after** the
+restart so the new code is loaded. (In Pass B the path becomes
+`turnusdata/r26/streklister/`.)
+
 
 ### A4. Verify production
 
@@ -180,14 +266,34 @@ A 200 here is the finding. Pass B turns both into 404.
 
 ### A5. Rollback (Pass A)
 
+On **staging** the code revert is the whole job:
+
 ```bash
 git checkout <recorded-sha>
 venv/bin/pip install -r requirements.txt
 sudo systemctl restart turnushjelper
 ```
 
-Sessions log out once more. Nothing on disk changed, so there is nothing else
-to undo.
+On **production** it is not, because A3 changed things a `git checkout` cannot
+put back. In reverse order:
+
+```bash
+venv/bin/alembic downgrade 016_add_fk_constraints   # undo the unique index
+git checkout 6e5168e
+venv/bin/pip install -r requirements.txt            # re-pin to the old set
+mv instance/protected/medlemsliste.xlsx         app/static/turnusfiler/ 2>/dev/null
+mv instance/protected/ansinitet.pdf             app/static/turnusfiler/ 2>/dev/null
+mv instance/protected/r26/innplassering_R26.pdf app/static/turnusfiler/r26/ 2>/dev/null
+sudo systemctl restart turnushjelper
+```
+
+Sessions log out once more. The regenerated strekliste PNGs are **not** reverted
+by this — the old code will read the new PNGs, which is the misalignment
+situation in reverse. Regenerate again on the old code if you stay rolled back.
+
+Moving PII back into the static tree re-opens the exposure, so treat this as a
+short-lived state, not somewhere to sit. Restoring the DB from the A3.0 backup
+is the cleaner undo if 017 is what went wrong.
 
 ---
 
