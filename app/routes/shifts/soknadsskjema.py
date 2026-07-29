@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from app.database import get_db_session
 from app.models import DBUser, SoknadsskjemaChoice
 from app.routes.shifts import shifts
-from app.utils import db_utils
+from app.services import favorites_service, turnus_service
 from app.utils.soknadsskjema_gen import (
     build_soknadsskjema_doc,
     build_soknadsskjema_pdf,
@@ -51,7 +51,7 @@ def soknadsskjema():
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
     user_id = current_user.get_id()
 
-    fav_order_lst = db_utils.get_favorite_lst(user_id, turnus_set_id)
+    fav_order_lst = favorites_service.get_favorite_lst(user_id, turnus_set_id)
 
     # Pre-populate personal info from DBUser
     db_session = get_db_session()
@@ -136,7 +136,7 @@ def soknadsskjema():
         favorites=fav_order_lst,
         choices=choices,
         current_turnus_set=user_turnus_set,
-        all_turnus_sets=db_utils.get_all_turnus_sets(),
+        all_turnus_sets=turnus_service.get_all_turnus_sets(),
         today=date.today().strftime("%d.%m.%Y"),
         today_iso=date.today().strftime("%Y-%m-%d"),
         default_rullenr_navn=default_rullenr_navn,

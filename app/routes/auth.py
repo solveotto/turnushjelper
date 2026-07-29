@@ -9,7 +9,7 @@ from flask_login import login_user as flask_login_user
 from app.extensions import limiter
 from app.forms import ForgotPasswordForm, LoginForm, ResetPasswordForm
 from app.models import User
-from app.utils import db_utils
+from app.services import auth_service, user_service
 from app.utils.email_utils import send_password_reset_email
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         try:
-            db_user_data = db_utils.get_user_data(form.username.data)
+            db_user_data = user_service.get_user_data(form.username.data)
             if db_user_data and User.verify_password(
                 db_user_data["password"], form.password.data
             ):
@@ -133,7 +133,7 @@ def forgot_password():
         email = (form.email.data or "").lower()
 
         # Check rate limiting
-        if not db_utils.can_send_password_reset_email(email):
+        if not auth_service.can_send_password_reset_email(email):
             flash(
                 "En tilbakestillings-e-post ble nylig sendt. Vennligst sjekk innboksen din eller prøv igjen senere.",
                 "warning",
@@ -143,12 +143,12 @@ def forgot_password():
             )
 
         # Get user by email
-        user = db_utils.get_user_by_email(email)
+        user = user_service.get_user_by_email(email)
 
         if user:
             # Generate token and create reset record
             token = secrets.token_urlsafe(32)
-            success, _msg = db_utils.create_password_reset_token(user["id"], token)
+            success, _msg = auth_service.create_password_reset_token(user["id"], token)
             if success:
                 # Send reset email
                 if send_password_reset_email(email, token):
@@ -172,7 +172,7 @@ def reset_password(token):
         return redirect(url_for("shifts.index"))
 
     # Verify token is valid
-    token_result = db_utils.verify_password_reset_token(token)
+    token_result = auth_service.verify_password_reset_token(token)
 
     if not token_result["success"]:
         flash(token_result["message"], "danger")
@@ -181,7 +181,7 @@ def reset_password(token):
     form = ResetPasswordForm()
     if form.validate_on_submit():
         # Update password
-        success, message = db_utils.reset_user_password(
+        success, message = auth_service.reset_user_password(
             token_result["user_id"], form.password.data
         )
 

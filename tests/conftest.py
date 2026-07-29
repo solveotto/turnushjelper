@@ -101,7 +101,6 @@ def patch_db(db_session, monkeypatch):
         "app.services.activity_service",
         "app.services.favorites_service",
         "app.services.turnus_service",
-        "app.utils.db_utils",
     ]
     for mod in modules_to_patch:
         monkeypatch.setattr(f"{mod}.get_db_session", make_session)

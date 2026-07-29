@@ -2,7 +2,8 @@ from flask import redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
 from app.routes.shifts import shifts
-from app.utils import db_utils, df_utils
+from app.services import favorites_service, turnus_service
+from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager, kompdager_max_label
 from app.utils.turnus_helpers import get_user_turnus_set
 
@@ -18,11 +19,11 @@ def turnusliste():
     # Get the turnus set for this user (their choice or system default)
     user_turnus_set = get_user_turnus_set()
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
-    active_set = db_utils.get_active_turnus_set()
+    active_set = turnus_service.get_active_turnus_set()
 
     # Get favorites for current user and active turnus set
     favoritt = (
-        db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
+        favorites_service.get_favorite_lst(current_user.get_id(), turnus_set_id)
         if current_user.is_authenticated
         else []
     )
@@ -54,7 +55,7 @@ def turnusliste():
         favorite_positions=favorite_positions,
         current_turnus_set=user_turnus_set,
         active_set=active_set,
-        all_turnus_sets=db_utils.get_all_turnus_sets(),
+        all_turnus_sets=turnus_service.get_all_turnus_sets(),
         highlighted_turnus=highlighted_turnus,
     )
 

@@ -8,8 +8,8 @@ from app.decorators import admin_required
 from app.extensions import cache
 from app.models import DBUser
 from app.routes.admin import admin
-from app.services import user_service
-from app.utils import db_utils, protected_paths
+from app.services import turnus_service, user_service
+from app.utils import protected_paths
 
 
 @admin.route("/dashboard")
@@ -19,8 +19,8 @@ def admin_dashboard():
     registered_count = sum(1 for e in employees if e["is_registered"])
     pending_count = sum(1 for e in employees if e["is_stub"] == 1)
 
-    turnus_sets = db_utils.get_all_turnus_sets()
-    active_set = db_utils.get_active_turnus_set()
+    turnus_sets = turnus_service.get_all_turnus_sets()
+    active_set = turnus_service.get_active_turnus_set()
 
     pdf_exists = os.path.exists(protected_paths.ansinitet_pdf_path())
 

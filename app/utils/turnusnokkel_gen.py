@@ -1,7 +1,8 @@
 import os
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from app.utils import db_utils, df_utils
+from app.services import turnus_service
+from app.utils import df_utils
 from config import AppConfig
 
 
@@ -39,7 +40,7 @@ class TurnusnokkelGen():
                 return {'success': False, 'error': f'Turnus "{self.turnus_name}" not found in turnus set {self.turnus_set_id}'}
             
             # Get turnus set info for file paths
-            turnus_set = db_utils.get_turnus_set_by_id(self.turnus_set_id)
+            turnus_set = turnus_service.get_turnus_set_by_id(self.turnus_set_id)
             if not turnus_set:
                 return {'success': False, 'error': f'Turnus set {self.turnus_set_id} not found'}
             

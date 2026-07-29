@@ -11,7 +11,8 @@ from datetime import datetime, timedelta
 project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
-from app.utils.db_utils import SessionLocal, DBUser, EmailVerificationToken, Favorites
+from app.database import SessionLocal
+from app.models import DBUser, EmailVerificationToken, Favorites
 from config import AppConfig
 
 def cleanup_unverified_users():

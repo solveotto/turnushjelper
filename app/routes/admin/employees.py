@@ -20,7 +20,7 @@ from app.extensions import cache
 from app.models import DBUser, Favorites
 from app.routes.admin import admin
 from app.services import user_service
-from app.utils import db_utils, protected_paths
+from app.utils import protected_paths
 
 
 def _member_excel_path():
@@ -428,7 +428,7 @@ def delete_employee(user_id):
     finally:
         db_session.close()
 
-    success, message = db_utils.delete_user(user_id)
+    success, message = user_service.delete_user(user_id)
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.manage_employees"))
 

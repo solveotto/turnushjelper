@@ -885,11 +885,15 @@ def create_test_user_with_favorites():
 # Backward-compatibility re-exports
 # ---------------------------------------------------------------------------
 # The member-sync and stub-lifecycle functions were extracted into dedicated
-# modules (Phase 3 refactor). They are re-exported here so existing callers
-# that reference them as ``user_service.<name>`` — and the ``app.utils.db_utils``
-# facade — keep working unchanged. Placed at the bottom (after all core defs);
-# the extracted modules import only from ``user_helpers`` (a leaf), never from
-# ``user_service``, so this creates no import cycle regardless of load order.
+# modules (Phase 3 refactor). They are re-exported here so existing callers that
+# reference them as ``user_service.<name>`` keep working unchanged. Placed at the
+# bottom (after all core defs); the extracted modules import only from
+# ``user_helpers`` (a leaf), never from ``user_service``, so this creates no
+# import cycle regardless of load order.
+#
+# Kept deliberately when the ``app.utils.db_utils`` facade was retired (Phase 3
+# item 3, 2026-07-29): nothing reached these names *through* db_utils, so this
+# is a separate, still-used indirection rather than the same shim twice.
 from app.services.member_sync_service import sync_members_from_excel  # noqa: E402,F401
 from app.services.stub_service import (  # noqa: E402,F401
     activate_stub_user,

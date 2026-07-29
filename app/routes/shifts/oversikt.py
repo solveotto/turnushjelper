@@ -3,7 +3,8 @@ from flask_login import current_user, login_required
 
 from app.routes.shifts import shifts
 from app.services.innplassering_service import get_innplassering_for_user
-from app.utils import db_utils, df_utils
+from app.services import favorites_service, turnus_service
+from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager
 from app.utils.turnus_helpers import get_user_turnus_set, iter_turnus_days
 
@@ -48,7 +49,7 @@ def oversikt():
     kompdager = count_kompdager(turnus_set_id)
 
     # Load current user's favorites for the star button in the modal
-    fav_order_lst = db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
+    fav_order_lst = favorites_service.get_favorite_lst(current_user.get_id(), turnus_set_id)
 
     # Compute weekday free-day counts and compact schedule — single pass over turnus_data
     _day_names = [
@@ -123,7 +124,7 @@ def oversikt():
         schedule_data=schedule_data,
         favoritt=fav_order_lst,
         current_turnus_set=user_turnus_set,
-        all_turnus_sets=db_utils.get_all_turnus_sets(),
+        all_turnus_sets=turnus_service.get_all_turnus_sets(),
         innplassering=innplassering,
         innplassering_schedules=innplassering_schedules,
     )

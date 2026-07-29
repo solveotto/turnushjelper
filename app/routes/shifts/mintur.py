@@ -3,7 +3,8 @@ from flask_login import current_user, login_required
 
 from app.routes.shifts import _classify_shift_type, shifts
 from app.services.innplassering_service import get_innplassering_for_user
-from app.utils import db_utils, df_utils
+from app.services import turnus_service
+from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager, get_holidays_for_dates
 
 
@@ -23,7 +24,7 @@ def _load_mintur_data(user_id: int) -> dict | None:
 
     from config import AppConfig
 
-    active_set = db_utils.get_active_turnus_set()
+    active_set = turnus_service.get_active_turnus_set()
     records = get_innplassering_for_user(user_id)
     if not records or not active_set:
         return None

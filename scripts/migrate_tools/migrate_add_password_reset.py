@@ -11,7 +11,7 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
 
-from app.utils.db_utils import engine, SessionLocal
+from app.database import engine, SessionLocal
 from sqlalchemy import text
 from config import AppConfig
 

@@ -12,7 +12,7 @@ import numpy as np
 from typing import List, Dict, Tuple, Optional
 
 from config import AppConfig
-from app.utils import db_utils
+from app.services import favorites_service, turnus_service
 
 
 # Stats to use for similarity comparison
@@ -53,7 +53,7 @@ def load_stats_for_turnus_set(turnus_set_id: int) -> Optional[pd.DataFrame]:
     Returns:
         DataFrame with shift statistics, or None if not found
     """
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         return None
 
@@ -198,7 +198,7 @@ def find_similar_shifts(source_turnus_set_id: int,
     # Get user's existing favorites in target turnus set to exclude them
     existing_favorites = set()
     if user_id is not None:
-        existing_favorites = set(db_utils.get_favorite_lst(user_id, target_turnus_set_id))
+        existing_favorites = set(favorites_service.get_favorite_lst(user_id, target_turnus_set_id))
 
     matches = []
 
@@ -248,7 +248,7 @@ def find_matches_for_favorites(user_id: int,
         - matches: List of similar shifts in target year
     """
     # Get user's favorites from source turnus set
-    favorites = db_utils.get_favorite_lst(user_id, source_turnus_set_id)
+    favorites = favorites_service.get_favorite_lst(user_id, source_turnus_set_id)
 
     if not favorites:
         return []
@@ -322,7 +322,7 @@ def find_matches_from_multiple_sources(user_id: int,
         )
 
         if matches:
-            source_set = db_utils.get_turnus_set_by_id(source_id)
+            source_set = turnus_service.get_turnus_set_by_id(source_id)
             if not source_set:
                 continue
 
@@ -399,7 +399,7 @@ def find_matches_from_innplassering(
     for ts_id, records in records_by_ts.items():
         if not records:
             continue
-        ts_info = db_utils.get_turnus_set_by_id(ts_id)
+        ts_info = turnus_service.get_turnus_set_by_id(ts_id)
         if not ts_info:
             continue
 
@@ -459,7 +459,7 @@ def get_all_turnus_sets_with_stats() -> List[Dict]:
     Returns:
         List of turnus set info dicts with 'id', 'name', 'year_identifier'
     """
-    all_sets = db_utils.get_all_turnus_sets()
+    all_sets = turnus_service.get_all_turnus_sets()
     sets_with_stats = []
 
     for ts in all_sets:

@@ -73,7 +73,10 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Now we can import from app
-from app.utils.db_utils import create_turnus_set, add_shifts_to_turnus_set, get_turnus_set_by_year, update_turnus_set_paths
+from app.services.turnus_service import (
+    create_turnus_set, add_shifts_to_turnus_set,
+    get_turnus_set_by_year, update_turnus_set_paths,
+)
 from app.utils.shift_stats import Turnus
 from config import AppConfig
 

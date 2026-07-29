@@ -7,9 +7,10 @@ from flask import Blueprint, jsonify, request, send_from_directory, session
 from flask_login import current_user, login_required
 
 from app.extensions import cache, favorite_lock, limiter
-from app.models import DBUser, SoknadsskjemaChoice
-from app.services import user_service
-from app.utils import db_utils, shift_matcher
+from app.database import get_db_session
+from app.models import DBUser, Favorites, SoknadsskjemaChoice
+from app.services import favorites_service, turnus_service, user_service
+from app.utils import shift_matcher
 from app.utils.turnus_helpers import get_user_turnus_set
 from config import AppConfig
 
@@ -47,7 +48,7 @@ def toggle_favorite():
             user_id = current_user.get_id()
 
             def _build_favorites_payload(message):
-                updated = db_utils.get_favorite_lst(user_id, turnus_set_id)
+                updated = favorites_service.get_favorite_lst(user_id, turnus_set_id)
                 positions = {name: idx + 1 for idx, name in enumerate(updated)}
                 # No cache invalidation needed: the /turnusliste and /oversikt
                 # view keys are content-addressed on the favorites list, so the
@@ -58,14 +59,14 @@ def toggle_favorite():
 
             if favorite:
                 # Check if already exists first (handle potential duplicates from hibernation)
-                existing_favorites = db_utils.get_favorite_lst(user_id, turnus_set_id)
+                existing_favorites = favorites_service.get_favorite_lst(user_id, turnus_set_id)
                 if shift_title in existing_favorites:
                     # Already exists, just return success (cleanup handled in get_favorite_lst)
                     return jsonify(_build_favorites_payload("Already in favorites"))
 
                 # Calculate the next order index for the user's selected turnus set
-                order_index = db_utils.get_max_ordered_index(user_id, turnus_set_id) + 1
-                success = db_utils.add_favorite(
+                order_index = favorites_service.get_max_ordered_index(user_id, turnus_set_id) + 1
+                success = favorites_service.add_favorite(
                     user_id, shift_title, order_index, turnus_set_id
                 )
                 if success:
@@ -81,11 +82,11 @@ def toggle_favorite():
                     )
             else:
                 # Check if exists before trying to remove
-                existing_favorites = db_utils.get_favorite_lst(user_id, turnus_set_id)
+                existing_favorites = favorites_service.get_favorite_lst(user_id, turnus_set_id)
                 if shift_title not in existing_favorites:
                     return jsonify(_build_favorites_payload("Already removed from favorites"))
 
-                success = db_utils.remove_favorite(user_id, shift_title, turnus_set_id)
+                success = favorites_service.remove_favorite(user_id, shift_title, turnus_set_id)
                 if success:
                     from app.services.activity_service import log_event
                     log_event(user_id, 'favorite_remove', details=shift_title)
@@ -121,13 +122,13 @@ def move_favorite():
         if not turnus_set_id:
             return jsonify({"status": "error", "message": "No turnus set selected"})
 
-        db_session = db_utils.get_db_session()
+        db_session = get_db_session()
 
         # Get current favorites with order FOR THE SPECIFIC TURNUS SET
         current_favorites = (
-            db_session.query(db_utils.Favorites)
+            db_session.query(Favorites)
             .filter_by(user_id=user_id, turnus_set_id=turnus_set_id)
-            .order_by(db_utils.Favorites.order_index)
+            .order_by(Favorites.order_index)
             .all()
         )
 
@@ -213,13 +214,13 @@ def set_favorite_position():
         if not turnus_set_id:
             return jsonify({"status": "error", "message": "No turnus set selected"})
 
-        db_session = db_utils.get_db_session()
+        db_session = get_db_session()
 
         # Get current favorites ordered by order_index
         current_favorites = (
-            db_session.query(db_utils.Favorites)
+            db_session.query(Favorites)
             .filter_by(user_id=user_id, turnus_set_id=turnus_set_id)
-            .order_by(db_utils.Favorites.order_index)
+            .order_by(Favorites.order_index)
             .all()
         )
 
@@ -406,7 +407,7 @@ def import_favorites_preview():
         if not result["all_favorites"]:
             return jsonify({"status": "error", "message": "Ingen innplasseringsdata funnet eller statistikk mangler."})
 
-        target_set = db_utils.get_turnus_set_by_id(target_turnus_set_id)
+        target_set = turnus_service.get_turnus_set_by_id(target_turnus_set_id)
         if not target_set:
             return jsonify({"status": "error", "message": "Target turnus set not found"}), 404
 
@@ -478,7 +479,7 @@ def import_favorites_preview():
                 }
             )
 
-        target_set = db_utils.get_turnus_set_by_id(target_turnus_set_id)
+        target_set = turnus_service.get_turnus_set_by_id(target_turnus_set_id)
         if not target_set:
             return jsonify(
                 {"status": "error", "message": "Target turnus set not found"}
@@ -515,8 +516,8 @@ def import_favorites_preview():
             )
 
         # Get info about the turnus sets
-        source_set = db_utils.get_turnus_set_by_id(source_ids[0])
-        target_set = db_utils.get_turnus_set_by_id(target_turnus_set_id)
+        source_set = turnus_service.get_turnus_set_by_id(source_ids[0])
+        target_set = turnus_service.get_turnus_set_by_id(target_turnus_set_id)
 
         if not source_set or not target_set:
             return jsonify({"status": "error", "message": "Turnus set not found"}), 404
@@ -569,8 +570,8 @@ def import_favorites_confirm():
     with favorite_lock:
         try:
             # Get existing favorites to avoid duplicates
-            existing_favorites = db_utils.get_favorite_lst(user_id, turnus_set_id)
-            current_max_index = db_utils.get_max_ordered_index(user_id, turnus_set_id)
+            existing_favorites = favorites_service.get_favorite_lst(user_id, turnus_set_id)
+            current_max_index = favorites_service.get_max_ordered_index(user_id, turnus_set_id)
 
             added = []
             skipped = []
@@ -581,7 +582,7 @@ def import_favorites_confirm():
                     continue
 
                 current_max_index += 1
-                success = db_utils.add_favorite(
+                success = favorites_service.add_favorite(
                     user_id, shift_title, current_max_index, turnus_set_id
                 )
 
@@ -631,7 +632,7 @@ def get_turnus_sets_for_import():
             continue
 
         # Check if user has favorites in this set
-        favorites = db_utils.get_favorite_lst(user_id, ts["id"])
+        favorites = favorites_service.get_favorite_lst(user_id, ts["id"])
         if favorites:
             ts["favorite_count"] = len(favorites)
             available_sets.append(ts)
@@ -661,7 +662,7 @@ def get_shift_image(turnus_set_id, shift_nr):
     Converts turnus_set_id to the appropriate version identifier.
     """
     # Get turnus set to find year_identifier
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
@@ -715,9 +716,7 @@ def mark_tour_seen():
     if tour_name not in tour_columns:
         return jsonify({"status": "error", "message": "Unknown tour name"}), 400
 
-    # Use db_utils (attribute lookup) so tests' per-test session patch applies;
-    # a from-import binds the factory of whichever test imported this module first.
-    db_session = db_utils.get_db_session()
+    db_session = get_db_session()
     try:
         user = db_session.query(DBUser).filter_by(id=current_user.id).first()
         if user:
@@ -769,9 +768,7 @@ def soknadsskjema_choice():
     if turnus_set_id is None:
         return jsonify(status="error", message="No turnus set"), 400
 
-    # Use db_utils (attribute lookup) so tests' per-test session patch applies;
-    # a from-import binds the factory of whichever test imported this module first.
-    db_session = db_utils.get_db_session()
+    db_session = get_db_session()
     try:
         row = db_session.query(SoknadsskjemaChoice).filter_by(
             user_id=user_id, turnus_set_id=turnus_set_id, shift_title=shift_title

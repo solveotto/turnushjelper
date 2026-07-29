@@ -4,7 +4,8 @@ from flask_login import current_user, login_required
 from app.database import get_db_session
 from app.models import SoknadsskjemaChoice
 from app.routes.shifts import shifts
-from app.utils import db_utils, df_utils
+from app.services import turnus_service
+from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager, get_holidays_for_dates
 
 
@@ -17,7 +18,7 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
 
     from config import AppConfig
 
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         abort(404)
     year_identifier = turnus_set["year_identifier"]

@@ -92,7 +92,7 @@ Turnushjelper
 
         if success:
             # Update user's verification_sent_at timestamp
-            from app.utils.db_utils import update_verification_sent_time
+            from app.services.auth_service import update_verification_sent_time
             update_verification_sent_time(email)
 
         return success

@@ -3,7 +3,7 @@ import re
 import logging
 import pandas as pd
 import json
-import app.utils.db_utils as _db_utils
+from app.services import turnus_service
 from config import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -41,11 +41,11 @@ class DataframeManager():
         
         if turnus_set_id:
             # Load specific turnus set by ID
-            all_sets = _db_utils.get_all_turnus_sets()
+            all_sets = turnus_service.get_all_turnus_sets()
             turnus_set = next((ts for ts in all_sets if ts['id'] == turnus_set_id), None)
         else:
             # Load the currently active turnus set
-            turnus_set = _db_utils.get_active_turnus_set()
+            turnus_set = turnus_service.get_active_turnus_set()
         
         if not turnus_set:
             logger.warning("No turnus set found! Using empty data.")

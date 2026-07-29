@@ -10,10 +10,8 @@ from app.database import get_db_session
 from app.extensions import cache
 from app.forms import CreateTurnusSetForm, UploadStreklisteForm
 from app.routes.admin import admin
-# Imported directly rather than via the db_utils facade — Phase 3 item 3 is to
-# retire that shim, so new call sites should not grow it.
 from app.services import turnus_service
-from app.utils import db_utils, df_utils, protected_paths
+from app.utils import df_utils, protected_paths
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
 from config import AppConfig
@@ -53,8 +51,8 @@ def manage_turnus_sets():
     """Manage turnus sets"""
     from app.services import import_turnusset_service
 
-    turnus_sets = db_utils.get_all_turnus_sets()
-    active_set = db_utils.get_active_turnus_set()
+    turnus_sets = turnus_service.get_all_turnus_sets()
+    active_set = turnus_service.get_active_turnus_set()
     upload_form = UploadStreklisteForm()
 
     # Shown in the delete confirmation so the admin sees the blast radius
@@ -187,7 +185,7 @@ def create_turnus_set():
                 )
 
         # Create turnus set in database
-        success, message = db_utils.create_turnus_set(
+        success, message = turnus_service.create_turnus_set(
             name=form.name.data,
             year_identifier=year_id,
             is_active=form.is_active.data,
@@ -197,9 +195,9 @@ def create_turnus_set():
 
         if success:
             # Add shifts to database
-            turnus_set = db_utils.get_turnus_set_by_year(year_id)
+            turnus_set = turnus_service.get_turnus_set_by_year(year_id)
             if turnus_set:
-                db_utils.add_shifts_to_turnus_set(turnus_json_path, turnus_set["id"])
+                turnus_service.add_shifts_to_turnus_set(turnus_json_path, turnus_set["id"])
                 flash(f"Turnussett {year_id} opprettet!", "success")
             else:
                 flash("Turnussett opprettet, men vakter ikke lagt til.", "warning")
@@ -428,7 +426,7 @@ def import_turnusset_cancel(year_id):
 def switch_turnus_set():
     """Switch to a different turnus set"""
     turnus_set_id = request.form.get("turnus_set_id", type=int)
-    success, message = db_utils.set_active_turnus_set(turnus_set_id)
+    success, message = turnus_service.set_active_turnus_set(turnus_set_id)
 
     if success:
         # Reload the data manager with new active set
@@ -447,7 +445,7 @@ def switch_turnus_set():
 def refresh_turnus_set(turnus_set_id):
     """Re-ingest the stored source file (timeskjema preferred, PDF fallback)
     and update shift names in the database, preserving favorites."""
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         flash("Turnussett ikke funnet.", "danger")
         return redirect(url_for("admin.manage_turnus_sets"))
@@ -544,7 +542,7 @@ def refresh_turnus_set(turnus_set_id):
         cache.delete(f"kompdager_{turnus_set_id}")
 
         # Update shift names in DB (preserving favorites)
-        summary = db_utils.refresh_turnus_set_shifts(turnus_set_id, turnus_json_path)
+        summary = turnus_service.refresh_turnus_set_shifts(turnus_set_id, turnus_json_path)
 
         # Warn (don't block) if the turnus count changed vs the previous version.
         # A legitimate rutetermin can add/remove turnuser, but a silent drop from a
@@ -563,14 +561,14 @@ def refresh_turnus_set(turnus_set_id):
             )
 
         # Update file paths in DB
-        db_utils.update_turnus_set_paths(turnus_set_id, turnus_json_path, df_json_path)
+        turnus_service.update_turnus_set_paths(turnus_set_id, turnus_json_path, df_json_path)
 
         # Drop cached turnus data / kompdag counts so the re-scraped files are
         # served immediately instead of after the 1 h cache timeout.
         df_utils.invalidate_turnus_cache(turnus_set_id)
 
         # Reload data manager if this is the active set
-        active_set = db_utils.get_active_turnus_set()
+        active_set = turnus_service.get_active_turnus_set()
         if active_set and active_set["id"] == turnus_set_id:
             from app.routes.main import df_manager
 
@@ -608,7 +606,7 @@ def refresh_turnus_set(turnus_set_id):
 @admin_required
 def turnusnokkel_status(turnus_set_id):
     """AJAX endpoint: check if turnusnøkkel template exists for a turnus set."""
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
@@ -627,7 +625,7 @@ def turnusnokkel_status(turnus_set_id):
 @admin_required
 def upload_turnusnokkel(turnus_set_id):
     """Upload a turnusnøkkel template Excel file for a turnus set."""
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         flash("Turnussett ikke funnet.", "danger")
         return redirect(url_for("admin.manage_turnus_sets"))
@@ -666,7 +664,7 @@ def innplassering_status(turnus_set_id):
     finally:
         db_session.close()
 
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
@@ -684,7 +682,7 @@ def import_innplassering_route(turnus_set_id):
     """Upload an Innplassering PDF and import its shift assignments into the DB."""
     from app.services.innplassering_service import import_innplassering
 
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         flash("Turnussett ikke funnet.", "danger")
         return redirect(url_for("admin.manage_turnus_sets"))
@@ -720,7 +718,7 @@ def import_innplassering_route(turnus_set_id):
 def delete_turnus_set(turnus_set_id):
     """Delete a turnus set"""
     # Get the turnus set info before deleting (for cleanup)
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     version = turnus_set["year_identifier"].lower() if turnus_set else None
 
     # This wipes favorites and søknadsskjema choices for EVERY user in the set,
@@ -736,7 +734,7 @@ def delete_turnus_set(turnus_set_id):
             )
             return redirect(url_for("admin.manage_turnus_sets"))
 
-    success, message = db_utils.delete_turnus_set(turnus_set_id)
+    success, message = turnus_service.delete_turnus_set(turnus_set_id)
 
     if success:
         df_utils.invalidate_turnus_cache(turnus_set_id)
@@ -763,7 +761,7 @@ def delete_turnus_set(turnus_set_id):
 @admin_required
 def strekliste_status(turnus_set_id):
     """AJAX endpoint to get strekliste status for a turnus set"""
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
@@ -790,7 +788,7 @@ def strekliste_status(turnus_set_id):
 @admin_required
 def upload_strekliste(turnus_set_id):
     """Upload a strekliste PDF for a turnus set"""
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         flash("Turnussett ikke funnet.", "danger")
         return redirect(url_for("admin.manage_turnus_sets"))
@@ -819,7 +817,7 @@ def upload_strekliste(turnus_set_id):
 @admin_required
 def generate_strekliste(turnus_set_id):
     """Generate PNG images from strekliste PDF"""
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
@@ -890,7 +888,7 @@ def generate_strekliste(turnus_set_id):
 @admin_required
 def delete_strekliste_images(turnus_set_id):
     """Delete all generated strekliste images for a turnus set"""
-    turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
     if not turnus_set:
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 

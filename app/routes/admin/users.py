@@ -6,13 +6,12 @@ from app.extensions import cache
 from app.forms import EditUserForm
 from app.routes.admin import admin
 from app.services import user_service
-from app.utils import db_utils
 
 
 @admin.route("/edit_user/<int:user_id>", methods=["GET", "POST"])
 @admin_required
 def edit_user(user_id):
-    user = db_utils.get_user_by_id(user_id)
+    user = user_service.get_user_by_id(user_id)
     if not user:
         flash("Bruker ikke funnet.", "danger")
         return redirect(url_for("admin.admin_dashboard"))
@@ -20,7 +19,7 @@ def edit_user(user_id):
     form = EditUserForm()
 
     if form.validate_on_submit():
-        success, message = db_utils.update_user(
+        success, message = user_service.update_user(
             user_id=user_id,
             username=form.username.data,
             email=(form.email.data or "").strip() or None,
@@ -77,8 +76,8 @@ def delete_user(user_id):
         flash("Du kan ikke slette din egen konto.", "danger")
         return redirect(url_for("admin.manage_employees"))
 
-    user = db_utils.get_user_by_id(user_id)
-    success, message = db_utils.delete_user(user_id)
+    user = user_service.get_user_by_id(user_id)
+    success, message = user_service.delete_user(user_id)
     if success:
         if user:
             cache.delete(f"user_{user['username']}")
@@ -97,9 +96,9 @@ def toggle_auth(user_id):
         flash("Du kan ikke deaktivere dine egne rettigheter.", "danger")
         return redirect(url_for("admin.admin_dashboard"))
 
-    success, message = db_utils.toggle_user_auth(user_id)
+    success, message = user_service.toggle_user_auth(user_id)
     if success:
-        user = db_utils.get_user_by_id(user_id)
+        user = user_service.get_user_by_id(user_id)
         if user:
             cache.delete(f"user_{user['username']}")
         flash(message, "success")

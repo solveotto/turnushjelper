@@ -3,7 +3,7 @@ from flask_login import current_user, login_required
 
 from app.forms import ChangePasswordForm
 from app.services.innplassering_service import get_innplassering_for_user
-from app.utils import db_utils
+from app.services import user_service
 
 minside = Blueprint("minside", __name__, url_prefix="/minside")
 
@@ -15,7 +15,7 @@ def user_minside():
     form = ChangePasswordForm()
 
     # Get user data for display
-    user_data = db_utils.get_user_data(current_user.username)
+    user_data = user_service.get_user_data(current_user.username)
     innplassering = get_innplassering_for_user(current_user.id)
 
     return render_template(
@@ -30,7 +30,7 @@ def change_password():
     form = ChangePasswordForm()
 
     if form.validate_on_submit():
-        success, message = db_utils.update_user_password(
+        success, message = user_service.update_user_password(
             current_user.id, form.current_password.data, form.new_password.data
         )
 

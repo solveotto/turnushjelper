@@ -149,7 +149,7 @@ def verify_token(token) -> dict:
     return {"success": True, "email": "..."} # carries extra data
 ```
 
-- `app/utils/db_utils.py` is a **re-export facade** — it just imports and re-exports everything from the service modules. This preserved all 19 existing `from app.utils import db_utils` imports during the Phase 3 refactor without changing a single consumer file.
+- Import services **directly** — `from app.services import turnus_service`, then `turnus_service.get_active_turnus_set()`. A re-export facade at `app/utils/db_utils.py` briefly stood in for this during the Phase 3 refactor; it was retired on 2026-07-29 (Phase 3 item 3) once every consumer had been migrated. Import the service *module* and call attributes on it rather than from-importing individual functions: a from-import binds the name at import time, which breaks monkeypatching in tests.
 - Cross-service imports (e.g., `favorites_service` needing `turnus_service`) use **deferred imports inside function bodies** to avoid circular import errors at module load time.
 
 ---

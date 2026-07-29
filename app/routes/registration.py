@@ -7,8 +7,8 @@ from flask_login import login_user as flask_login_user
 from app.extensions import cache, limiter
 from app.forms import RegisterForm, ResendVerificationForm
 from app.models import User
-from app.services import user_service
-from app.utils import db_utils, email_utils
+from app.services import auth_service, user_service
+from app.utils import email_utils
 
 registration = Blueprint("registration", __name__)
 
@@ -44,12 +44,12 @@ def register():
         rullenummer = stub_rullenummer or submitted_rullenummer
 
         # Check if email already registered
-        if db_utils.get_user_by_email(email):
+        if user_service.get_user_by_email(email):
             flash("En konto med denne e-postadressen finnes allerede.", "warning")
             return redirect(url_for("auth.login"))
 
         # Check if username already taken
-        if db_utils.get_user_by_username(username):
+        if user_service.get_user_by_username(username):
             flash(
                 "Dette brukernavnet er allerede tatt. Vennligst velg et annet.",
                 "warning",
@@ -68,7 +68,7 @@ def register():
         if success:
             # Generate and send verification token
             token = secrets.token_urlsafe(32)
-            db_utils.create_verification_token(user_id, token)
+            auth_service.create_verification_token(user_id, token)
             email_sent = email_utils.send_verification_email(email, token)
 
             if not email_sent:
@@ -89,7 +89,7 @@ def register():
 @registration.route("/verify/<token>")
 def verify_email(token):
     """Verify email with token from email link"""
-    result = db_utils.verify_token(token)
+    result = auth_service.verify_token(token)
 
     if result["success"]:
         # Send welcome email
@@ -100,7 +100,7 @@ def verify_email(token):
         # Skip auto-login for accounts the login route would block (stubs and
         # users flagged as not on the NLF list) — they fall through to the
         # plain "verified, please log in" path and get the block message there.
-        user_data = db_utils.get_user_data(result["email"])
+        user_data = user_service.get_user_data(result["email"])
         if (
             user_data
             and user_data.get("is_stub") != 1
@@ -140,13 +140,13 @@ def resend_verification():
     form = ResendVerificationForm()
     if form.validate_on_submit():
         email = (form.email.data or "").lower()
-        user = db_utils.get_user_by_email(email)
+        user = user_service.get_user_by_email(email)
 
         if user and not user["email_verified"]:
             # Rate limiting check
-            if db_utils.can_send_verification_email(user["id"]):
+            if auth_service.can_send_verification_email(user["id"]):
                 token = secrets.token_urlsafe(32)
-                db_utils.create_verification_token(user["id"], token)
+                auth_service.create_verification_token(user["id"], token)
                 email_utils.send_verification_email(email, token)
                 flash(
                     "Verifiserings-e-post sendt på nytt. Sjekk innboksen din.",

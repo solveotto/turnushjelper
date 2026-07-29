@@ -2,7 +2,8 @@ from flask import render_template
 from flask_login import current_user, login_required
 
 from app.routes.shifts import shifts
-from app.utils import db_utils, df_utils
+from app.services import favorites_service, turnus_service
+from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager, kompdager_max_label
 from app.utils.turnus_helpers import get_user_turnus_set
 
@@ -13,10 +14,10 @@ def favorites():
     # Get user's selected turnus set (same logic as turnusliste)
     user_turnus_set = get_user_turnus_set()
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
-    active_set = db_utils.get_active_turnus_set()
+    active_set = turnus_service.get_active_turnus_set()
 
     # Get favorites for the user's selected turnus set
-    fav_order_lst = db_utils.get_favorite_lst(current_user.get_id(), turnus_set_id)
+    fav_order_lst = favorites_service.get_favorite_lst(current_user.get_id(), turnus_set_id)
     fav_set = set(fav_order_lst)
 
     # Load data for the user's selected turnus set
@@ -51,7 +52,7 @@ def favorites():
         df=df_records,
         current_turnus_set=user_turnus_set,
         active_set=active_set,
-        all_turnus_sets=db_utils.get_all_turnus_sets(),
+        all_turnus_sets=turnus_service.get_all_turnus_sets(),
     )
 
 
@@ -74,7 +75,7 @@ def import_favorites():
     for ts in sets_with_stats:
         if ts["id"] == turnus_set_id:
             continue
-        favorites = db_utils.get_favorite_lst(user_id, ts["id"])
+        favorites = favorites_service.get_favorite_lst(user_id, ts["id"])
         if favorites:
             ts["favorite_count"] = len(favorites)
             available_sources.append(ts)
@@ -99,5 +100,5 @@ def import_favorites():
         current_turnus_set=user_turnus_set,
         available_sources=available_sources,
         innplassering_sources=innplassering_sources,
-        all_turnus_sets=db_utils.get_all_turnus_sets(),
+        all_turnus_sets=turnus_service.get_all_turnus_sets(),
     )

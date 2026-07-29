@@ -8,7 +8,8 @@ import os
 project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
-from app.utils.db_utils import get_db_session, Favorites, DBUser, TurnusSet
+from app.database import get_db_session
+from app.models import DBUser, Favorites, TurnusSet
 
 def cleanup_orphaned_favorites():
     """Remove favorites with invalid user_id or turnus_set_id"""
