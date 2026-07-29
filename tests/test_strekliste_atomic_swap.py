@@ -113,3 +113,50 @@ class TestInterruptedRunIsNonDestructive:
 
         strays = [p.name for p in base.iterdir() if p.name.startswith(".png-gen-")]
         assert strays == []
+
+
+class TestGenerationProgress:
+    """Progress is read off the temp directory, so any gunicorn worker can serve it."""
+
+    def _paths(self, tmp_path, monkeypatch):
+        base = tmp_path / "streklister"
+        live = base / "png"
+        live.mkdir(parents=True)
+        monkeypatch.setattr(sg, "get_paths", lambda v: {
+            "pdf_path": str(base / "r26_streker.pdf"), "images_dir": str(live),
+            "pdf_exists": True, "images_dir_exists": True,
+        })
+        return base, live
+
+    def test_reports_not_generating_when_idle(self, tmp_path, monkeypatch):
+        self._paths(tmp_path, monkeypatch)
+
+        assert sg.get_generation_progress("r26") == {
+            "generating": False, "current": 0, "total": 0,
+        }
+
+    def test_counts_files_in_the_work_dir_against_the_live_set(
+        self, tmp_path, monkeypatch
+    ):
+        base, live = self._paths(tmp_path, monkeypatch)
+        for n in range(10):
+            _png(str(live), f"old{n}")
+        work = base / ".png-gen-run"
+        work.mkdir()
+        for n in range(3):
+            _png(str(work), f"new{n}")
+
+        assert sg.get_generation_progress("r26") == {
+            "generating": True, "current": 3, "total": 10,
+        }
+
+    def test_survives_a_first_ever_generation_with_no_live_set(
+        self, tmp_path, monkeypatch
+    ):
+        base, _ = self._paths(tmp_path, monkeypatch)
+        work = base / ".png-gen-run"
+        work.mkdir()
+        _png(str(work), "new0")
+
+        p = sg.get_generation_progress("r26")
+        assert p["generating"] is True and p["current"] == 1 and p["total"] == 0

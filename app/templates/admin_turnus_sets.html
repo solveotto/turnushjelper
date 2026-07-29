@@ -247,7 +247,7 @@
                 <h5 class="modal-title">Genererer Strekliste Bilder</h5>
             </div>
             <div class="modal-body">
-                <div class="text-center mb-3">
+                <div class="text-center mb-3" id="progress-spinner">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Laster...</span>
                     </div>
@@ -256,11 +256,18 @@
                 <div class="progress">
                     <div class="progress-bar" role="progressbar" style="width: 0%" id="progress-bar"></div>
                 </div>
+                <p class="text-center text-muted small mt-2 mb-0" id="progress-hint">
+                    Dette tar rundt et halvt minutt. Ikke lukk siden.
+                </p>
                 <div id="double-shift-result" class="mt-3" style="display: none;">
                     <hr>
                     <p class="mb-1 fw-bold">Dobbelttur-skanning:</p>
                     <p class="mb-0" id="double-shift-text"></p>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="progress-close"
+                        data-bs-dismiss="modal" disabled>Lukk</button>
             </div>
         </div>
     </div>
@@ -367,15 +374,50 @@ function loadStreklisteStatus(turnusSetId) {
 }
 
 function generateStrekliste(turnusSetId) {
-    // Show progress modal
-    const modal = new bootstrap.Modal(document.getElementById('streklisteProgressModal'));
+    // Show progress modal. It stays open until the user dismisses it — the
+    // result (including any errors) should not vanish on a timer.
+    const modalEl = document.getElementById('streklisteProgressModal');
+    const modal = new bootstrap.Modal(modalEl, {backdrop: 'static', keyboard: false});
     modal.show();
 
     const progressText = document.getElementById('progress-text');
     const progressBar = document.getElementById('progress-bar');
+    const spinner = document.getElementById('progress-spinner');
+    const hint = document.getElementById('progress-hint');
+    const closeBtn = document.getElementById('progress-close');
 
     progressText.textContent = 'Starter generering...';
-    progressBar.style.width = '10%';
+    progressBar.style.width = '0%';
+    progressBar.classList.remove('bg-success', 'bg-danger');
+    spinner.style.display = '';
+    hint.style.display = '';
+    closeBtn.disabled = true;
+
+    // Real progress: the server renders into a temp directory and swaps it in
+    // at the end, so polling the count of files written there is genuine
+    // progress rather than a fake animation.
+    const poll = setInterval(() => {
+        fetch(`/admin/strekliste-progress/${turnusSetId}`)
+            .then(r => r.json())
+            .then(p => {
+                if (p.status !== 'success' || !p.data.generating) return;
+                const {current, total} = p.data;
+                if (total > 0) {
+                    progressBar.style.width = `${Math.min(99, Math.round(current / total * 100))}%`;
+                    progressText.textContent = `Genererer bilder … ${current} av ${total}`;
+                } else {
+                    progressText.textContent = `Genererer bilder … ${current}`;
+                }
+            })
+            .catch(() => { /* transient poll failure is not interesting */ });
+    }, 1000);
+
+    const finish = () => {
+        clearInterval(poll);
+        spinner.style.display = 'none';
+        hint.style.display = 'none';
+        closeBtn.disabled = false;
+    };
 
     // Check if we need to force regenerate
     const statusEl = document.getElementById(`strekliste-status-${turnusSetId}`);
@@ -391,6 +433,7 @@ function generateStrekliste(turnusSetId) {
     })
     .then(response => response.json())
     .then(data => {
+        finish();
         if (data.status === 'success') {
             progressBar.style.width = '100%';
             progressBar.classList.add('bg-success');
@@ -407,25 +450,29 @@ function generateStrekliste(turnusSetId) {
                 dsText.innerHTML = `Fant ${data.double_shift_count} dobbelttur-par og ${data.delt_shift_count} delt dagsverk.`;
             }
 
-            // Reload status after a short delay
-            setTimeout(() => {
-                modal.hide();
-                loadStreklisteStatus(turnusSetId);
-                // Reset progress bar and double shift info
-                progressBar.style.width = '0%';
-                progressBar.classList.remove('bg-success');
-                dsResult.style.display = 'none';
-            }, 3000);
+            // Refresh the badge now; the modal stays until dismissed.
+            loadStreklisteStatus(turnusSetId);
         } else {
+            progressBar.style.width = '100%';
             progressBar.classList.add('bg-danger');
             progressText.textContent = `Feil: ${data.message}`;
         }
     })
     .catch(error => {
         console.error('Error generating strekliste:', error);
+        finish();
+        progressBar.style.width = '100%';
         progressBar.classList.add('bg-danger');
-        progressText.textContent = 'En feil oppstod under generering.';
+        progressText.textContent =
+            'Forespørselen brøt sammen under generering. Eksisterende bilder er uendret.';
     });
+
+    // Reset the dialog for the next run once it has been dismissed.
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        progressBar.style.width = '0%';
+        progressBar.classList.remove('bg-success', 'bg-danger');
+        document.getElementById('double-shift-result').style.display = 'none';
+    }, {once: true});
 }
 
 function loadTurnusnokkelStatus(turnusSetId) {

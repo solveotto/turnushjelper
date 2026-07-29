@@ -757,6 +757,27 @@ def delete_turnus_set(turnus_set_id):
     return redirect(url_for("admin.manage_turnus_sets"))
 
 
+@admin.route("/strekliste-progress/<int:turnus_set_id>")
+@admin_required
+def strekliste_progress(turnus_set_id):
+    """Live progress of an in-flight regeneration, polled by the admin modal.
+
+    Read off the on-disk temp directory rather than process state, so it works
+    when this request lands on the other gunicorn worker.
+    """
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        return jsonify({"status": "error", "message": "Turnus set not found"}), 404
+
+    version = turnus_set["year_identifier"].lower()
+    return jsonify(
+        {
+            "status": "success",
+            "data": strekliste_generator.get_generation_progress(version),
+        }
+    )
+
+
 @admin.route("/strekliste-status/<int:turnus_set_id>")
 @admin_required
 def strekliste_status(turnus_set_id):

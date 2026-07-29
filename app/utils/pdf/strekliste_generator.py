@@ -560,6 +560,44 @@ def get_all_shifts(version: str) -> list:
     return all_shifts
 
 
+def get_generation_progress(version: str) -> dict:
+    """Live progress of an in-flight regeneration, readable by any worker.
+
+    A `force` run renders into a sibling `.png-gen-*` directory and swaps it in
+    at the end, so while one exists its PNG count *is* the progress — no shared
+    state needed, which matters because the polling request may be served by the
+    other gunicorn worker. The old directory is still in place during the run,
+    so its count is the expected total.
+    """
+    paths = get_paths(version)
+    base = os.path.dirname(paths["images_dir"])
+
+    work_dirs = []
+    try:
+        work_dirs = [
+            os.path.join(base, d)
+            for d in os.listdir(base)
+            if d.startswith(".png-gen-") and os.path.isdir(os.path.join(base, d))
+        ]
+    except OSError:
+        pass
+
+    if not work_dirs:
+        return {"generating": False, "current": 0, "total": 0}
+
+    def count_pngs(d):
+        try:
+            return len([f for f in os.listdir(d) if f.endswith(".png")])
+        except OSError:
+            return 0
+
+    return {
+        "generating": True,
+        "current": max(count_pngs(d) for d in work_dirs),
+        "total": count_pngs(paths["images_dir"]),
+    }
+
+
 def _swap_in(work_dir: str, images_dir: str) -> None:
     """Atomically replace `images_dir` with `work_dir`.
 
