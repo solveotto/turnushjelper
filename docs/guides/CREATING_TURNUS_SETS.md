@@ -122,8 +122,8 @@ turnus data. Roughly half of all users hit that worker, so the symptom is
 
 A restart clears every worker at once and is the only reliable way to close the window.
 This is a deliberate trade-off, not a bug: imports are rare, and the alternative
-(shared Redis cache) adds a service to run and monitor. See Task 2.1 in
-`TODO_forensic_audit.md`.
+(shared Redis cache) adds a service to run and monitor. See the Caching section
+in `CLAUDE.md`.
 
 > Restarting also guarantees the running code matches what's on disk. During the R26
 > innplassering re-import a stale, non-restarted process silently wrote **wrong data**

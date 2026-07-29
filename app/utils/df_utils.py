@@ -21,7 +21,7 @@ def invalidate_turnus_cache(turnus_set_id):
     workers, so the *other* worker keeps serving pre-import data for up to
     1 h. This is a known, accepted envelope (imports are rare); restart the
     service after an import to clear every worker at once. See
-    docs/guides/CREATING_TURNUS_SETS.md and Task 2.1 in TODO_forensic_audit.md.
+    docs/guides/CREATING_TURNUS_SETS.md.
     """
     from app.extensions import cache
     cache.delete(f"turnus_data_{turnus_set_id}")

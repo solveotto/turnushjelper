@@ -36,8 +36,9 @@ sys.path.insert(0, project_root)
 # load_dotenv() does not override an already-set env var, so forcing a
 # default here BEFORE .env loads would silently shadow a real DB_TYPE=mysql
 # in production and redirect every query to an empty local SQLite file
-# instead (this bit us once — see TODO_forensic_audit.md Task 0.1). Let
-# config.py's own load_dotenv() + its own internal default handle it.
+# instead. This bit us once: a prod script reported a clean bill of health for
+# an unrelated empty database. Let config.py's own load_dotenv() + its own
+# internal default handle it, and check the DB_TYPE this script prints.
 
 
 def main():

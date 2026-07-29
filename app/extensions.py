@@ -11,8 +11,8 @@ csrf = CSRFProtect()
 
 # SimpleCache is per-process and production runs 2 gunicorn workers, so an
 # invalidation only reaches the worker that served the admin request. Accepted
-# trade-off (see Task 2.1 in TODO_forensic_audit.md): admin imports are rare
-# and a service restart clears every worker.
+# trade-off: admin imports are rare and a service restart clears every worker;
+# the alternative (shared Redis) adds a service to run and monitor.
 #
 # What lives here is deliberately limited to shared data (turnus_data_*,
 # kompdager_*, pdf_downloads_*) plus two tiny 60 s per-user flags. Rendered

@@ -18,9 +18,10 @@ sys.path.insert(0, project_root)
 # load_dotenv() does not override an already-set env var, so forcing a
 # default here BEFORE .env loads would silently shadow a real DB_TYPE=mysql
 # in production and redirect every write to an empty local SQLite file
-# instead (found 2026-07-20 via scripts/check_7th_drivers.py — see
-# TODO_forensic_audit.md Task 0.1). Let config.py's own load_dotenv() +
-# its own internal default handle it.
+# instead (found 2026-07-20 via scripts/check_7th_drivers.py: the R26
+# innplassering re-import had written to a local SQLite file while prod stayed
+# unchanged). Let config.py's own load_dotenv() + its own internal default
+# handle it.
 
 
 def main():
