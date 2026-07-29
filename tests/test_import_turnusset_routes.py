@@ -25,14 +25,21 @@ def fixture_bytes():
 
 @pytest.fixture()
 def import_env(app, monkeypatch, tmp_path):
-    """Isolate all filesystem side effects: instance dir and static dir."""
+    """Isolate all filesystem side effects: instance dir and the data store."""
     instance_dir = tmp_path / "instance"
     static_dir = tmp_path / "static"
+    turnusdata_dir = tmp_path / "turnusdata"
     instance_dir.mkdir()
     static_dir.mkdir()
+    turnusdata_dir.mkdir()
     app.instance_path = str(instance_dir)
     monkeypatch.setattr("config.AppConfig.static_dir", str(static_dir))
-    return {"instance": instance_dir, "static": static_dir}
+    monkeypatch.setattr("config.AppConfig.turnusfiler_dir", str(turnusdata_dir))
+    return {
+        "instance": instance_dir,
+        "static": static_dir,
+        "turnusdata": turnusdata_dir,
+    }
 
 
 class FakeScraper:
@@ -80,7 +87,7 @@ class TestTimeskjemaUpload:
         turnus_set = turnus_service.get_turnus_set_by_year("R26")
         assert turnus_set is not None
 
-        version_dir = import_env["static"] / "turnusfiler" / "r26"
+        version_dir = import_env["turnusdata"] / "r26"
         schedule = json.load(open(version_dir / "turnus_schedule_R26.json"))
         assert len(schedule) == 2
         assert (version_dir / "turnuser_R26.xls").exists()
@@ -119,7 +126,7 @@ class TestVerificationFlow:
         assert "ingen avvik".encode() in resp.data
         assert "Turnussett R26 opprettet".encode() in resp.data
 
-        version_dir = import_env["static"] / "turnusfiler" / "r26"
+        version_dir = import_env["turnusdata"] / "r26"
         schedule = json.load(open(version_dir / "turnus_schedule_R26.json"))
         assert schedule[0]["OSL_01"]["1"]["1"]["dagsverk"] == "3006_SKNO"
         # Verification PDF stored for later refresh enrichment
@@ -159,7 +166,7 @@ class TestVerificationFlow:
 
         assert turnus_service.get_turnus_set_by_year("R26") is not None
         assert not (import_env["instance"] / "pending_import" / "R26").exists()
-        version_dir = import_env["static"] / "turnusfiler" / "r26"
+        version_dir = import_env["turnusdata"] / "r26"
         assert (version_dir / "turnus_schedule_R26.json").exists()
 
     def test_cancel_discards(self, admin_client, import_env, monkeypatch):

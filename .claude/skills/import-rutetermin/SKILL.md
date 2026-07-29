@@ -27,7 +27,7 @@ traps and the kl_timer tolerance rationale before touching either path.
 
 ## Expected inputs
 
-Place in `app/static/turnusfiler/{rXX}/` (match R26's naming):
+Place in `turnusdata/{rXX}/` (match R26's naming) — the data store lives outside `app/`, since anything under `app/static/` is served without authentication:
 
 | File | Purpose |
 |---|---|

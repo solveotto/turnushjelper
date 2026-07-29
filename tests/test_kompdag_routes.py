@@ -1,6 +1,6 @@
 """Route-level tests for kompdag display in turnusliste and turnusnøkkel.
 
-These depend on the committed R26 static files in app/static/turnusfiler/r26/
+These depend on the committed R26 data files in turnusdata/r26/
 (schedule JSON + turnusnøkkel Excel template) and the known OSL_01 per-linje
 counts [4, 1, 3, 2, 2, 4] (X/O/T fridager on holidays; blank days adjacent
 to night shifts excluded; Sunday holidays and holidays after 12. des of the

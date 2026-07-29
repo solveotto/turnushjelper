@@ -57,13 +57,27 @@ class DataframeManager():
         self.current_turnus_set = turnus_set
 
         # Resolve file paths before checking the cache
+        year_id = turnus_set['year_identifier'].lower()
+        conventional_turnus = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_schedule_{turnus_set["year_identifier"]}.json')
+        conventional_df = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_stats_{turnus_set["year_identifier"]}.json')
+
         if turnus_set.get('turnus_file_path') and turnus_set.get('df_file_path'):
             turnus_path = os.path.normpath(turnus_set['turnus_file_path'])
             df_path = os.path.normpath(turnus_set['df_file_path'])
+            # TurnusSet rows store ABSOLUTE paths, so any relocation of the data
+            # store leaves them dangling — moving turnusfiler out of app/static
+            # (2026-07-29) invalidated every existing row. Fall back to the
+            # conventional location rather than serving an empty DataFrame,
+            # which is what a stale path silently produced.
+            if not os.path.exists(turnus_path) or not os.path.exists(df_path):
+                logger.warning(
+                    "Stored path for turnus set %s does not exist (%s); "
+                    "falling back to %s",
+                    turnus_set['year_identifier'], turnus_path, conventional_turnus,
+                )
+                turnus_path, df_path = conventional_turnus, conventional_df
         else:
-            year_id = turnus_set['year_identifier'].lower()
-            turnus_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_schedule_{turnus_set["year_identifier"]}.json')
-            df_path = os.path.join(AppConfig.turnusfiler_dir, year_id, f'turnus_stats_{turnus_set["year_identifier"]}.json')
+            turnus_path, df_path = conventional_turnus, conventional_df
 
         # Check in-memory cache before hitting disk
         from app.extensions import cache

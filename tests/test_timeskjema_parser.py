@@ -202,10 +202,9 @@ class TestFailureModes:
         assert any("Duplicate" in e for e in errors)
 
 
-_REAL_XLS = os.path.join(
-    os.path.dirname(__file__), "..", "app", "static", "turnusfiler", "r26",
-    "R26 endelig.xls",
-)
+from config import AppConfig  # noqa: E402
+
+_REAL_XLS = os.path.join(AppConfig.turnusfiler_dir, "r26", "R26 endelig.xls")
 
 
 @pytest.mark.skipif(

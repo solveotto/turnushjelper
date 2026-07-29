@@ -27,7 +27,7 @@ the report should be complete.
    venv/bin/python - <<'EOF'
    import glob, json
    from app.utils.pdf.scraper_validator import validate_turnus_json
-   for p in sorted(glob.glob("app/static/turnusfiler/*/turnus_schedule_*.json")):
+   for p in sorted(glob.glob("turnusdata/*/turnus_schedule_*.json")):
        ok, errors = validate_turnus_json(json.load(open(p)))
        print(p, "OK" if ok else f"FAIL: {errors}")
    EOF

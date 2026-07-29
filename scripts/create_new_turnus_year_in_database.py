@@ -34,8 +34,8 @@ ARGUMENTS:
     --df-path (optional): Custom path to turnus_stats_XX.json file
 
 FILE LOCATIONS:
-    Default JSON location: app/static/turnusfiler/{year_id}/turnus_schedule_{year_id}.json
-    Default stats location: app/static/turnusfiler/{year_id}/turnus_stats_{year_id}.json
+    Default JSON location: turnusdata/{year_id}/turnus_schedule_{year_id}.json
+    Default stats location: turnusdata/{year_id}/turnus_stats_{year_id}.json
 
 DATABASE OPERATIONS:
     - Creates turnus_sets table entry with file paths
@@ -84,7 +84,7 @@ def create_new_turnus(year_id, name, turnus_json_path=None, df_json_path=None):
 
     # If no paths provided, try to find files in turnusfiler directory
     if not turnus_json_path or not df_json_path:
-        turnusfiler_dir = os.path.join(AppConfig.static_dir, 'turnusfiler', year_id.lower())
+        turnusfiler_dir = os.path.join(AppConfig.turnusfiler_dir, year_id.lower())
         
         if not turnus_json_path:
             turnus_json_path = os.path.join(turnusfiler_dir, f'turnus_schedule_{year_id}.json')

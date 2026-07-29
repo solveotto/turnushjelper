@@ -77,7 +77,7 @@ def create_turnus_set():
         if form.use_existing_files.data:
             # Use existing files from turnusfiler directory
             turnusfiler_dir = os.path.join(
-                AppConfig.static_dir, "turnusfiler", year_id.lower()
+                AppConfig.turnusfiler_dir, year_id.lower()
             )
             turnus_json_path = os.path.join(turnusfiler_dir, f"turnus_schedule_{year_id}.json")
             df_json_path = os.path.join(turnusfiler_dir, f"turnus_stats_{year_id}.json")
@@ -161,8 +161,7 @@ def create_turnus_set():
 
                 stats = Turnus(turnus_json_path)
                 df_json_path = os.path.join(
-                    AppConfig.static_dir,
-                    "turnusfiler",
+                    AppConfig.turnusfiler_dir,
                     year_id.lower(),
                     f"turnus_stats_{year_id}.json",
                 )
@@ -210,7 +209,7 @@ def handle_pdf_upload(pdf_file, year_id):
 
         # Create turnusfiler directory
         turnusfiler_dir = os.path.join(
-            AppConfig.static_dir, "turnusfiler", year_id.lower(), "pdf"
+            AppConfig.turnusfiler_dir, year_id.lower(), "pdf"
         )
         os.makedirs(turnusfiler_dir, exist_ok=True)
 
@@ -452,7 +451,7 @@ def refresh_turnus_set(turnus_set_id):
         from app.utils.timeskjema_parser import TimeskjemaParseError, parse_timeskjema
         from app.utils.turnus_diff import enrich_dagsverk
 
-        version_dir = os.path.join(AppConfig.static_dir, "turnusfiler", version)
+        version_dir = os.path.join(AppConfig.turnusfiler_dir, version)
         timeskjema_path = os.path.join(version_dir, f"turnuser_{year_id}.xls")
         pdf_path = os.path.join(version_dir, "pdf", f"turnuser_{year_id}.pdf")
 

@@ -302,8 +302,8 @@ class Turnus():
 def generate_statistics_for_year(year_id):
     """Generate statistics for a specific year"""
     import os
-    turnus_path = os.path.join(AppConfig.static_dir, 'turnusfiler', year_id.lower(), f'turnus_schedule_{year_id}.json')
-    df_path = os.path.join(AppConfig.static_dir, 'turnusfiler', year_id.lower(), f'turnus_stats_{year_id}.json')
+    turnus_path = os.path.join(AppConfig.turnusfiler_dir, year_id.lower(), f'turnus_schedule_{year_id}.json')
+    df_path = os.path.join(AppConfig.turnusfiler_dir, year_id.lower(), f'turnus_stats_{year_id}.json')
     
     if not os.path.exists(turnus_path):
         print(f"❌ Error: File {turnus_path} does not exist")
@@ -331,7 +331,7 @@ if __name__ == '__main__':
     if args.all:
         # Generate for all available years
         import os
-        turnusfiler_dir = os.path.join(AppConfig.static_dir, 'turnusfiler')
+        turnusfiler_dir = AppConfig.turnusfiler_dir
         years = [d for d in os.listdir(turnusfiler_dir) if os.path.isdir(os.path.join(turnusfiler_dir, d))]
         years.sort()
         

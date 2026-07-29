@@ -48,14 +48,14 @@ Go to **Admin → "Opprett turnussett"** and fill in the form:
 | **Turnussett-navn** | Display name, e.g. "OSL Togvakter 2026" |
 | **Årsidentifikator** | Short ID, e.g. `R26` (stored uppercased; drives all file paths) |
 | **Sett som aktivt turnussett** | If ticked, this becomes the live set immediately |
-| **Bruk eksisterende filer** | Use already-present JSON in `turnusfiler/{year}/` instead of uploading a PDF |
+| **Bruk eksisterende filer** | Use already-present JSON in `turnusdata/{year}/` instead of uploading a PDF |
 | **Last opp PDF-fil** | Upload the source PDF to scrape (when *not* using existing files) |
 
 Then press **"Opprett turnussett"**.
 
 ### What happens automatically when you submit
 
-1. **Save PDF** → `app/static/turnusfiler/{year}/pdf/turnuser_{YEAR}.pdf`.
+1. **Save PDF** → `turnusdata/{year}/pdf/turnuser_{YEAR}.pdf`.
 2. **Scrape** → `ShiftScraper` reads the PDF and builds the schedule in memory.
 3. **Validate (the gate)** → `validate_turnus_json` checks structure, weekday labels, time
    formats, shift durations and total hours. **Nothing is written until this passes.**
@@ -135,11 +135,11 @@ This is a deliberate trade-off, not a bug: imports are rare, and the alternative
 
 | Artifact | Created by | In git? |
 |---|---|---|
-| `turnusfiler/{year}/pdf/turnuser_{YEAR}.pdf` | PDF upload | No (gitignored) |
-| `turnusfiler/{year}/turnus_schedule_{YEAR}.json` | Scrape (Step 1) | Yes |
-| `turnusfiler/{year}/turnus_stats_{YEAR}.json` | Stats (Step 1) | Yes |
-| `turnusfiler/{year}/turnusnøkkel_{YEAR}_org.xlsx` | Manual upload (Step 2) | Yes |
-| `turnusfiler/{year}/double_shifts_{year}.json` | Strekliste generate (Step 2) | No (gitignored) |
+| `turnusdata/{year}/pdf/turnuser_{YEAR}.pdf` | PDF upload | No (gitignored) |
+| `turnusdata/{year}/turnus_schedule_{YEAR}.json` | Scrape (Step 1) | Yes |
+| `turnusdata/{year}/turnus_stats_{YEAR}.json` | Stats (Step 1) | Yes |
+| `turnusdata/{year}/turnusnøkkel_{YEAR}_org.xlsx` | Manual upload (Step 2) | Yes |
+| `turnusdata/{year}/double_shifts_{year}.json` | Strekliste generate (Step 2) | No (gitignored) |
 | strekliste PNG images | Strekliste generate (Step 2) | No (gitignored) |
 | `instance/protected/{year}/innplassering_{YEAR}.pdf` + `Innplassering` rows | Innplassering import (Step 2) | No (PII — outside static, gitignored) |
 | `TurnusSet` row, `Shifts` rows | Create flow (Step 1) | DB |

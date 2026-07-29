@@ -29,6 +29,8 @@ _mock_config = types.ModuleType("config")
 
 class _AppConfig:
     static_dir = os.path.join(_ROOT, "app", "static")
+    # The turnus data store lives outside app/static (see config.py).
+    turnusfiler_dir = os.path.join(_ROOT, "turnusdata")
 
 
 _mock_config.AppConfig = _AppConfig
@@ -40,16 +42,18 @@ from app.utils.shift_stats import Turnus  # noqa: E402  (must come after mock)
 # Paths
 # ---------------------------------------------------------------------------
 
+_TURNUSDATA = _AppConfig.turnusfiler_dir
+
 _YEARS = [
     (
         "R26",
-        os.path.join(_ROOT, "app", "static", "turnusfiler", "r26", "turnus_schedule_R26.json"),
-        os.path.join(_ROOT, "app", "static", "turnusfiler", "r26", "turnus_stats_R26.json"),
+        os.path.join(_TURNUSDATA, "r26", "turnus_schedule_R26.json"),
+        os.path.join(_TURNUSDATA, "r26", "turnus_stats_R26.json"),
     ),
     (
         "R25",
-        os.path.join(_ROOT, "app", "static", "turnusfiler", "r25", "turnus_schedule_R25.json"),
-        os.path.join(_ROOT, "app", "static", "turnusfiler", "r25", "turnus_stats_R25.json"),
+        os.path.join(_TURNUSDATA, "r25", "turnus_schedule_R25.json"),
+        os.path.join(_TURNUSDATA, "r25", "turnus_stats_R25.json"),
     ),
 ]
 

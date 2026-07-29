@@ -637,7 +637,7 @@ class ShiftScraper:
 
             # Create turnusfiler directory structure
             turnusfiler_dir = os.path.join(
-                AppConfig.static_dir, "turnusfiler", year_id.lower()
+                AppConfig.turnusfiler_dir, year_id.lower()
             )
             os.makedirs(turnusfiler_dir, exist_ok=True)
             output_path = os.path.join(turnusfiler_dir, f"turnus_schedule_{year_id}.json")

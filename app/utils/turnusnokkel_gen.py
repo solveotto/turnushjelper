@@ -2,6 +2,7 @@ import os
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from app.utils import db_utils, df_utils
+from config import AppConfig
 
 
 class TurnusnokkelGen():
@@ -45,9 +46,7 @@ class TurnusnokkelGen():
             year_identifier = turnus_set['year_identifier']
             
             # Define file paths based on turnus set
-            # Get the project root directory
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            base_path = os.path.join(project_root, 'app', 'static', 'turnusfiler', year_identifier.lower())
+            base_path = os.path.join(AppConfig.turnusfiler_dir, year_identifier.lower())
             excel_template = os.path.join(base_path, f'turnusnøkkel_{year_identifier}_org.xlsx')
             
             # Debug info for error reporting

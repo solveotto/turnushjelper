@@ -26,6 +26,31 @@ _PII_PATTERNS = [
 ]
 
 
+def test_turnusfiler_is_not_under_static():
+    """The data store must not come back into the publicly-served tree.
+
+    This is the structural guard the filename patterns below can't be: they are
+    a denylist and fail open on any name nobody anticipated. `app/static/` is
+    served without authentication, so a data store living there gave the
+    strekliste PNGs and turnus PDF a second, unauthenticated door — the
+    @login_required on api.get_shift_image and downloads.download_pdf protected
+    nothing while the same bytes sat under /static/turnusfiler/.
+    """
+    from config import AppConfig
+
+    legacy = _STATIC / "turnusfiler"
+    assert not legacy.exists(), (
+        f"{legacy} exists again. The turnus data store belongs at "
+        "AppConfig.turnusfiler_dir (turnusdata/), outside app/static/."
+    )
+    assert os.path.commonpath(
+        [AppConfig.turnusfiler_dir, str(_STATIC)]
+    ) != str(_STATIC), (
+        f"AppConfig.turnusfiler_dir ({AppConfig.turnusfiler_dir}) resolves "
+        "inside the public static tree"
+    )
+
+
 def test_no_pii_files_in_static_tree():
     offenders = []
     for pattern in _PII_PATTERNS:

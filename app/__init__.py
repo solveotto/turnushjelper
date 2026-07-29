@@ -122,12 +122,15 @@ def create_app():
                 pdf_downloads = cache.get(pdf_cache_key)
                 if pdf_downloads is None:
                     raw = get_pdf_downloads(AppConfig.turnusfiler_dir, year_id)
+                    # Authed route, not url_for("static", ...): the turnus data
+                    # store lives outside app/static precisely so these files
+                    # can't be fetched without a session.
                     pdf_downloads = [
                         {
                             "display_name": item["display_name"],
                             "url": url_for(
-                                "static",
-                                filename=f'turnusfiler/{year_id}/pdf/{item["filename"]}',
+                                "downloads.download_turnus_pdf",
+                                filename=item["filename"],
                             ),
                         }
                         for item in raw

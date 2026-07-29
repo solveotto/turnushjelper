@@ -126,9 +126,12 @@ class AppConfig:
     utils_dir = os.path.abspath(os.path.join(base_dir, "app", "utils"))
     sessions_dir = os.path.abspath(os.path.join(base_dir, "app", "utils", "sessions"))
     log_dir = os.path.abspath(os.path.join(base_dir, "app", "logs"))
-    turnusfiler_dir = os.path.abspath(
-        os.path.join(base_dir, "app", "static", "turnusfiler")
-    )
+    # Turnus data store. Deliberately NOT under app/static — everything there
+    # is served without authentication, which is how PII once ended up publicly
+    # readable (Task 0.2) and how the "login-protected" strekliste PNGs and
+    # turnus PDF were simultaneously fetchable at /static/turnusfiler/... with
+    # no session at all.
+    turnusfiler_dir = os.path.abspath(os.path.join(base_dir, "turnusdata"))
     # Member/employee PII files (medlemsliste, ansinitet, innplassering PDFs).
     # MUST stay outside app/static — everything under static is served without
     # authentication. instance/ is gitignored, so these files never enter git.

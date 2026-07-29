@@ -18,18 +18,21 @@ import pytest
 # Paths
 # ---------------------------------------------------------------------------
 
+from config import AppConfig
+
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Go through AppConfig so relocating the data store can't strand these again.
 _JSON_PATH = os.path.join(
-    _ROOT, "app", "static", "turnusfiler", "r26", "turnus_schedule_R26.json"
+    AppConfig.turnusfiler_dir, "r26", "turnus_schedule_R26.json"
 )
 _R25_JSON_PATH = os.path.join(
-    _ROOT, "app", "static", "turnusfiler", "r25", "turnus_schedule_R25.json"
+    AppConfig.turnusfiler_dir, "r25", "turnus_schedule_R25.json"
 )
 # Golden-file source PDF: prefer the committed test fixture, fall back to the
 # (gitignored) location an admin upload would write to.
 _FIXTURE_PDF = os.path.join(_ROOT, "tests", "fixtures", "turnuser_R26.pdf")
 _STATIC_PDF = os.path.join(
-    _ROOT, "app", "static", "turnusfiler", "r26", "pdf", "turnuser_R26.pdf"
+    AppConfig.turnusfiler_dir, "r26", "pdf", "turnuser_R26.pdf"
 )
 _PDF_PATH = _FIXTURE_PDF if os.path.exists(_FIXTURE_PDF) else _STATIC_PDF
 

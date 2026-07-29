@@ -1,11 +1,23 @@
 # Protected files (PII) — storage scheme and deploy migration
 
 **Since 2026-07-18**, files containing member/employee personal data are stored
-in `instance/protected/` (`AppConfig.protected_dir`) instead of
+in `instance/protected/` (`AppConfig.protected_dir`) instead of the old
 `app/static/turnusfiler/`. Everything under `app/static/` is served over HTTP
 **without authentication** by both Flask and nginx, so PII must never live
 there. `tests/test_protected_files.py` enforces this (no PII patterns under
 static, none tracked by git, all path helpers resolve outside static).
+
+**Since 2026-07-29** the whole turnus data store also lives outside `app/`, at
+`turnusdata/` (`AppConfig.turnusfiler_dir`) — Phase 3 item 8. Two consequences:
+
+- Paths below that mention `app/static/turnusfiler/` are **historical**, kept
+  because that is genuinely where the files were. They are not current
+  locations, and the `git filter-repo` path further down must stay as written:
+  history contains the old path, so purging requires it.
+- The PII filename patterns are a **denylist** and fail open on any name nobody
+  anticipated. The structural guard — `app/static/turnusfiler` must not exist,
+  and `AppConfig.turnusfiler_dir` must resolve outside `app/static/` — is the
+  one that cannot. Both live in `tests/test_protected_files.py`.
 
 Affected files:
 
@@ -57,8 +69,13 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<host>/static/turnusfiler/ansin
 curl -s -o /dev/null -w '%{http_code}\n' https://<host>/static/turnusfiler/r26/innplassering_R26.pdf  # → 404
 ```
 
+Since 2026-07-29 those three URLs 404 for a simpler reason: nothing lives under
+`/static/turnusfiler/` at all. Worth running anyway — a 200 means someone
+recreated the directory.
+
 Optional nginx belt-and-braces (blocks the whole class even if a PII file is
-ever misplaced again):
+ever misplaced again). Now largely redundant, since the data store is outside
+`app/static/`, but harmless to keep as defence-in-depth:
 
 ```nginx
 location ~* ^/static/turnusfiler/.*(medlemsliste|ansinitet|innplassering) {

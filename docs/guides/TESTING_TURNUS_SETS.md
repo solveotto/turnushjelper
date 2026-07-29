@@ -85,11 +85,11 @@ exist on disk.
 > **If `R26` already exists in your DB** (`year_identifier` is unique), test the create flow
 > against a throwaway copy instead:
 > ```bash
-> mkdir -p app/static/turnusfiler/r26copy
-> cp app/static/turnusfiler/r26/turnus_schedule_R26.json app/static/turnusfiler/r26copy/turnus_schedule_R26COPY.json
-> cp app/static/turnusfiler/r26/turnus_stats_R26.json    app/static/turnusfiler/r26copy/turnus_stats_R26COPY.json
+> mkdir -p turnusdata/r26copy
+> cp turnusdata/r26/turnus_schedule_R26.json turnusdata/r26copy/turnus_schedule_R26COPY.json
+> cp turnusdata/r26/turnus_stats_R26.json    turnusdata/r26copy/turnus_stats_R26COPY.json
 > ```
-> then create with id `R26COPY`, and `rm -rf app/static/turnusfiler/r26copy` afterwards.
+> then create with id `R26COPY`, and `rm -rf turnusdata/r26copy` afterwards.
 
 ### 2.3 Failure path — create from the broken fixture
 1. Make sure the broken fixture exists (regenerate if cleaned up — see Appendix).
@@ -116,7 +116,7 @@ exist on disk.
 3. This is the only path that exercises the **scraper** end-to-end (Sections 2.2–2.4 feed JSON).
 
 ### 2.6 Refresh (re-scrape, preserves favorites) — needs the PDF on disk
-1. Ensure the source PDF is at `app/static/turnusfiler/r26/pdf/turnuser_R26.pdf`.
+1. Ensure the source PDF is at `turnusdata/r26/pdf/turnuser_R26.pdf`.
 2. On **Administrer turnussett**, use the **refresh** action for R26.
 3. Expect: green `Validering OK`, a summary of renamed/added/removed/unchanged shifts,
    favorites preserved, INFO log. On a (deliberately) bad PDF: summarized red flash +
@@ -149,7 +149,7 @@ exist on disk.
 
 After a real scrape/refresh (2.5/2.6) or by inspecting the regenerated committed file:
 ```bash
-python -c "import json; d=json.load(open('app/static/turnusfiler/r26/turnus_schedule_R26.json')); \
+python -c "import json; d=json.load(open('turnusdata/r26/turnus_schedule_R26.json')); \
 x=d[0]['OSL_01']['1']['1']; print('start',x['start'],'slutt',x['slutt'])"
 ```
 Expect: `start` and `slutt` are **strings** consistent with `tid` (previously `start` was a
@@ -183,11 +183,11 @@ With a valid active set:
 
 ## Appendix: regenerate the broken fixture
 
-If you removed `app/static/turnusfiler/r26broken/`, recreate it:
+If you removed `turnusdata/r26broken/`, recreate it:
 ```bash
 python - <<'PY'
 import json, copy, os
-root="app/static/turnusfiler"
+root="turnusdata"
 d=json.load(open(f"{root}/r26/turnus_schedule_R26.json",encoding="utf-8"))
 def workday(td):
     for w in range(1,7):
@@ -206,4 +206,4 @@ json.dump(d, open(f"{root}/r26broken/turnus_schedule_R26BROKEN.json","w"), inden
 print("broken fixture written")
 PY
 ```
-Clean up when done: `rm -rf app/static/turnusfiler/r26broken` (it is untracked).
+Clean up when done: `rm -rf turnusdata/r26broken` (it is untracked).

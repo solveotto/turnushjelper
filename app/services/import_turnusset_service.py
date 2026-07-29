@@ -104,7 +104,7 @@ def finalize_turnusset_import(year_id, name, is_active, turnuser):
     from app.utils.shift_stats import Turnus
 
     year_id = year_id.upper()
-    version_dir = os.path.join(AppConfig.static_dir, "turnusfiler", year_id.lower())
+    version_dir = os.path.join(AppConfig.turnusfiler_dir, year_id.lower())
     os.makedirs(version_dir, exist_ok=True)
 
     turnus_json_path = os.path.join(version_dir, f"turnus_schedule_{year_id}.json")

@@ -189,7 +189,7 @@ The "turnus" JSON file is the heart of the app. Here's how shift data moves:
 PDF file
   │ (pdfplumber via app/utils/pdf/shiftscraper.py)
   ▼
-turnus.json   ← stored in app/static/turnusfiler/
+turnus.json   ← stored in turnusdata/ (outside app/, never served directly)
   │
   ▼
 DataframeManager (df_utils.py)   ← in-memory cache, global per-process

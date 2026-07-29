@@ -524,25 +524,147 @@ read-pickle/write-JSON transition period is implemented. Options:
    directly instead of the compat shim. Do it per-blueprint; the facade's
    from-import pattern already caused one real test bug (see comment in
    `api.py::mark_tour_seen`).
-4. **Extract soknadsskjema document builders:** `_build_soknadsskjema_doc` /
-   `_build_soknadsskjema_pdf` (~500 lines) out of
+4. **[DONE 2026-07-28] Extract soknadsskjema document builders:**
+   `_build_soknadsskjema_doc` / `_build_soknadsskjema_pdf` (~500 lines) out of
    `app/routes/shifts/soknadsskjema.py` into `app/utils/` — routes should
    hold no document-generation logic.
-5. **Move `app/utils/tests/`** (test_ruler.py + PNG) under `tests/` — test
-   artifacts shouldn't ship inside the app package.
-6. **`datetime.utcnow()` → `datetime.now(timezone.utc)`** — deprecation
-   warnings in the suite point at `app/routes/auth.py` (`login_at`); grep for
-   the rest. Watch naive-vs-aware comparisons against DB-stored naive UTC
-   (`auth_service.py` deliberately strips tzinfo — follow that convention).
-7. **Escape interpolated shift data in JS:** `buildScheduleTableHTML` in
-   `app/static/js/modules/oversikt.js` inserts `dg`/`tid` unescaped. Data is
-   admin-imported (low risk), but add a small `escapeHtml` helper in
-   `modules/utils.js` and use it here and in the other `innerHTML` template
-   literals that carry data values.
 
-8. **Move turnusfiler out of the public static tree** *(decided 2026-07-18:
-   do it — biggest Phase 3 item. Corrected 2026-07-19 after a `.gitignore`
-   review; run as its own session, not on a tight budget.)*
+   > **DONE.** Route file **714 → 144 lines**; builders now in
+   > `app/utils/soknadsskjema_gen.py` (583 lines, named after the existing
+   > `turnusnokkel_gen.py`). The three docx helpers
+   > (`_set_table_col_widths`, `_add_cell_border`, `_arial`) moved too — all
+   > are called only from inside the docx builder. **`_get_soknadsskjema_choices`
+   > deliberately stayed**: it's a DB query, not document generation, and only
+   > the route calls it; relocating it belongs to item 3. Dropped the leading
+   > underscore from the two builders (now cross-module callers); helpers stay
+   > private. docx/reportlab imports left lazy inside the functions, so neither
+   > becomes an import-time dependency.
+   >
+   > Added `tests/test_soknadsskjema_gen.py` (9 tests) — **this code had zero
+   > coverage**, so a 576-line move had nothing guarding it. Two traps found by
+   > probing the real output: favorites render in display form (`OSL_01` →
+   > `"OSL 01"`), and `"1,3,5"` is useless for proving `choices` propagate
+   > because the blank form already prints "Linje 1,3,5 eller 2,4,6" — the test
+   > uses `"6,5,4"` and asserts present-with/absent-without.
+   >
+   > Verified: moved code **byte-identical** to the original apart from the two
+   > renames (diffed against `git show HEAD:`); both builders produce valid
+   > output; mutation-checked (making the docx builder drop `favorites` fails 3
+   > of 9 tests). Suite 384 passed.
+5. **[DONE 2026-07-28] Move `app/utils/tests/`** (test_ruler.py + PNG) under
+   `tests/` — test artifacts shouldn't ship inside the app package.
+
+   > **DONE — but not to `tests/`, deliberately.** `test_ruler.py` was **not a
+   > test**: no test functions, no assertions, just a `main()` with
+   > `if __name__ == "__main__"`. `testpaths = ["tests"]` meant pytest never
+   > collected it, and it didn't even import (`ModuleNotFoundError: app`).
+   > Moving it under `tests/` would have added a side-effecting no-op that
+   > writes a 42 KB PNG on every suite run, duplicating what
+   > `tests/test_strekliste_geometry.py` already asserts properly.
+   >
+   > It became **`scripts/render_shift_preview.py`** instead — which meets the
+   > item's actual goal (out of the app package) — rewritten to the existing
+   > `scripts/` pattern: project-root `sys.path` insert like `check_db.py`, CLI
+   > args instead of edit-the-constants, caller-chosen output path, and it
+   > prints the calibration state up front (a `False` there explains a bad
+   > render immediately). The stale `test_ruler_output.png` was deleted: a
+   > March artifact generated from the *superseded* streker PDF edition, so it
+   > showed the wrong (narrow) layout. `app/utils/tests/` no longer exists.
+6. **[DONE 2026-07-28] `datetime.utcnow()` → `datetime.now(timezone.utc)`** —
+   deprecation warnings in the suite point at `app/routes/auth.py`
+   (`login_at`); grep for the rest. Watch naive-vs-aware comparisons against
+   DB-stored naive UTC (`auth_service.py` deliberately strips tzinfo — follow
+   that convention).
+
+   > **DONE.** Both call sites were in `app/routes/auth.py`; no others existed
+   > in `app/`. Used `datetime.now(timezone.utc).replace(tzinfo=None)`,
+   > matching `auth_service.py` exactly. **Keeping it naive is load-bearing**,
+   > not stylistic: an aware datetime would make `logout()` raise
+   > `TypeError: can't subtract offset-naive and offset-aware datetimes`
+   > against `login_at` strings written by the previous build — and the
+   > existing `try/except Exception: pass` at that line would have swallowed
+   > it, silently zeroing session-duration logging for every pre-deploy
+   > session. Suite warnings dropped 124 → 85.
+7. **[DONE 2026-07-28] Escape interpolated shift data in JS:**
+   `buildScheduleTableHTML` in `app/static/js/modules/oversikt.js` inserts
+   `dg`/`tid` unescaped. Data is admin-imported (low risk), but add a small
+   `escapeHtml` helper in `modules/utils.js` and use it here and in the other
+   `innerHTML` template literals that carry data values.
+
+   > **DONE.** `escapeHtml()` added to `modules/utils.js`; applied to every
+   > value originating from server JSON: `dg`/`tid` in
+   > `buildScheduleTableHTML`, the metric value in the stats strip,
+   > `turnusLabels` in the records badge (**twice** — once in text position,
+   > once inside `data-turnus="..."`), and the `#N` pill in `favorites.js`.
+   > Module-local constants (`DAY_LABELS`, `STATS` labels, `RECORDS`
+   > emoji/labels) left unescaped on purpose.
+   >
+   > **The attribute case is why quotes are escaped and not just angle
+   > brackets** — a turnus name containing `"` could otherwise close
+   > `data-turnus="..."` and append an event handler; a text-only escaper
+   > leaves that exploitable. Line 116 could not be blanket-escaped: its
+   > `tid || '<span …>·</span>'` fallback is intentional markup, so it became a
+   > ternary escaping only `tid`.
+   >
+   > Checked and left alone as already safe: `shiftClass()` feeds a `class`
+   > attribute but returns one of six hardcoded strings and never echoes `tid`;
+   > `sorting-system.js` uses `textContent`; the `outerHTML` round-trips in
+   > `print-utils.js`/`utils.js` re-inject server-escaped DOM. Verified with
+   > `node --check` on all three modules plus 11 cases run against the real
+   > `utils.js` (both quote styles, `0`, `null`/`undefined`, attribute-breakout
+   > proof).
+
+8. **[DONE 2026-07-29] Move turnusfiler out of the public static tree**
+   *(decided 2026-07-18: do it — biggest Phase 3 item. Corrected 2026-07-19
+   after a `.gitignore` review; run as its own session, not on a tight
+   budget.)*
+
+   > **DONE.** Data store is now `turnusdata/` (`AppConfig.turnusfiler_dir`),
+   > outside `app/`. `app/static/` holds only css/js/img. 855 files moved, 0
+   > lost — verified against a pre-move manifest, with the r26 streker md5 and
+   > both PNG counts (423 r26 / 417 r25) unchanged.
+   >
+   > **The premise was re-litigated first (2026-07-28).** Solve pointed out
+   > that every logged-in member already gets this data via shared documents,
+   > so the confidentiality gain is limited to *anonymous* users. Decision was
+   > to proceed anyway — Vy's operational data being world-downloadable is not
+   > the union's call. Two findings settled it:
+   > - **The login protection was illusory.** `api.get_shift_image` and
+   >   `downloads.download_pdf` were `@login_required` while the identical
+   >   bytes were fetchable at `/static/turnusfiler/…` with no session. The
+   >   move is what actually closes that; nothing else in the plan did.
+   > - **The PII guard is a filename denylist** and fails open on unanticipated
+   >   names. The new structural assertion (`app/static/turnusfiler` must not
+   >   exist; `turnusfiler_dir` must resolve outside `app/static/`) cannot.
+   >
+   > **Two things the brief above missed**, both found by the re-grep it told
+   > us to do: `app/utils/turnusnokkel_gen.py` and
+   > `scripts/create_new_turnus_year_in_database.py` also built the path
+   > themselves.
+   >
+   > **A third the brief could not have known:** `TurnusSet` rows store
+   > **absolute** paths and take precedence over the config constant, so the
+   > move stranded every row — the app silently served an empty DataFrame.
+   > Fixed two ways: `DataframeManager` now falls back to the conventional
+   > location when a stored path is missing (self-healing, so prod needs no DB
+   > step to stay up), plus `scripts/repoint_turnus_paths.py` to make the DB
+   > truthful. Idempotent, `--dry-run` supported.
+   >
+   > **Incident during the work:** in the intermediate state — service already
+   > repointed to `turnusfiler_dir`, test fixture still isolating only
+   > `static_dir` — the import-route tests wrote their 2-turnus fixture into
+   > the live R26 schedule/stats. Recovered from the index (files are tracked);
+   > `import_env` now patches `turnusfiler_dir` too. Worth knowing: those tests
+   > were always one config change away from writing into the real data store.
+   >
+   > Suite **386 passed, 0 failed** — first fully green run in this stretch
+   > (the PII test went green when `ansinitet.pdf` and the two innplassering
+   > PDFs moved to `instance/protected/`). A full suite run now leaves the data
+   > store byte-identical, which it did not before.
+   >
+   > **Deploy is not just a pull** — see the runbook: `git pull` relocates only
+   > the 11 tracked files and leaves 844 untracked ones behind, and forgetting
+   > the `rsync`+`rm` step fails quietly (empty dataset, no error).
 
    **Problem.** `app/static/turnusfiler/` is the app's data store living in
    the unauthenticated public tree. Almost nothing there needs static
@@ -566,6 +688,38 @@ read-pickle/write-JSON transition period is implemented. Options:
    - **The ignore rules are pinned to the old path.** After the move they stop
      matching and generated PDFs/PNGs under `turnusdata/` become accidentally
      committable — `.gitignore` MUST be rewritten to the new root.
+
+   **State of the tree as of 2026-07-28** *(recorded so a fresh session doesn't
+   have to rediscover it — `git status` alone won't tell you any of this).*
+
+   - **847 ignored/untracked files live under `app/static/turnusfiler/`.**
+     That is the whole point of the filesystem-`mv` trap above; verify the
+     count survives the move rather than trusting `git status`, which shows
+     nothing for them either before or after.
+   - **The r26 strekliste PDF and PNGs were replaced on 2026-07-28.**
+     `r26/streklister/r26_streker.pdf` is now the correct 54-page
+     *"Strekliste for Lokfører"* edition (1,640,852 bytes, md5 `9091cf5ee5b1…`,
+     30.00 pt/hour, hour 0 at x≈103.5 / hour 23 at ≈793.5 — matching the golden
+     anchors in `tests/test_strekliste_geometry.py`). A wrong file had been
+     sitting there since 2026-05-29: a byte-identical copy of
+     `r26/pdf/turnuser_R26.pdf`, which is a *turnus diagram*, not a strekliste.
+     `r26/streklister/png/` now holds exactly **423** regenerated PNGs — down
+     from 492, because `generate_all_images(force=True)` clears the directory
+     first and 69 were orphans for shifts the current edition no longer
+     contains. **After the move, confirm 423 PNGs and the md5 above**; a
+     silently-stranded PNG directory looks fine until someone regenerates.
+   - **Three PII files are still under `app/static/turnusfiler/`** and are the
+     sole cause of the one failing test (`test_no_pii_files_in_static_tree`):
+     `ansinitet.pdf`, `r25/pdf/innplassering_R25.pdf`,
+     `r26/pdf/Innplassering R26.pdf`. All untracked, so **prod is unaffected**
+     — Task 0.2 already migrated the server; these are dev-machine leftovers.
+     Decide deliberately as part of this item: they should go to
+     `instance/protected/` per `docs/guides/PROTECTED_FILES.md`, **not** ride
+     along into `turnusdata/`. Step 7's new "`app/static/turnusfiler` must not
+     exist" assertion and the existing PII assertion then both pass, taking the
+     suite fully green for the first time in this run of work.
+   - **Expected suite baseline before starting:** 384 passed, 1 failed (the PII
+     test above). Items 4–7 of this phase are already merged to `main`.
 
    **Target layout.**
 
