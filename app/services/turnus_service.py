@@ -179,6 +179,33 @@ def get_shifts_by_turnus_set(turnus_set_id):
         db_session.close()
 
 
+def get_turnus_set_deletion_impact(turnus_set_id):
+    """Count the user data `delete_turnus_set` would destroy.
+
+    Deleting a set wipes favorites and søknadsskjema choices for *every* user,
+    so the admin UI shows these numbers before asking for confirmation.
+    Returns zeroes for an unknown set rather than raising.
+    """
+    from app.models import Innplassering, SoknadsskjemaChoice
+
+    db_session = get_db_session()
+    try:
+        return {
+            "favorites": db_session.query(Favorites).filter_by(
+                turnus_set_id=turnus_set_id).count(),
+            "users": db_session.query(Favorites.user_id).filter_by(
+                turnus_set_id=turnus_set_id).distinct().count(),
+            "soknadsskjema": db_session.query(SoknadsskjemaChoice).filter_by(
+                turnus_set_id=turnus_set_id).count(),
+            "innplassering": db_session.query(Innplassering).filter_by(
+                turnus_set_id=turnus_set_id).count(),
+            "shifts": db_session.query(Shifts).filter_by(
+                turnus_set_id=turnus_set_id).count(),
+        }
+    finally:
+        db_session.close()
+
+
 def delete_turnus_set(turnus_set_id):
     """Delete a turnus set and all its associated data"""
     db_session = get_db_session()

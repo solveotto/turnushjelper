@@ -860,14 +860,43 @@ once these are closed).
    restored the same day from the dev machine — `md5`
    `31532240d95829affb64913fb5d33259`, 496 629 bytes, matching local.
 
-   **Both of these share a root cause worth remembering:** every file under
+   **Both of these share a root cause:** every file under
    `instance/protected/` and most of `turnusdata/` is gitignored, so it exists
-   only where someone put it. `git pull` will never restore them and a server
-   rebuild silently loses them. `medlemsliste.xlsx` was recoverable today only
-   because it predates the PII fix and is still in git history — which is the
-   very thing the deferred `filter-repo` purge would remove. **Make sure the
-   server backup covers `instance/protected/` and `turnusdata/`**; that is the
-   only copy.
+   only where someone put it. `git pull` never restores them and a server
+   rebuild loses them silently.
+
+   **Recovery strategy (decided 2026-07-29): regenerate, don't back up the
+   files.** Solve keeps the source PDFs/xlsx off-server, and MySQL is backed
+   up nightly. That works because user selections do not live in the files:
+
+   ```python
+   class Favorites:      # and SoknadsskjemaChoice, identically
+       user_id       = ForeignKey('users.id',       ondelete='CASCADE')
+       shift_title   = String(255)      # ← a plain title string
+       turnus_set_id = ForeignKey('turnus_sets.id', ondelete='CASCADE')
+   ```
+
+   Favorites reference the schedule only by **title string + turnus-set id** —
+   never by a `shifts` row, never by anything inside the JSON. Of the 855 files
+   under `turnusdata/`, 840 are regenerable PNGs and 11 are tracked in git
+   (every `.xlsx`, the `.xls`, the `.docx`, all six JSONs). Only 4 source PDFs
+   are neither.
+
+   **Recovery order — this part matters:**
+   1. Restore MySQL **first** (brings back `turnus_sets` rows with their
+      original ids)
+   2. Put regenerated files at `turnusdata/{year_id}/`
+   3. `venv/bin/python scripts/repoint_turnus_paths.py`
+   4. `venv/bin/python scripts/db_check_orphaned_favorites.py`
+
+   **Never "recreate the turnus set" in admin.** `turnus_set_id` is
+   `ondelete='CASCADE'` and `year_identifier` is `UNIQUE`, so the only way to
+   re-add a set is to delete the existing one — which destroys every user's
+   favorites and søknadsskjema choices. A perfect JSON regeneration will not
+   bring them back. Step 4 catches the softer version of the same failure:
+   regenerating from a *different source edition* yields different shift
+   titles, and a favorite whose title no longer matches simply stops appearing
+   — no error.
 
 3. **Phase 3 item 3 (`db_utils` facade) remains open.** Pure refactor, no
    security or correctness value, no deploy risk. Leave it until it is in the

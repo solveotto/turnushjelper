@@ -185,7 +185,8 @@ The `shiftscraper.py` script has been improved to better handle PDF extraction i
 
 ## Testing Results
 
-Tested with: `turnusdata/r26/pdf/turnuser_R26.pdf`
+Tested with: `tests/fixtures/turnuser_R26.pdf` (the committed golden-file source;
+an admin upload would write the same PDF to `turnusdata/r26/pdf/`)
 
 Results:
 - ✅ 57 turnuser successfully extracted

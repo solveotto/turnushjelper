@@ -205,9 +205,16 @@
                                             </button>
                                         </form>
 
+                                        {% set impact = delete_impact.get(turnus_set.id, {}) %}
                                         <form method="POST" action="{{ url_for('admin.delete_turnus_set', turnus_set_id=turnus_set.id) }}"
-                                              style="display: inline;" onsubmit="return confirm('Er du sikker på at du vil slette {{ turnus_set.year_identifier | display_name }}? Dette vil også slette alle tilknyttede vakter, favoritter og innplasseringsdata.')">
+                                              style="display: inline;"
+                                              data-confirm-delete-set
+                                              data-identifier="{{ turnus_set.year_identifier }}"
+                                              data-favorites="{{ impact.get('favorites', 0) }}"
+                                              data-users="{{ impact.get('users', 0) }}"
+                                              data-soknadsskjema="{{ impact.get('soknadsskjema', 0) }}">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="confirm_identifier" value="">
                                             <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="bi bi-trash"></i> Slett
                                             </button>
@@ -261,6 +268,33 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Deleting a turnus set wipes favorites and søknadsskjema choices for every
+    // user, so state the blast radius and require the identifier to be typed.
+    // The server re-checks confirm_identifier — this is convenience, not the guard.
+    document.querySelectorAll('[data-confirm-delete-set]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            const id = form.dataset.identifier;
+            const favorites = Number(form.dataset.favorites);
+            const users = Number(form.dataset.users);
+            const soknad = Number(form.dataset.soknadsskjema);
+
+            let impact = `Dette sletter ${favorites} favoritter fordelt på ${users} brukere`;
+            if (soknad > 0) {
+                impact += `, og ${soknad} søknadsskjemavalg`;
+            }
+
+            const typed = prompt(
+                `Slette ${id}?\n\n${impact}.\nHandlingen kan ikke angres.\n\n` +
+                `Skriv ${id} for å bekrefte:`
+            );
+            if (typed === null || typed.trim().toLowerCase() !== id.toLowerCase()) {
+                e.preventDefault();
+                return;
+            }
+            form.querySelector('input[name="confirm_identifier"]').value = typed;
+        });
+    });
+
     // Load strekliste status for all turnus sets
     document.querySelectorAll('.strekliste-controls').forEach(function(el) {
         const turnusSetId = el.dataset.turnusSetId;

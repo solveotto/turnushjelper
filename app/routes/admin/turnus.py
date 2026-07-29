@@ -10,6 +10,9 @@ from app.database import get_db_session
 from app.extensions import cache
 from app.forms import CreateTurnusSetForm, UploadStreklisteForm
 from app.routes.admin import admin
+# Imported directly rather than via the db_utils facade — Phase 3 item 3 is to
+# retire that shim, so new call sites should not grow it.
+from app.services import turnus_service
 from app.utils import db_utils, df_utils, protected_paths
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
@@ -54,10 +57,18 @@ def manage_turnus_sets():
     active_set = db_utils.get_active_turnus_set()
     upload_form = UploadStreklisteForm()
 
+    # Shown in the delete confirmation so the admin sees the blast radius
+    # before agreeing to it — a set deletion wipes every user's favorites.
+    delete_impact = {
+        ts["id"]: turnus_service.get_turnus_set_deletion_impact(ts["id"])
+        for ts in turnus_sets
+    }
+
     return render_template(
         "admin_turnus_sets.html",
         page_name="Manage Turnus Sets",
         turnus_sets=turnus_sets,
+        delete_impact=delete_impact,
         active_set=active_set,
         upload_form=upload_form,
         pending_imports=import_turnusset_service.list_pending_imports(),
@@ -711,6 +722,19 @@ def delete_turnus_set(turnus_set_id):
     # Get the turnus set info before deleting (for cleanup)
     turnus_set = db_utils.get_turnus_set_by_id(turnus_set_id)
     version = turnus_set["year_identifier"].lower() if turnus_set else None
+
+    # This wipes favorites and søknadsskjema choices for EVERY user in the set,
+    # so require the year identifier to be typed back. Checked server-side: the
+    # browser prompt is a convenience, not the guard.
+    if turnus_set:
+        typed = (request.form.get("confirm_identifier") or "").strip().lower()
+        if typed != version:
+            flash(
+                f"Sletting avbrutt — skriv {turnus_set['year_identifier']} "
+                "for å bekrefte.",
+                "danger",
+            )
+            return redirect(url_for("admin.manage_turnus_sets"))
 
     success, message = db_utils.delete_turnus_set(turnus_set_id)
 
