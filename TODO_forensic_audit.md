@@ -143,6 +143,30 @@ done.
 > for medlemsliste/ansinitet (cosmetic only — the actual read path was
 > already correct) — fixed same day, see Phase 3 Task 8 step 5.
 
+> **CORRECTION (2026-07-29): the prod half of the status above is wrong.**
+> During the Phase 3 deploy, production was found at `6e5168e` — 54 commits
+> behind, and *predating* `99252d5`. It had never carried the code, so the
+> `mv` migration cannot have run there; `instance/protected/` did not exist,
+> and `ansinitet.pdf` was still sitting in `app/static/turnusfiler/`. The
+> 2026-07-19 entry evidently describes staging (`turnushjelper-2`), not prod.
+>
+> **Consequence:** `medlemsliste.xlsx` was served unauthenticated at
+> `https://<prod>/static/turnusfiler/medlemsliste.xlsx` for ten days longer
+> than this file claimed — from the audit until 2026-07-29, not until
+> 2026-07-19.
+>
+> **Actually fixed on prod 2026-07-29:** `ansinitet.pdf` moved to
+> `instance/protected/`; `medlemsliste.xlsx` restored there from git history
+> (`git show 6e5168e:app/static/turnusfiler/medlemsliste.xlsx`, since the pull
+> past `99252d5` deleted the tracked copy from the working tree rather than
+> moving it — verified `Microsoft Excel 2007+`, 25 074 bytes);
+> `innplassering_R26.pdf` was not present on prod at all and still needs
+> re-uploading through the admin UI.
+>
+> **Lesson worth keeping:** a task marked DONE against "prod" was verified on
+> a box named like prod's sibling. Deploy status is per-host; record the host
+> and the SHA, not just the date.
+
 **Deferred — git-history purge (conditional, not urgent).**
 `medlemsliste.xlsx` is still recoverable from git history — added/modified in
 commits `da67f59`, `cbc6ef6`, `7c68683`, `29d226e`, and confirmed live on
@@ -159,6 +183,10 @@ them).
 Root `gunicorn.conf.py` (bind :8080, timeout 60) and `deploy/gunicorn.conf.py`
 (unix socket, timeout 300) diverge. Check what the systemd unit actually
 references, then delete the other or mark it dev-only in a comment.
+
+> Re-confirmed on prod 2026-07-29 before deploying `b1aa24e` (which deletes the
+> root file): `systemctl cat turnushjelper | grep -i conf` returns nothing, so
+> the unit hardcodes every flag and references no config file. Safe.
 
 ---
 
@@ -322,7 +350,22 @@ Options:
   Zero infra. The favorites race stays theoretical (same user, two tabs,
   two workers, same second).
 
-### DONE (code) Task 2.2: DB unique constraint on `users.rullenummer`
+### DONE Task 2.2: DB unique constraint on `users.rullenummer`
+
+> **DEPLOYED TO PROD 2026-07-29.** `scripts/check_rullenummer_duplicates.py`
+> re-run against production immediately before upgrading, as the migration's
+> docstring requires: `DB_TYPE=mysql`, 395 users, 320 with a rullenummer, 75
+> NULL, 0 duplicates, 0 empty strings → `SAFE`. (Identical to the staging
+> figures below, consistent with staging being a prod copy.) `alembic upgrade
+> head` applied `017_unique_rullenummer` cleanly. A `LOWER(username)` group-by
+> check for the case-insensitivity change shipping in the same batch was also
+> clean.
+>
+> Note the ordering trap hit during the deploy: the check script arrived *with*
+> the pull (added in `fed1621`, inside the 54-commit gap), so it cannot be run
+> before `git pull`. Correct order is pull → check → `alembic upgrade`; the
+> pull touches no database state and the running workers keep the old code in
+> memory until restart.
 
 > **Status (2026-07-20): fully applied + verified on STAGING, NOT yet on prod.**
 >
@@ -339,7 +382,10 @@ Options:
 >   it). Note: that script's *verification* reads must use a fresh session —
 >   MySQL's REPEATABLE READ pins the seeding session to a pre-sync snapshot,
 >   which produced a false FAIL on the first run (the app code was already
->   correct); fixed in the script, not the app.
+>   correct); fixed in the script, not the app. *(The script was deleted
+>   2026-07-29 once the constraint was live on both hosts — recover it from
+>   history at `7d4913f:scripts/verify_rullenummer_absorb.py` if the absorb
+>   path ever needs re-proving.)*
 >
 > **Production has had none of this yet — execute the runbook below.**
 >
@@ -407,7 +453,14 @@ All commands from the repo root on the prod server, `venv/bin/` prefix.
 Rollback: `venv/bin/alembic downgrade -1` restores the non-unique index
 (migration 017 is reversible). The absorb-fix code is safe to keep either way.
 
-### DONE (code) Task 2.3: Session serialization: pickle → JSON
+### DONE Task 2.3: Session serialization: pickle → JSON
+
+> **DEPLOYED TO PROD 2026-07-29.** The restart performed the one-time global
+> logout as designed. Verified on both hosts by reading the newest
+> `FlaskSessionModel` row back through `json.loads` — staging returned
+> `OK 454`, prod likewise after logging in again. No transition code was
+> needed; legacy pickled rows fall through `open_session`'s existing
+> `try/except` into a fresh session.
 
 > **Decision (2026-07-20): Option A (hard cut).** Implemented and tested;
 > **not yet deployed to prod.**
@@ -784,6 +837,47 @@ read-pickle/write-JSON transition period is implemented. Options:
    against a schedule JSON, a PNG and the turnus PDF URL → all 302/401, and
    logged-in downloads still work (dropdown, strekliste images,
    /download_pdf).
+
+---
+
+## Open follow-ups from the 2026-07-29 deploy
+
+Not audit findings — operational loose ends surfaced while deploying Phases 0–3
+to staging and production. Runbook: `docs/guides/DEPLOY_PHASE3.md` (delete it
+once these are closed).
+
+1. **[RESOLVED 2026-07-29] Both servers held the wrong strekliste PDF.** Prod
+   carried `61a7b133555a4783834eb8ea6f182963`, which regenerates **492** PNGs;
+   the verified R26 edition is `9091cf5ee5b1fd5db797a6dc3ccf6888` (54 pages,
+   1 640 852 bytes, **423** PNGs). Staging was the same wrong edition — both
+   servers reported exactly 505 files under the data store, which only lines up
+   if both had 492 PNGs. Solve uploaded the correct PDF to both and
+   regenerated. The 69-image gap was a genuine content difference between
+   editions, not a rendering artifact.
+
+2. **[RESOLVED 2026-07-29] `innplassering_R26.pdf` was missing on prod.**
+   Confirmed absent during the deploy (`instance/protected/` did not exist),
+   restored the same day from the dev machine — `md5`
+   `31532240d95829affb64913fb5d33259`, 496 629 bytes, matching local.
+
+   **Both of these share a root cause worth remembering:** every file under
+   `instance/protected/` and most of `turnusdata/` is gitignored, so it exists
+   only where someone put it. `git pull` will never restore them and a server
+   rebuild silently loses them. `medlemsliste.xlsx` was recoverable today only
+   because it predates the PII fix and is still in git history — which is the
+   very thing the deferred `filter-repo` purge would remove. **Make sure the
+   server backup covers `instance/protected/` and `turnusdata/`**; that is the
+   only copy.
+
+3. **Phase 3 item 3 (`db_utils` facade) remains open.** Pure refactor, no
+   security or correctness value, no deploy risk. Leave it until it is in the
+   way of something.
+
+4. **Deploy cadence is the underlying issue.** Production ran 54 commits behind
+   for roughly two weeks, which is why the `medlemsliste.xlsx` exposure survived
+   ten days past the date this file recorded it as closed (see the correction
+   under Task 0.2). Nothing pulls automatically — `unattended-upgrades` covers
+   OS packages only. Whatever else changes, keep that gap small.
 
 ---
 

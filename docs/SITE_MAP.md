@@ -46,7 +46,8 @@ Generated 2026-05-08. Update whenever routes are added or removed.
 
 | Method | URL | Login required | What it does |
 |---|---|---|---|
-| GET | `/download_pdf` | Yes | Serves a PDF file from `static/turnusfiler/`. Filename passed as query param. |
+| GET | `/download_pdf` | Yes | Serves a PDF from `turnusdata/{year_id}/`. Filename passed as query param. |
+| GET | `/download/pdf/<filename>` | Yes | Serves a turnus PDF from `turnusdata/{year_id}/pdf/`. Replaced the old `/static/turnusfiler/…` links, which were unauthenticated. |
 
 ---
 

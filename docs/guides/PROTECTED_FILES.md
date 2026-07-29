@@ -74,14 +74,26 @@ Since 2026-07-29 those three URLs 404 for a simpler reason: nothing lives under
 recreated the directory.
 
 Optional nginx belt-and-braces (blocks the whole class even if a PII file is
-ever misplaced again). Now largely redundant, since the data store is outside
-`app/static/`, but harmless to keep as defence-in-depth:
+ever misplaced again):
 
 ```nginx
 location ~* ^/static/turnusfiler/.*(medlemsliste|ansinitet|innplassering) {
     return 404;
 }
 ```
+
+**This was never installed.** Verified 2026-07-29 on production:
+`grep -rn "turnusfiler\|/static" /etc/nginx/sites-enabled/` returns nothing at
+all — nginx proxies everything to gunicorn and Flask serves `app/static/`
+itself. So there is no second, nginx-level route into the static tree, and
+Flask's own static handler was the *only* thing serving `medlemsliste.xlsx`
+to anonymous users during the exposure window.
+
+Two consequences worth keeping straight: adding the rule above would do
+nothing today (nothing lives under `/static/turnusfiler/` any more), and if a
+`location`/`alias` for `/static` is ever introduced to serve those files
+directly, it would bypass every `@login_required` in `app/routes/` — that is
+the change to review carefully, not this snippet.
 
 ## Purging medlemsliste.xlsx from git history
 
