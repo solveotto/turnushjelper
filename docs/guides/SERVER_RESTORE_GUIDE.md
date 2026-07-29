@@ -6,15 +6,78 @@ This guide walks through restoring turnushjelper from scratch — for example af
 
 ## What "full restore" means
 
-A complete restore has three independent parts:
+A complete restore has four independent parts:
 
 | Part | Source | Script / tool |
 |---|---|---|
 | **Code** | Git repository | `git clone` |
 | **Database** | SQL dump (local or off-site) | `restore_from_offsite.py` / `restore_backup.py` |
 | **Config** | `.env` backup (off-site) | rsync / manual |
+| **Data files** | Source PDFs/xlsx kept off-server | re-upload + regenerate — see below |
 
 Sessions (`app/utils/sessions/`) are ephemeral — they do not need to be restored.
+
+---
+
+## Data files: regenerate, don't back up
+
+Most of `turnusdata/` and everything in `instance/protected/` is gitignored, so
+it exists **only where someone put it**. `git pull` never restores these and a
+server rebuild loses them silently — that is how production ended up without
+`innplassering_R26.pdf` (found 2026-07-29).
+
+The decision (2026-07-29) is to **regenerate rather than back these up**, which
+works because of how little is actually irreplaceable. Of 855 files under
+`turnusdata/`:
+
+| | Count | Recovered by |
+|---|---|---|
+| Strekliste PNGs | 840 | regenerating from the strekliste PDF |
+| Schedule / stats / double-shift JSON | 6 | **git** (tracked) |
+| Nøkkel `.xlsx`, `R26 endelig.xls`, søknadsskjema `.docx` | 5 | **git** (tracked) |
+| Source PDFs | 4 | nothing — keep a copy off-server |
+
+Plus three PII files in `instance/protected/` (`medlemsliste.xlsx`,
+`ansinitet.pdf`, `innplassering_{YEAR}.pdf`). **The irreplaceable set is 7
+files, under 5 MB.** Keep those somewhere off-server; everything else rebuilds.
+
+### Why user data survives a file rebuild
+
+Favorites and søknadsskjema choices reference the schedule only by **title
+string plus turnus-set id** — never by a `shifts` row, never by anything inside
+the JSON:
+
+```python
+class Favorites:      # SoknadsskjemaChoice is identical in this respect
+    user_id       = ForeignKey('users.id',       ondelete='CASCADE')
+    shift_title   = String(255)
+    turnus_set_id = ForeignKey('turnus_sets.id', ondelete='CASCADE')
+```
+
+So regenerating the files on disk does not touch user selections at all. They
+live in MySQL, which is backed up nightly.
+
+### Recovery order — this part matters
+
+1. **Restore MySQL first** — this brings back `turnus_sets` rows *with their
+   original ids*, which is what favorites point at.
+2. Put the regenerated files at `turnusdata/{year_id}/`.
+3. `venv/bin/python scripts/repoint_turnus_paths.py` — `TurnusSet` rows store
+   **absolute** paths, so any relocation strands them.
+4. `venv/bin/python scripts/db_check_orphaned_favorites.py`.
+
+**Never "recreate the turnus set" through the admin UI.** `turnus_set_id` is
+`ondelete='CASCADE'` and `year_identifier` is `UNIQUE`, so the only way to
+re-add a set is to delete the existing one — which destroys every user's
+favorites and søknadsskjema choices. A perfect JSON regeneration will not bring
+them back. (The delete button asks for the year identifier to be typed and
+states the number of favorites at risk, precisely because of this.)
+
+Step 4 catches the softer version of the same failure: regenerating from a
+*different source edition* yields different shift titles, and a favorite whose
+title no longer matches simply stops appearing — no error. Both R26 sources are
+real planning revisions differing in ~20 of 2 394 day-cells, so this is not
+hypothetical.
 
 ---
 

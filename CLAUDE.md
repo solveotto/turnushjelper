@@ -103,7 +103,7 @@ The schedule JSON is an abstract 6-week rotation with no calendar dates. The onl
 
 ### Turnus Data Sources & Ingestion
 
-- **Primary source is the "Timeskjema" export** (decided 2026-07-08; parser lives on branch `ny_shift_ingress`). The employer's `.xls` export is **not real Excel** — it is tab-separated ISO-8859-1 text. The PDF scraper (`ShiftScraper`, hardcoded pixel bounding boxes) is the cross-verification and fallback path only; do not invest in the pixel-extraction engine.
+- **Primary source is the "Timeskjema" export** (decided 2026-07-08). The parser is on `main` — `app/utils/timeskjema_parser.py`, tests in `tests/test_timeskjema_parser.py`, fixture at `tests/fixtures/timeskjema_sample.xls`. The employer's `.xls` export is **not real Excel** — it is tab-separated ISO-8859-1 text. The PDF scraper (`ShiftScraper`, hardcoded pixel bounding boxes) is the cross-verification and fallback path only; do not invest in the pixel-extraction engine.
 - **`validate_turnus_json`** (`app/utils/pdf/scraper_validator.py`) is the single source-agnostic gate every ingestion path passes — harden the validator, not the extractors. Consumers (e.g. kompdag counting) require string week/day keys (JSON round-trip form); in-memory parser output has int keys — always go through the written JSON.
 - **Cross-source verification must never hard-fail on inequality** — sources can be different planning revisions. Verified example: the two R26 sources in `turnusdata/r26/` differ in 20 of ~2,394 day-cells (`Oslo R26 etter listemøte.pdf`, printed 09.10.2025, vs the later `R26 endelig.xls`) despite carrying the same dataset label. Render a diff for admin adjudication instead of failing.
 - **Timeskjema TSV parsing traps**: accounting-week grouping (Sunday-night shifts are listed in the next week's Sum-uke block), a trailing station-summary section with its own `Totalsummer` row, `&` suffixes on values, and the `Ruteterminperiode:` header being wrong (use the `Rutetermin:` dates).
@@ -193,3 +193,47 @@ Schema changes always go through Alembic. After modifying `app/models.py`:
 2. `venv/bin/alembic upgrade head`
 
 Tests use `Base.metadata.create_all()` directly and do not go through Alembic.
+
+## Deploying
+
+Two Hetzner hosts, both pulled manually — nothing updates itself
+(`unattended-upgrades` covers OS packages only). **`turnushjelper-1` is
+production, `turnushjelper-2` is staging** (a copy of prod). Repo at
+`/home/deploy/turnushjelper`, systemd unit `turnushjelper`.
+
+```bash
+git pull && venv/bin/pip install -r requirements.txt
+venv/bin/alembic upgrade head
+sudo systemctl restart turnushjelper      # a running worker never reloads changed code
+```
+
+- **Deploy status is per-host.** Record the host *and* the SHA, never just a
+  date. A task once recorded as "done on prod" had been verified on staging;
+  the near-identical hostnames made it invisible, and a PII exposure survived
+  ten days past the date it was logged as fixed.
+- **Keep the gap small.** Production once ran 54 commits behind for two weeks,
+  which is what made that exposure possible.
+- **A migration's pre-flight check may ship inside the gap it gates.**
+  `017_unique_rullenummer` requires `scripts/check_rullenummer_duplicates.py`
+  to pass first, but that script arrived in the same pull. The order is
+  **pull → check → `alembic upgrade`**; the pull touches no database state and
+  running workers keep the old code in memory until restart.
+- Gitignored data files (`turnusdata/`, `instance/protected/`) never travel
+  with git — see `docs/guides/SERVER_RESTORE_GUIDE.md`.
+
+## Explicitly NOT problems (don't "fix" these)
+
+Settled decisions from the 2026-07-18 forensic audit. Re-opening them wastes
+time and has previously produced regressions:
+
+- File serving in `api.py::get_shift_image` — already traversal-safe
+  (`os.path.basename` + `glob.escape`).
+- Login flash messages revealing stub/NLF/unverified state — only shown after
+  a correct password; acceptable.
+- Søknadsskjema 71-row truncation — closed 2026-07-12, keep as is.
+- Kompdag counting rules, strekliste geometry, hours-tolerance bands —
+  calibrated and test-asserted; leave alone.
+- The synchronous per-page-view `UserActivity` insert — fine at current scale;
+  retention cleanup exists.
+- Per-user page caching on `/turnusliste` and `/oversikt` — removed
+  deliberately; see the Caching section above.
