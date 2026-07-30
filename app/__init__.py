@@ -166,7 +166,10 @@ def create_app():
         if request.headers.get('X-CSRFToken'):
             # API call via apiFetch — return JSON so the client can reload silently
             return jsonify({'status': 'error', 'code': 'csrf_expired'}), 400
-        flash('Sesjonen din har utløpt, prøv igjen.', 'warning')
+        # Wording matters: this is an expired form token, not a logout. The old
+        # text ("Sesjonen din har utløpt") made users believe they had been
+        # logged out, which confused reports of real session loss.
+        flash('Skjemaet var for gammelt og ble ikke sendt. Prøv igjen.', 'warning')
         return redirect(request.referrer or url_for('shifts.turnusliste'))
 
     @app.after_request

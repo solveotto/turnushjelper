@@ -117,6 +117,15 @@ class AppConfig:
 
     PERMANENT_SESSION_LIFETIME = timedelta(days=_env_int("SESSION_LIFETIME_DAYS", 30))
 
+    # CSRF token lifetime. Flask-WTF defaults to 1 hour, which is short enough
+    # that a form left open across a break fails on submit and shows a
+    # "session expired" warning while the login session is still perfectly
+    # valid. 8 hours covers a work shift. Deliberately NOT set to
+    # PERMANENT_SESSION_LIFETIME: the token is already bound to
+    # session['csrf_token'], so session lifetime bounds its validity anyway,
+    # and a longer explicit limit only widens the replay window on a leaked token.
+    WTF_CSRF_TIME_LIMIT = _env_int("WTF_CSRF_TIME_LIMIT", 8 * 60 * 60)
+
     # Landing page: "mintur" shows Min Turnus, "turnusliste" redirects to /turnusliste
     LANDING_PAGE = _env("LANDING_PAGE", "turnusliste")
 

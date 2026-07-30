@@ -37,13 +37,21 @@ class SqlAlchemySessionInterface(SessionInterface):
         return os.urandom(32).hex()
 
     def open_session(self, app, request) -> FlaskSession:
+        # Every branch below that returns a fresh session is a logout from the
+        # user's point of view, so each one is tagged distinctly: in production
+        # they are otherwise indistinguishable. A nonzero "bad_signature" count
+        # means SECRET_KEY is not stable across workers/hosts.
         cookie_value = request.cookies.get(app.config.get("SESSION_COOKIE_NAME", "session"))
         if not cookie_value:
+            # Fires on every genuine first visit — DEBUG so it cannot drown the
+            # branches that actually indicate a problem.
+            logger.debug("session_fresh: no cookie presented")
             return FlaskSession(sid=self._generate_sid(), new=True)
 
         try:
             sid = URLSafeSerializer(app.secret_key).loads(cookie_value)
         except BadSignature:
+            logger.info("session_fresh: bad_signature (cookie not signed by this SECRET_KEY)")
             return FlaskSession(sid=self._generate_sid(), new=True)
 
         from app.models import FlaskSessionModel
@@ -51,18 +59,28 @@ class SqlAlchemySessionInterface(SessionInterface):
         db = SessionLocal()
         try:
             row = db.query(FlaskSessionModel).filter_by(session_id=sid).first()
-            if row is None or row.expiry < datetime.now(timezone.utc).replace(tzinfo=None):
-                if row is not None:
-                    db.delete(row)
-                    db.commit()
+            if row is None:
+                logger.info("session_fresh: row_missing (valid cookie, no DB row)")
+                return FlaskSession(sid=self._generate_sid(), new=True)
+            if row.expiry < datetime.now(timezone.utc).replace(tzinfo=None):
+                logger.info("session_fresh: row_expired (expiry %s)", row.expiry)
+                db.delete(row)
+                db.commit()
                 return FlaskSession(sid=self._generate_sid(), new=True)
             return FlaskSession(json.loads(row.data), sid=sid)
-        except Exception:
-            # Includes legacy pickle-serialized rows written before the JSON
-            # cut-over: they fail json.loads and are treated as a fresh session
-            # (a one-time logout on deploy — acceptable, tokens re-issued).
-            logger.exception("Session open failed")
+        except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+            # Legacy pickle-serialized rows written before the JSON cut-over:
+            # they fail json.loads and are treated as a fresh session (a one-time
+            # logout on deploy — acceptable, tokens re-issued).
+            logger.info("session_fresh: decode_failed (stored data is not JSON)")
             return FlaskSession(sid=self._generate_sid(), new=True)
+        # NOTE: SQLAlchemyError is deliberately NOT caught. Returning a fresh
+        # session here would be silent, permanent data loss rather than a blip:
+        # csrf_token() runs on every page render, so the fresh session is never
+        # empty, and save_session would then INSERT a row under the new sid and
+        # overwrite the still-valid cookie — orphaning the user's real session
+        # row. Letting a transient DB error surface as a 500 leaves the cookie
+        # untouched, so the next request finds the session intact.
         finally:
             db.close()
 
@@ -97,12 +115,14 @@ class SqlAlchemySessionInterface(SessionInterface):
 
         db = SessionLocal()
         session_saved = False
+        is_insert = False
         try:
             row = db.query(FlaskSessionModel).filter_by(session_id=sid).first()
             if row is not None:
                 row.data = data
                 row.expiry = expiry
             else:
+                is_insert = True
                 db.add(FlaskSessionModel(session_id=sid, data=data, expiry=expiry))
             db.commit()
             session_saved = True
@@ -120,7 +140,16 @@ class SqlAlchemySessionInterface(SessionInterface):
                     db.rollback()
         except Exception:
             db.rollback()
-            logger.exception("Session save failed")
+            if is_insert:
+                # No prior row survives an INSERT failure. At login, regenerate()
+                # has already deleted the old row, so the session is genuinely
+                # lost and the user lands back on the login page. This is the one
+                # save-path failure that logs someone out.
+                logger.error("Session save failed on INSERT — session lost", exc_info=True)
+            else:
+                # A failed UPDATE rolls back and leaves the existing row intact,
+                # so the next request still reads a valid session.
+                logger.warning("Session save failed on UPDATE — prior row retained", exc_info=True)
         finally:
             db.close()
 

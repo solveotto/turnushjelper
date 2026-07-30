@@ -118,15 +118,129 @@ def target(request):
         yield client
 
 
+# ---------------------------------------------------------------------------
+# Thread-safe fixture stack (local mode only)
+# ---------------------------------------------------------------------------
+# The shared conftest fixtures deliberately bind EVERY session to one
+# connection so an outer transaction can be rolled back between tests. That is
+# fundamentally incompatible with real threads: SQLite refuses cross-thread use
+# of a connection, and forcing it through (check_same_thread=False) does not
+# make it safe -- concurrent cursor use corrupts result sets, surfacing as a
+# random IndexError inside SQLAlchemy's row handling.
+#
+# So the concurrency tests that need an authenticated session get their own
+# file-backed database with a normal connection pool: each thread checks out
+# its own connection. Isolation comes from a fresh file per test instead of
+# transaction rollback.
+#
+# Before the session interface stopped swallowing DB errors, these threaded
+# requests silently received a fresh empty session, so every one of them ran
+# UNAUTHENTICATED and the test passed while exercising nothing. It only became
+# visible once open_session was allowed to raise.
+
 @pytest.fixture()
-def authed_client(client, sample_user):
-    """A Flask test client that is already logged in."""
-    client.post(
+def threadsafe_db(tmp_path, monkeypatch):
+    """A committed, pooled, file-backed test DB. Yields the seeded user."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.database import Base
+    from app.models import DBUser, TurnusSet
+    from app.services.user_service import hash_password
+
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'loadtest.db'}",
+        # Generous busy timeout: 10 threads writing the same SQLite file will
+        # contend for the write lock, and the default (5s) can trip under load.
+        connect_args={"timeout": 30},
+    )
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine)
+
+    password = "loadtestpass123"
+    db = Session()
+    try:
+        user = DBUser(
+            username="loaduser",
+            email="loaduser@example.com",
+            password=hash_password(password),
+            is_auth=0,
+            email_verified=1,
+        )
+        db.add(user)
+        # toggle_favorite needs a turnus set, or it returns
+        # {"status": "error", "message": "No turnus set selected"} at HTTP 200.
+        turnus_set = TurnusSet(name="Load Test Set", year_identifier="L99", is_active=1)
+        db.add(turnus_set)
+        db.commit()
+        user_id = user.id
+        turnus_set_id = turnus_set.id
+    finally:
+        db.close()
+
+    # Same patch set as conftest's patch_db, but pointed at the pooled engine.
+    for mod in (
+        "app.database",
+        "app.models",
+        "app.services.user_service",
+        "app.services.auth_service",
+        "app.services.activity_service",
+        "app.services.favorites_service",
+        "app.services.turnus_service",
+    ):
+        monkeypatch.setattr(f"{mod}.get_db_session", Session)
+    monkeypatch.setattr("app.database.SessionLocal", Session)
+    monkeypatch.setattr("app.utils.sa_session_interface.SessionLocal", Session)
+
+    yield {
+        "id": user_id,
+        "username": "loaduser",
+        "password": password,
+        "turnus_set_id": turnus_set_id,
+    }
+
+    engine.dispose()
+
+
+@pytest.fixture()
+def threadsafe_app(threadsafe_db, monkeypatch):
+    monkeypatch.setattr("app.services.user_service.init_default_admin", lambda: None)
+
+    from app import create_app
+
+    flask_app = create_app()
+    flask_app.config["TESTING"] = True
+    flask_app.config["WTF_CSRF_ENABLED"] = False
+    flask_app.config["SERVER_NAME"] = "localhost"
+
+    from app.extensions import cache, limiter
+    limiter.enabled = False
+    cache.clear()
+
+    return flask_app
+
+
+@pytest.fixture()
+def authed_client(threadsafe_app, threadsafe_db):
+    """A test client that is already logged in, on a thread-safe DB.
+
+    Only used by the local-only TestConcurrentToggleFavorite class, so it has no
+    remote branch.
+    """
+    client = threadsafe_app.test_client()
+    resp = client.post(
         "/login",
-        data={"username": sample_user["username"],
-              "password": sample_user["password"]},
+        data={"username": threadsafe_db["username"], "password": threadsafe_db["password"]},
         follow_redirects=True,
     )
+    assert resp.status_code == 200
+    # Guard against the failure mode this fixture exists to prevent: if the
+    # session did not stick, every threaded request below would run
+    # unauthenticated and the test would pass while testing nothing.
+    assert client.get_cookie("session") is not None, "login did not set a session cookie"
+
+    with client.session_transaction() as sess:
+        sess["user_selected_turnus_set"] = threadsafe_db["turnus_set_id"]
     return client
 
 
@@ -162,11 +276,19 @@ class TestConcurrentToggleFavorite:
 
     def test_concurrent_toggle_favorite(self, authed_client):
         results = _fire_requests(
-            authed_client, "post", "/toggle_favorite",
+            authed_client, "post", "/api/toggle_favorite",
             n_requests=20, workers=WORKERS,
             json={"favorite": True, "shift_title": "D2"},
             content_type="application/json",
         )
+        # This test used to pass while exercising nothing: it POSTed to
+        # "/toggle_favorite" (the real route is under /api), so every request
+        # 404'd — and _check_results only forbids 5xx. On top of that the
+        # session was silently dropped, so the requests were unauthenticated.
+        # Assert the status codes explicitly: 404 means wrong URL, 302 means the
+        # session was lost.
+        statuses = sorted({s for s, _ in results})
+        assert statuses == [200], f"expected all 200, got {statuses}"
         _check_results(results, threshold_p95=2.0)
 
 

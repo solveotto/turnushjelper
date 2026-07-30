@@ -6,12 +6,14 @@ os.environ.setdefault("DB_TYPE", "sqlite")
 os.environ.setdefault("DEFAULT_ADMIN_PASSWORD", "testadmin123")
 
 import json
+import logging
 import pickle
 from datetime import datetime, timedelta, timezone
 
 import pytest
 from flask import Flask, session
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
@@ -69,6 +71,15 @@ def app(test_engine, monkeypatch):
         session.permanent = True
         session["key"] = "value"
         return "set"
+
+    @flask_app.route("/read-and-touch")
+    def read_and_touch():
+        # Mimics csrf_token(), which real pages render on every request: it
+        # writes to the session, so even a "read-only" page view makes the
+        # session non-empty and therefore saveable. Necessary to reproduce the
+        # cookie-overwrite path in the DB-error tests below.
+        session.setdefault("csrf_token", "tok")
+        return session.get("key", "missing")
 
     return flask_app
 
@@ -254,6 +265,138 @@ def test_httponly_flag_set_by_default(app, client):
     # Flask defaults SESSION_COOKIE_HTTPONLY to True; the interface must honor it.
     set_cookie = client.get("/set").headers.get("Set-Cookie", "")
     assert "HttpOnly" in set_cookie
+
+
+# ── Transient DB errors must not destroy a valid session ────────────────────
+# open_session used to catch bare Exception and return a fresh session. Because
+# csrf_token() renders on every page, that fresh session is never empty, so
+# save_session then INSERTed a row under the new sid and overwrote the still
+# valid cookie — orphaning the real row and turning one transient read error
+# into a permanent logout.
+
+class _RaisingSession:
+    """Stands in for a SQLAlchemy session whose query hits a dead connection."""
+
+    def __init__(self, exc):
+        self._exc = exc
+
+    def query(self, *args, **kwargs):
+        raise self._exc
+
+    def rollback(self):
+        pass
+
+    def close(self):
+        pass
+
+
+def _db_error():
+    return OperationalError("SELECT 1", {}, Exception("connection lost"))
+
+
+def test_db_read_error_propagates_instead_of_resetting_session(app, client, monkeypatch):
+    """A DB failure must surface, not masquerade as "no session"."""
+    client.get("/set")  # need a valid cookie, or open_session returns before the DB read
+    monkeypatch.setattr(
+        "app.utils.sa_session_interface.SessionLocal",
+        lambda: _RaisingSession(_db_error()),
+    )
+    with pytest.raises(OperationalError):
+        client.get("/get")
+
+
+def test_db_read_error_does_not_orphan_the_session(app, client, test_engine, monkeypatch):
+    """The actual regression, in its faithful shape.
+
+    Two conditions are both required to lose a session, and this test reproduces
+    both: (1) the failure is TRANSIENT — only the open_session read fails, while
+    the save_session write gets a healthy connection (under a sustained outage
+    the save fails too, no cookie is set, and the session survives by accident);
+    and (2) the request writes to the session, which csrf_token() does on every
+    real page render. Verified against the pre-fix code: it replaced the cookie
+    and the session did not survive.
+    """
+    client.get("/set")
+    original = client.get_cookie("session")
+    assert original is not None
+
+    working = sessionmaker(bind=test_engine)
+    calls = {"n": 0}
+
+    def factory():
+        calls["n"] += 1
+        # Only the first checkout (the open_session read) is broken.
+        return _RaisingSession(_db_error()) if calls["n"] == 1 else working()
+
+    monkeypatch.setattr("app.utils.sa_session_interface.SessionLocal", factory)
+
+    with pytest.raises(OperationalError):
+        client.get("/read-and-touch")
+
+    # The failed request must not have handed out a replacement session cookie.
+    assert client.get_cookie("session").value == original.value
+
+    # ...so the original row is still intact and the user is still logged in.
+    assert client.get("/read-and-touch").data == b"value"
+
+
+# ── Reason-tagged logging ───────────────────────────────────────────────────
+# Four separate conditions return a fresh session; in production they were
+# indistinguishable. Each now carries a distinct tag so the logs say which one
+# is firing. bad_signature in particular means SECRET_KEY is unstable.
+
+def _tags_for(client, caplog):
+    with caplog.at_level(logging.INFO, logger="app.utils.sa_session_interface"):
+        client.get("/get")
+    return caplog.text
+
+
+def test_bad_signature_logged_distinctly(app, client, caplog):
+    client.set_cookie("session", "this-is-not-a-validly-signed-sid")
+    assert "bad_signature" in _tags_for(client, caplog)
+
+
+def test_row_missing_logged_distinctly(app, client, test_engine, caplog):
+    client.get("/set")
+    # Keep the (valid) cookie but drop the row — an orphaned session.
+    db = sessionmaker(bind=test_engine)()
+    try:
+        db.query(FlaskSessionModel).delete()
+        db.commit()
+    finally:
+        db.close()
+    assert "row_missing" in _tags_for(client, caplog)
+
+
+def test_row_expired_logged_distinctly(app, client, test_engine, caplog):
+    client.get("/set")
+    db = sessionmaker(bind=test_engine)()
+    try:
+        db.query(FlaskSessionModel).first().expiry = datetime(2000, 1, 1)
+        db.commit()
+    finally:
+        db.close()
+    assert "row_expired" in _tags_for(client, caplog)
+
+
+def test_decode_failure_logged_distinctly(app, client, test_engine, caplog):
+    client.get("/set")
+    db = sessionmaker(bind=test_engine)()
+    try:
+        db.query(FlaskSessionModel).first().data = pickle.dumps({"key": "legacy"})
+        db.commit()
+    finally:
+        db.close()
+    assert "decode_failed" in _tags_for(client, caplog)
+
+
+def test_csrf_time_limit_is_eight_hours():
+    """Not Flask-WTF's 1-hour default (a form open across a break fails and
+    shows a misleading "session expired" warning), and deliberately not the
+    30-day session lifetime, which would widen the replay window."""
+    from config import AppConfig
+
+    assert AppConfig.WTF_CSRF_TIME_LIMIT == 8 * 60 * 60
 
 
 def test_appconfig_secure_defaults_on_for_mysql(monkeypatch):
