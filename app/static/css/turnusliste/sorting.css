@@ -1,0 +1,259 @@
+/* ====================================
+   SORTER PANEL (/turnusliste)
+   ====================================
+
+   Linked from turnusliste.html's extra_css block, which renders after
+   styles.css — but the cascade here does not depend on that. Every slider rule
+   is written as .filter-slider (class + class) so it outranks the bare
+   .form-range block in components/sliders.css, which still styles the
+   view-options sliders on this page and on /favoritter.
+
+   Shared by the desktop dropdown and the mobile modal; both render from
+   components/sorter_controls.html. */
+
+.filter-menu {
+    width: 520px;
+    max-width: calc(100vw - 2rem);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: none;
+    box-shadow: var(--shadow-xl);
+    border-radius: var(--radius-lg);
+    margin-top: var(--spacing-sm);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.filter-hint {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #6c757d;
+    margin: 0 0 var(--spacing-md);
+}
+
+.filter-hint strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+/* ---- Groups ---- */
+
+.filter-group + .filter-group {
+    margin-top: var(--spacing-md);
+}
+
+.filter-group-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8a94a0;
+    margin: 0 0 var(--spacing-sm);
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.filter-group-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem 1.25rem;
+}
+
+/* ---- One criterion ---- */
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease;
+}
+
+.filter-item.is-active {
+    background-color: rgba(59, 130, 246, 0.08);
+}
+
+.filter-item-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.filter-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+    cursor: pointer;
+}
+
+.filter-item.is-active .filter-label {
+    color: var(--color-primary-dark);
+}
+
+/* Value chip. Hidden with opacity, not display: navbar.css forces
+   `.filter-menu span { display: inline !important }` below 992px. */
+.filter-value {
+    flex: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+    padding: 0.05rem 0.4rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.filter-item.is-active .filter-value {
+    opacity: 1;
+}
+
+.slider-direction-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+}
+
+.direction-left,
+.direction-right {
+    font-size: 0.7rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* ---- Slider ---- */
+
+/* The fill is painted as layered backgrounds on the input itself: no track
+   pseudo-element can fill outward from the centre in every engine. Both track
+   pseudo-elements must be transparent or they cover these layers.
+   --fill-start / --fill-end are written by updateSliderValue(). */
+.filter-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 7px;
+    border-radius: var(--radius-full);
+    outline: none;
+    cursor: pointer;
+    margin: 0;
+    background:
+        linear-gradient(#adb5bd, #adb5bd) 50% / 2px 100% no-repeat,
+        linear-gradient(
+            to right,
+            transparent var(--fill-start, 50%),
+            var(--color-primary) var(--fill-start, 50%),
+            var(--color-primary) var(--fill-end, 50%),
+            transparent var(--fill-end, 50%)
+        ),
+        #e9ecef;
+}
+
+.filter-slider::-webkit-slider-runnable-track {
+    background: transparent;
+    border: none;
+}
+
+.filter-slider::-moz-range-track {
+    background: transparent;
+    border: none;
+}
+
+.filter-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -4.5px; /* centre the thumb on the 7px track */
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.filter-slider::-webkit-slider-thumb:hover {
+    background: var(--color-primary-dark);
+    transform: scale(1.12);
+}
+
+.filter-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.filter-slider::-moz-range-thumb:hover {
+    background: var(--color-primary-dark);
+    transform: scale(1.12);
+}
+
+.filter-slider:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+}
+
+/* ---- Footer ---- */
+
+.filter-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid #e9ecef;
+}
+
+.filter-reset {
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.4rem;
+}
+
+.filter-reset:hover {
+    color: #495057;
+    background-color: #f1f3f5;
+}
+
+/* ---- Mobile modal ---- */
+
+.mobile-sorting-controls .filter-hint {
+    margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 575.98px) {
+    .mobile-sorting-controls .filter-group-body {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+
+    /* Comfortable drag targets on touch. */
+    .mobile-sorting-controls .filter-item {
+        padding: 0.6rem 0.5rem;
+    }
+
+    .mobile-sorting-controls .filter-slider {
+        height: 9px;
+    }
+
+    .mobile-sorting-controls .filter-slider::-webkit-slider-thumb {
+        width: 22px;
+        height: 22px;
+        margin-top: -6.5px;
+    }
+
+    .mobile-sorting-controls .filter-slider::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+    }
+}

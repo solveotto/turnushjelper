@@ -159,7 +159,13 @@ UI language is **Norwegian**. Code and comments are in English.
 ## Code Style
 
 - Norwegian UI text, English code/comments
-- Purple gradient theme: `#667eea` to `#764ba2`
+- **Two themes, and the blue one is the app.** The signed-in shell is blue —
+  navbar gradient `#3b82f6 → #1e3a8a` (`css/components/navbar.css`), with
+  `--color-primary: #3b82f6` in `css/base/variables.css`. Use the variable, not a
+  literal. The purple gradient `#667eea → #764ba2` survives only on the auth
+  pages (`auth.css`, `register.html`, `forgot_password.html`), `mintur.html` and
+  `turnusnokkel_print.html`. New in-app UI is blue; reaching for purple because
+  this file used to call it "the theme" is how off-brand hardcoded hexes get in.
 - CSS classes: `.modern-card`, `.card-header-modern`, `.form-control-modern`
 - Pages extending `base.html` use `{% block extra_css %}` for additional CSS
 - Standalone pages (login, register) link CSS directly in `<head>`

@@ -293,89 +293,8 @@
 
 /* Mobile Sorting Modal Styling */
 .mobile-sorting-controls {
-    max-width: 400px;
+    max-width: 560px;
     margin: 0 auto;
-}
-
-.mobile-filter-label {
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-}
-
-.mobile-filter-slider {
-    height: 20px;
-    border-radius: 10px;
-    background: rgba(102, 126, 234, 0.1);
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-    margin-bottom: 0.5rem;
-    position: relative;
-    cursor: pointer;
-}
-
-/* Value display on mobile sliders */
-.mobile-filter-slider::before {
-    content: attr(data-value);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #495057;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-    pointer-events: none;
-    z-index: 1;
-}
-
-.mobile-filter-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #667eea;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all 0.2s ease;
-    position: relative;
-    z-index: 2;
-}
-
-.mobile-filter-slider::-webkit-slider-thumb:hover {
-    background: #5a67d8;
-    transform: scale(1.1);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-}
-
-.mobile-filter-slider::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #667eea;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all 0.2s ease;
-    position: relative;
-    z-index: 2;
-}
-
-.mobile-filter-slider::-moz-range-thumb:hover {
-    background: #5a67d8;
-    transform: scale(1.1);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-}
-
-.mobile-filter-slider::-moz-range-track {
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(102, 126, 234, 0.2);
-    border: none;
 }
 
 .modern-navbar .dropdown-item {
@@ -842,30 +761,6 @@
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     border-radius: 0.75rem;
     margin-top: 0.5rem;
-}
-
-.mobile-sorting-menu .filter-controls {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-}
-
-.mobile-sorting-menu .filter-item {
-    margin-bottom: 0.75rem;
-}
-
-.mobile-sorting-menu .filter-label {
-    font-size: 0.7rem;
-    margin-bottom: 0.25rem;
-}
-
-/* Mobile direction indicators */
-.mobile-sorting-menu .slider-direction-info {
-    margin-bottom: 0.1rem;
-}
-
-.mobile-sorting-menu .direction-left,
-.mobile-sorting-menu .direction-right {
-    font-size: 0.5rem;
 }
 
 /*Navbar on small screens*/

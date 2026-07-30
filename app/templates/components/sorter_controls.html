@@ -1,0 +1,56 @@
+{#
+   Sorter controls — single source for both the desktop dropdown and the mobile
+   modal on /turnusliste.
+
+   The ids emitted here are load-bearing: sorting-system.js looks every slider up
+   by `{base_id}-slider{suffix}` and derives its value chip by replacing
+   '-slider' with '-value'. The desktop/mobile sync is plain string surgery on
+   the '-mobile' suffix, so `suffix` must be '' or '-mobile' and nothing else.
+   tests/test_turnusliste_sorter.py asserts all 22 ids render.
+#}
+
+{% macro sorter_group(title) %}
+<section class="filter-group">
+    <h6 class="filter-group-title">{{ title }}</h6>
+    <div class="filter-group-body">{{ caller() }}</div>
+</section>
+{% endmacro %}
+
+{% macro sorter_slider(base_id, label, low, high, suffix='') %}
+{% set slider_id = base_id ~ '-slider' ~ suffix %}
+<div class="filter-item">
+    <div class="filter-item-head">
+        <label class="filter-label" for="{{ slider_id }}">{{ label }}</label>
+        <span class="filter-value" id="{{ base_id }}-value{{ suffix }}"></span>
+    </div>
+    <input type="range" class="form-range filter-slider" id="{{ slider_id }}" min="-10" max="10" value="0" step="0.5" />
+    <div class="slider-direction-info">
+        <span class="direction-left">{{ low }}</span>
+        <span class="direction-right">{{ high }}</span>
+    </div>
+</div>
+{% endmacro %}
+
+{#
+   The eleven criteria in their three families. Called with a suffix so the
+   desktop dropdown and the mobile modal can never drift apart.
+#}
+{% macro sorter_body(suffix='') %}
+{% call sorter_group('Skifttyper') %}
+    {{ sorter_slider('tidlig', 'Tidlig', 'Færre', 'Flere', suffix) }}
+    {{ sorter_slider('ettermiddag', 'Ettermiddag', 'Færre', 'Flere', suffix) }}
+    {{ sorter_slider('natt', 'Natt', 'Færre', 'Flere', suffix) }}
+{% endcall %}
+{% call sorter_group('Oppstart') %}
+    {{ sorter_slider('before-6', 'Før 06:00', 'Færre', 'Flere', suffix) }}
+    {{ sorter_slider('tidlig-6-8', 'Tidlig 6–8', 'Færre', 'Flere', suffix) }}
+    {{ sorter_slider('tidlig-8-12', 'Tidlig 8–12', 'Færre', 'Flere', suffix) }}
+{% endcall %}
+{% call sorter_group('Belastning & fri') %}
+    {{ sorter_slider('shift-cnt', 'Dagsverk', 'Færre', 'Flere', suffix) }}
+    {{ sorter_slider('helgetimer', 'Helgetimer', 'Færre', 'Flere', suffix) }}
+    {{ sorter_slider('longest-off', 'Lengste fri', 'Kort', 'Lang', suffix) }}
+    {{ sorter_slider('longest-streak', 'Lengste rekke', 'Kort', 'Lang', suffix) }}
+    {{ sorter_slider('kompdager', 'Kompdager (maks)', 'Færre', 'Flere', suffix) }}
+{% endcall %}
+{% endmacro %}

@@ -35,7 +35,7 @@ export class SortingSystem {
         }
         
         // Initialize slider values
-        const sliders = document.querySelectorAll('input[type="range"]');
+        const sliders = document.querySelectorAll('.filter-slider');
         sliders.forEach(slider => this.updateSliderValue(slider));
     }
 
@@ -220,7 +220,7 @@ export class SortingSystem {
         this.currentOrder = [...this.originalOrder];
         
         // Reset all sliders
-        const sliders = document.querySelectorAll('input[type="range"]');
+        const sliders = document.querySelectorAll('.filter-slider');
         sliders.forEach(slider => {
             slider.value = 0;
             this.updateSliderValue(slider);
@@ -234,45 +234,41 @@ export class SortingSystem {
             console.error('Error clearing sorting settings:', error);
         }
         
-        // Hide sorting info
-        const sortingInfo = document.getElementById('sorting-info');
-        if (sortingInfo) {
-            sortingInfo.style.display = 'none';
-        }
-
         // Clear active-criteria badge on the Sorter button
         const badge = document.getElementById('sorter-active-badge');
         if (badge) {
             badge.textContent = '0';
             badge.classList.add('d-none');
+            badge.title = '';
         }
     }
 
     updateSliderValue(slider) {
+        const value = parseFloat(slider.value) || 0;
+        const min = parseFloat(slider.min);
+        const max = parseFloat(slider.max);
+
+        // Show the number only when the slider is off centre — eleven zeroes
+        // carry no information.
         const valueDisplay = document.getElementById(slider.id.replace('-slider', '-value'));
         if (valueDisplay) {
-            valueDisplay.textContent = slider.value;
-            
-            // Update badge color based on value
-            if (parseFloat(slider.value) > 0) {
-                valueDisplay.className = 'badge bg-success';
-            } else if (parseFloat(slider.value) < 0) {
-                valueDisplay.className = 'badge bg-secondary';
-            } else {
-                valueDisplay.className = 'badge bg-secondary';
-            }
+            valueDisplay.textContent = value === 0 ? '' : (value > 0 ? `+${value}` : `${value}`);
         }
-        
-        // Set data-value attribute for inline display
-        slider.setAttribute('data-value', slider.value);
+
+        // Percentages the CSS fill is painted between: the neutral point and the
+        // thumb, in whichever order puts the smaller first.
+        const neutral = ((0 - min) / (max - min)) * 100;
+        const current = ((value - min) / (max - min)) * 100;
+        slider.style.setProperty('--fill-start', `${Math.min(neutral, current)}%`);
+        slider.style.setProperty('--fill-end', `${Math.max(neutral, current)}%`);
+
+        const item = slider.closest('.filter-item');
+        if (item) {
+            item.classList.toggle('is-active', value !== 0);
+        }
     }
 
     updateSortingInfo(weights) {
-        const sortingInfo = document.getElementById('sorting-info');
-        const sortingCriteria = document.getElementById('sorting-criteria');
-        
-        if (!sortingInfo || !sortingCriteria) return;
-        
         const activeCriteria = [];
         Object.entries(weights).forEach(([key, value]) => {
             if (value !== 0) {
@@ -281,19 +277,12 @@ export class SortingSystem {
                 activeCriteria.push(`${label}: ${direction}`);
             }
         });
-        
-        if (activeCriteria.length > 0) {
-            sortingCriteria.textContent = activeCriteria.join(', ');
-            sortingInfo.style.display = 'block';
-        } else {
-            sortingInfo.style.display = 'none';
-        }
 
-        const activeCount = Object.values(weights).filter(v => v !== 0).length;
         const badge = document.getElementById('sorter-active-badge');
         if (badge) {
-            badge.textContent = activeCount;
-            badge.classList.toggle('d-none', activeCount === 0);
+            badge.textContent = activeCriteria.length;
+            badge.classList.toggle('d-none', activeCriteria.length === 0);
+            badge.title = activeCriteria.join(', ');
         }
     }
 
@@ -387,7 +376,7 @@ export class SortingSystem {
 
     setupEventListeners() {
         // Add event listeners to sliders (both desktop and mobile filters)
-        const sliders = document.querySelectorAll('input[type="range"]');
+        const sliders = document.querySelectorAll('.filter-slider');
         sliders.forEach(slider => {
             // Set initial value display
             this.updateSliderValue(slider);
@@ -424,10 +413,19 @@ export class SortingSystem {
             button.addEventListener('click', () => this.resetOrder());
         });
 
-        // Make hideSortingInfo available globally for backward compatibility
-        window.hideSortingInfo = () => {
-            this.resetOrder();
-        };
+        // The panel uses data-bs-auto-close="outside", so nothing inside it closes
+        // the dropdown. Ferdig has to do it explicitly — a data-bs-toggle here
+        // would be a no-op, since Bootstrap resolves a toggle's menu from its
+        // sibling and this button sits inside the menu.
+        const doneButton = document.getElementById('sorter-done');
+        if (doneButton) {
+            doneButton.addEventListener('click', () => {
+                const toggle = document.querySelector('.navbar-filtering .sorter-btn');
+                if (toggle && window.bootstrap) {
+                    window.bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+                }
+            });
+        }
 
         // Fix aria-hidden warning: blur any focused element inside the modal before it hides
         const modal = document.getElementById('mobileSorterModal');

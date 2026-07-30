@@ -1,6 +1,7 @@
-{% extends "base.html" %} {% block extra_css %}
+{% extends "base.html" %} {% from 'components/sorter_controls.html' import sorter_body %} {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/turnusliste/highlighted-turnus.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/turnusliste/view-options.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/turnusliste/sorting.css') }}" />
 <script src="{{ url_for('static', filename='js/modules/turnusliste.js') }}"></script>
 
 {% endblock %} {% block title %}Favoritter{% endblock %} {% block user_menu_items %}
@@ -32,128 +33,28 @@
 <!-- Desktop filtering (hidden on small screens) -->
 <div class="navbar-filtering d-none d-lg-flex align-items-center me-3">
     <div class="filter-dropdown">
+        <!-- auto-close="outside" keeps the panel open while adjusting sliders and
+             when clicking Nullstill; Ferdig closes it from JS. -->
         <button class="btn navbar-action-btn dropdown-toggle sorter-btn" type="button" data-bs-toggle="dropdown"
-            aria-expanded="false">
+            data-bs-auto-close="outside" aria-expanded="false">
             <i class="bi bi-funnel-fill"></i> Sorter
             <span class="badge bg-dark ms-1 d-none" id="sorter-active-badge">0</span>
         </button>
         <div class="dropdown-menu dropdown-menu-end filter-menu">
+            <p class="filter-hint">
+                Dra mot høyre for å prioritere turnuser med <strong>flere</strong> — mot venstre for
+                <strong>færre</strong>. Listen sorteres mens du drar.
+            </p>
             <div class="filter-controls">
-                <div class="filter-item">
-                    <label class="filter-label">Helgetimer</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="helgetimer-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Dagsverk</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="shift-cnt-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Tidlig</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="tidlig-slider" min="-10" max="10" value="0"
-                        step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Natt</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="natt-slider" min="-10" max="10" value="0"
-                        step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Ettermiddag</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="ettermiddag-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Før 6:00</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="before-6-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Tidlig 6-8</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="tidlig-6-8-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Tidlig 8-12</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="tidlig-8-12-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Lengste fri</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Kort</span>
-                        <span class="direction-right">Lang</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="longest-off-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Lengste rekke</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Kort</span>
-                        <span class="direction-right">Lang</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="longest-streak-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-item">
-                    <label class="filter-label">Kompdager (maks)</label>
-                    <div class="slider-direction-info">
-                        <span class="direction-left">Få</span>
-                        <span class="direction-right">Mange</span>
-                    </div>
-                    <input type="range" class="form-range filter-slider" id="kompdager-slider" min="-10" max="10"
-                        value="0" step="0.5" />
-                </div>
-
-                <div class="filter-actions">
-                    <button id="reset-sorting" class="btn btn-warning btn-sm w-100">
-                        <i class="bi bi-arrow-clockwise"></i> Reset
-                    </button>
-                </div>
+                {{ sorter_body() }}
+            </div>
+            <div class="filter-footer">
+                <button type="button" id="reset-sorting" class="btn btn-sm filter-reset">
+                    <i class="bi bi-arrow-clockwise"></i> Nullstill alt
+                </button>
+                <button type="button" id="sorter-done" class="btn btn-primary btn-sm">
+                    Ferdig
+                </button>
             </div>
         </div>
     </div>
@@ -165,126 +66,6 @@
     <span class="gen-favorites-ai-label">AI</span>
     <i class="bi bi-stars"></i>
 </a>
-{% endblock %} {% block mobile_sorting %}
-<div class="mobile-sorting-menu">
-    <div class="filter-controls">
-        <div class="filter-item">
-            <label class="filter-label">Helgetimer</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="helgetimer-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Dagsverk</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="shift-cnt-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Tidlig</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="tidlig-slider-mobile" min="-10" max="10" value="0"
-                step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Natt</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="natt-slider-mobile" min="-10" max="10" value="0"
-                step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Ettermiddag</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="ettermiddag-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Før 6:00</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="before-6-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Tidlig 6-8</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="tidlig-6-8-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Tidlig 8-12</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="tidlig-8-12-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Lengste fri</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="longest-off-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Lengste rekke</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="longest-streak-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-item">
-            <label class="filter-label">Kompdager (maks)</label>
-            <div class="slider-direction-info">
-                <span class="direction-left">Lav → Topp</span>
-                <span class="direction-right">Høy → Topp</span>
-            </div>
-            <input type="range" class="form-range filter-slider" id="kompdager-slider-mobile" min="-10" max="10"
-                value="0" step="0.5" />
-        </div>
-
-        <div class="filter-actions">
-            <button id="reset-sorting-mobile" class="btn btn-warning btn-sm w-100">
-                <i class="bi bi-arrow-clockwise"></i> Reset
-            </button>
-        </div>
-    </div>
-</div>
 {% endblock %} {% block content %}
 
 <!-- Flash Messages -->
@@ -307,20 +88,6 @@
 <div class="page-layout" data-tour-page="turnusliste">
     <!-- Main Content Area -->
     <main class="main-content">
-        <!-- Current Sorting Display -->
-        <div class="container-fluid mb-3">
-            <div class="row">
-                <div class="col-12">
-                    <div class="alert alert-info" id="sorting-info" style="display: none">
-                        <strong>Sortering aktiv:</strong>
-                        <span id="sorting-criteria">Ingen</span>
-                        <button type="button" class="btn-close float-end" onclick="hideSortingInfo()"></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
         <div class="container-fluid printable"
             data-current-turnus-set-id="{% if current_turnus_set %}{{ current_turnus_set.id }}{% else %}null{% endif %}">
             {% if current_turnus_set and active_set and current_turnus_set.id != active_set.id %}
@@ -591,115 +358,7 @@
             </div>
             <div class="modal-body">
                 <div class="mobile-sorting-controls">
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Helgetimer</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="helgetimer-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Dagsverk</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="shift-cnt-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Tidlig</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="tidlig-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Natt</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="natt-slider-mobile" min="-10" max="10"
-                            value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Ettermiddag</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="ettermiddag-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Før 6:00</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="before-6-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Tidlig 6-8</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="tidlig-6-8-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Tidlig 8-12</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="tidlig-8-12-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Lengste fri</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Kort</span>
-                            <span class="direction-right">Lang</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="longest-off-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Lengste rekke</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Kort</span>
-                            <span class="direction-right">Lang</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="longest-streak-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label mobile-filter-label">Kompdager (maks)</label>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="direction-left">Få</span>
-                            <span class="direction-right">Mange</span>
-                        </div>
-                        <input type="range" class="form-range filter-slider" id="kompdager-slider-mobile" min="-10"
-                            max="10" value="0" step="0.5" />
-                    </div>
+                    {{ sorter_body(suffix="-mobile") }}
                 </div>
             </div>
             <div class="modal-footer">
