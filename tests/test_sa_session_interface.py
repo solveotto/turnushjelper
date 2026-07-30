@@ -215,16 +215,33 @@ def test_permanent_session_sets_cookie_expiry(client):
     assert "Expires" in set_cookie or "Max-Age" in set_cookie
 
 
-def test_non_permanent_session_expiry_in_db_matches_permanent_lifetime(client, test_engine):
+def test_non_permanent_session_expires_in_24h_not_full_lifetime(client, test_engine):
+    """Anonymous sessions must NOT get the full 30-day row.
+
+    They only carry a CSRF token and their cookie dies when the browser closes,
+    so a full-lifetime row is unreachable garbage. Every anonymous page view
+    creates one (csrf_token() renders on every page), which accumulated ~430
+    rows/day in production. This test previously asserted the opposite.
+    """
+    from app.utils.sa_session_interface import ANON_SESSION_LIFETIME
+
     before = datetime.now(timezone.utc).replace(tzinfo=None)
     client.get("/set")
     after = datetime.now(timezone.utc).replace(tzinfo=None)
     row = _get_session_row(test_engine)
     assert row is not None
-    # Non-permanent uses app.permanent_session_lifetime (31 days in test config)
-    expected_min = before + timedelta(days=30)
-    expected_max = after + timedelta(days=32)
-    assert expected_min <= row.expiry <= expected_max
+    assert before + ANON_SESSION_LIFETIME <= row.expiry <= after + ANON_SESSION_LIFETIME
+    # Well short of the 31-day permanent lifetime configured for these tests.
+    assert row.expiry < before + timedelta(days=1, hours=1)
+
+
+def test_anon_session_outlives_the_csrf_token_limit():
+    """The anonymous row must outlive WTF_CSRF_TIME_LIMIT, or a form could be
+    submitted against a session that no longer holds its csrf_token."""
+    from config import AppConfig
+    from app.utils.sa_session_interface import ANON_SESSION_LIFETIME
+
+    assert ANON_SESSION_LIFETIME.total_seconds() > AppConfig.WTF_CSRF_TIME_LIMIT
 
 
 def test_permanent_session_expiry_in_db_is_31_days(client, test_engine):
@@ -345,10 +362,30 @@ def test_db_read_error_does_not_orphan_the_session(app, client, test_engine, mon
 # indistinguishable. Each now carries a distinct tag so the logs say which one
 # is firing. bad_signature in particular means SECRET_KEY is unstable.
 
+# app/routes/main.py configures BOTH the root logger and the app.log handler at
+# WARNING, so anything emitted below WARNING never reaches the file. These tags
+# exist to be read in production after a reported logout, so a tag logged at INFO
+# is inert — which is exactly the bug this assertion now guards against. The
+# "no cookie" branch is deliberately excluded: it is DEBUG on purpose, because it
+# fires on every genuine first visit.
+_APP_LOG_THRESHOLD = logging.WARNING
+
+
 def _tags_for(client, caplog):
-    with caplog.at_level(logging.INFO, logger="app.utils.sa_session_interface"):
+    caplog.clear()
+    with caplog.at_level(logging.DEBUG, logger="app.utils.sa_session_interface"):
         client.get("/get")
-    return caplog.text
+    tagged = [
+        r for r in caplog.records
+        if "session_fresh:" in r.getMessage() and "no cookie" not in r.getMessage()
+    ]
+    assert tagged, "no session_fresh tag was emitted"
+    for r in tagged:
+        assert r.levelno >= _APP_LOG_THRESHOLD, (
+            f"{r.getMessage()!r} logged at {r.levelname}, but app.log only records "
+            "WARNING+ — this tag would be invisible in production"
+        )
+    return " ".join(r.getMessage() for r in tagged)
 
 
 def test_bad_signature_logged_distinctly(app, client, caplog):

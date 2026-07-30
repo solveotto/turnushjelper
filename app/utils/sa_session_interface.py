@@ -13,6 +13,15 @@ from app.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
+# DB lifetime for anonymous (non-permanent) sessions. They exist only to carry a
+# CSRF token, and their cookie has no Expires — it dies when the browser closes —
+# so a row kept for the full PERMANENT_SESSION_LIFETIME outlives any possible
+# use. csrf_token() renders on every page, so every anonymous page view persists
+# one; at the full lifetime that accumulated ~430 rows/day of crawler residue in
+# production. Must stay comfortably above WTF_CSRF_TIME_LIMIT (8h), or a form
+# would outlive the session holding the token it is validated against.
+ANON_SESSION_LIFETIME = timedelta(hours=24)
+
 
 class FlaskSession(CallbackDict, SessionMixin):
     """Server-side session object backed by a DB row."""
@@ -51,7 +60,7 @@ class SqlAlchemySessionInterface(SessionInterface):
         try:
             sid = URLSafeSerializer(app.secret_key).loads(cookie_value)
         except BadSignature:
-            logger.info("session_fresh: bad_signature (cookie not signed by this SECRET_KEY)")
+            logger.warning("session_fresh: bad_signature (cookie not signed by this SECRET_KEY)")
             return FlaskSession(sid=self._generate_sid(), new=True)
 
         from app.models import FlaskSessionModel
@@ -60,10 +69,10 @@ class SqlAlchemySessionInterface(SessionInterface):
         try:
             row = db.query(FlaskSessionModel).filter_by(session_id=sid).first()
             if row is None:
-                logger.info("session_fresh: row_missing (valid cookie, no DB row)")
+                logger.warning("session_fresh: row_missing (valid cookie, no DB row)")
                 return FlaskSession(sid=self._generate_sid(), new=True)
             if row.expiry < datetime.now(timezone.utc).replace(tzinfo=None):
-                logger.info("session_fresh: row_expired (expiry %s)", row.expiry)
+                logger.warning("session_fresh: row_expired (expiry %s)", row.expiry)
                 db.delete(row)
                 db.commit()
                 return FlaskSession(sid=self._generate_sid(), new=True)
@@ -72,7 +81,7 @@ class SqlAlchemySessionInterface(SessionInterface):
             # Legacy pickle-serialized rows written before the JSON cut-over:
             # they fail json.loads and are treated as a fresh session (a one-time
             # logout on deploy — acceptable, tokens re-issued).
-            logger.info("session_fresh: decode_failed (stored data is not JSON)")
+            logger.warning("session_fresh: decode_failed (stored data is not JSON)")
             return FlaskSession(sid=self._generate_sid(), new=True)
         # NOTE: SQLAlchemyError is deliberately NOT caught. Returning a fresh
         # session here would be silent, permanent data loss rather than a blip:
@@ -106,7 +115,12 @@ class SqlAlchemySessionInterface(SessionInterface):
                 response.delete_cookie(cookie_name, domain=domain, path=path)
             return
 
-        expiry = datetime.now(timezone.utc).replace(tzinfo=None) + app.permanent_session_lifetime
+        # Authenticated sessions set session.permanent at login (auth.py) and
+        # keep the full lifetime; anonymous ones are short-lived. See
+        # ANON_SESSION_LIFETIME above.
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        expiry = now + (app.permanent_session_lifetime if session.permanent
+                        else ANON_SESSION_LIFETIME)
 
         sid = session.sid
         data = json.dumps(dict(session)).encode("utf-8")
