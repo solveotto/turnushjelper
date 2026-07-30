@@ -217,7 +217,7 @@
     padding: var(--spacing-sm) 0;
     margin-top: var(--spacing-sm);
     z-index: 9999 !important; /* Ensure dropdown appears above all content */
-    position: fixed;
+    position: absolute;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     max-height: calc(100vh - 100px);

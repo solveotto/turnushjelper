@@ -9,6 +9,7 @@ from app.routes.api import api
 # Import all Blueprints
 from app.routes.auth import auth
 from app.routes.downloads import downloads
+from app.routes.feedback import feedback
 from app.routes.legal import legal
 from app.routes.minside import minside
 from app.routes.registration import registration
@@ -54,4 +55,4 @@ _ingest_logger.propagate = True
 
 
 # List of all Blueprints to register
-blueprints = [auth, shifts, admin, api, downloads, minside, registration, legal]
+blueprints = [auth, shifts, admin, api, downloads, minside, registration, legal, feedback]

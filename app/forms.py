@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField, PasswordField, SubmitField, FloatField, IntegerField, BooleanField, FileField, TextAreaField
+from wtforms import SelectField, StringField, PasswordField, SubmitField, FloatField, IntegerField, BooleanField, FileField, TextAreaField, HiddenField
 from wtforms.validators import DataRequired, Length, NumberRange, EqualTo, ValidationError, Email, Optional, Regexp
 from flask_wtf.file import FileAllowed
 
@@ -139,6 +139,22 @@ class ForgotPasswordForm(FlaskForm):
         Email(message='Vennligst oppgi en gyldig e-postadresse')
     ])
     submit = SubmitField('Send tilbakestillingslenke')
+
+
+class FeedbackForm(FlaskForm):
+    """Support/feedback form submitted from the 'Kontakt' modal"""
+    category = SelectField('Kategori', choices=[
+        ('Feil', 'Feil/Bug'),
+        ('Spørsmål', 'Spørsmål'),
+        ('Tilbakemelding', 'Tilbakemelding'),
+        ('Annet', 'Annet'),
+    ], validators=[DataRequired()])
+    message = TextAreaField('Melding', validators=[
+        DataRequired(),
+        Length(max=5000, message='Meldingen er for lang (maks 5000 tegn)')
+    ])
+    page_url = HiddenField('Side')
+    submit = SubmitField('Send')
 
 
 class ResetPasswordForm(FlaskForm):

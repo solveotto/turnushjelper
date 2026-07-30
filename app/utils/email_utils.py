@@ -10,7 +10,7 @@ from config import AppConfig
 logger = logging.getLogger(__name__)
 
 
-def send_mailgun_email(to_email, subject, text_body, html_body):
+def send_mailgun_email(to_email, subject, text_body, html_body, reply_to=None):
     """Send email using Mailgun API"""
     try:
         # Get Mailgun configuration
@@ -34,6 +34,8 @@ def send_mailgun_email(to_email, subject, text_body, html_body):
             "text": text_body,
             "html": html_body
         }
+        if reply_to:
+            data["h:Reply-To"] = reply_to
 
         # Send request to Mailgun API
         response = requests.post(

@@ -9,6 +9,7 @@ import { PrintUtils } from './modules/print-utils.js';
 import { ShiftTimelineModal } from './modules/shift-timeline.js';
 import { GuidedTour } from './modules/guided-tour.js';
 import { LazyTables } from './modules/lazy-tables.js';
+import { FeedbackModal } from './modules/feedback.js';
 
 import './modules/utils.js'; // registers window.apiFetch
 
@@ -26,6 +27,7 @@ class App {
     initializeModules() {
         // Always initialize these modules
         this.modules.favorites = new Favorites();
+        this.modules.feedback = new FeedbackModal();
 
         // Initialize shift colors if we have table cells OR lazy tables pending render
         const hasLazyTables = !!document.querySelector('template[data-lazy-table]');
