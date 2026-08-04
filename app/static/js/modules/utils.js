@@ -61,11 +61,48 @@ export class Utils {
             printContents += '<div class="print-frame"><h4>' + number + name + '</h4>' + tableHTML + dataFelt + '</div>';
         });
 
-        var originalContents = document.body.innerHTML;
-        document.body.innerHTML = printContents;
+        if (!printContents) return;  // nothing to print
+
+        Utils._printHtml(printContents);
+    }
+
+    // Print an HTML fragment without destroying the live page.
+    //
+    // The old approach swapped document.body.innerHTML, called window.print(),
+    // then restored it synchronously. That only works because window.print()
+    // BLOCKS on desktop. On mobile browsers (iOS Safari, Chrome Android)
+    // window.print() returns immediately and renders the print snapshot
+    // asynchronously — so the synchronous restore had already put the full web
+    // page back before the snapshot was taken, and the phone printed the page
+    // instead of the shifts. Instead we append a hidden print root, hide
+    // everything else via @media print, and clean up on afterprint so nothing
+    // races the async mobile print.
+    static _printHtml(html) {
+        // Drop any leftover root from a run whose afterprint never fired.
+        document.getElementById('print-root')?.remove();
+
+        const printRoot = document.createElement('div');
+        printRoot.id = 'print-root';
+        printRoot.innerHTML = html;
+        document.body.appendChild(printRoot);
+        document.body.classList.add('is-printing');
+
+        const mql = window.matchMedia ? window.matchMedia('print') : null;
+        let done = false;
+        const cleanup = () => {
+            if (done) return;
+            done = true;
+            printRoot.remove();
+            document.body.classList.remove('is-printing');
+            window.removeEventListener('afterprint', cleanup);
+            mql?.removeEventListener?.('change', onMediaChange);
+        };
+        const onMediaChange = (e) => { if (!e.matches) cleanup(); };
+
+        window.addEventListener('afterprint', cleanup);
+        mql?.addEventListener?.('change', onMediaChange);
+
         window.print();
-        document.body.innerHTML = originalContents;
-        window.app?.modules?.lazyTables?.reinit();
     }
 }
 

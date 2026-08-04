@@ -2,12 +2,11 @@ env/
 venv/
 .venv/
 instance/
-# Turnus data store — tracked JSON/Excel, but generated PNGs and source PDFs
-# stay out of git. Lives at turnusdata/ (NOT under app/static/, which is served
-# without authentication).
+# Turnus data store — tracked dataset JSON (schedule/stats/double_shifts) and
+# Excel sources, but generated PNGs and source PDFs stay out of git. Lives at
+# turnusdata/ (NOT under app/static/, which is served without authentication).
 turnusdata/**/*.pdf
 turnusdata/**/*.png
-turnusdata/**/double_shifts_*.json
 # PII files must never live under app/static (served without auth) — they
 # belong in instance/protected/. These rules block accidental re-adds.
 app/static/**/medlemsliste*.xlsx

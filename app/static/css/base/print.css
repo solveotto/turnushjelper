@@ -3,10 +3,25 @@
     margin: 0.5cm;
 }
 
+/* Container that printTables() appends to hold the shift tables.
+   Never shown on screen — only revealed inside @media print below. */
+#print-root {
+    display: none;
+}
+
 @media print {
     * {
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
+    }
+    /* When printing shift tables, hide the live page and show only the
+       injected print root. Guarded by body.is-printing so a plain
+       window.print() (e.g. søknadsskjema) still prints the whole page. */
+    body.is-printing > *:not(#print-root) {
+        display: none !important;
+    }
+    body.is-printing #print-root {
+        display: block;
     }
     body {
         margin: 0;
