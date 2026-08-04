@@ -60,17 +60,24 @@ export class PrintUtils {
 
     // Print an HTML fragment without destroying the live page.
     //
-    // The old approach swapped document.body.innerHTML, called window.print(),
-    // then restored it synchronously. That only works because window.print()
-    // BLOCKS on desktop. On mobile browsers (iOS Safari, Chrome Android)
-    // window.print() returns immediately and renders the print snapshot
-    // asynchronously — so the synchronous restore had already put the full web
-    // page back before the snapshot was taken, and the phone printed the page
-    // instead of the shifts. Instead we append a hidden print root, hide
-    // everything else via @media print, and clean up on afterprint so nothing
-    // races the async mobile print.
+    // We append a hidden print root holding just the shift tables and hide
+    // everything else via @media print. The delicate part is when that state
+    // is torn down again.
+    //
+    // window.print() BLOCKS on desktop, but not on mobile. Chrome on Android
+    // returns from it immediately, fires afterprint straight away, and leaves
+    // the actual rendering to the Android print framework, which snapshots the
+    // page later. So teardown driven by print events — afterprint, or a
+    // matchMedia('print') change — runs before the snapshot exists and the
+    // tablet prints the live page: with the menu still open, that is a
+    // full-screen overlay repeated across every page.
+    //
+    // Nothing here is torn down on a print event for that reason. #print-root
+    // is display:none outside @media print, so leaving it in the document is
+    // invisible; we clear it on the user's next interaction, which cannot
+    // happen until the print UI has been dismissed.
     static _printHtml(html) {
-        // Drop any leftover root from a run whose afterprint never fired.
+        // Drop any leftover root from a run the user never interacted after.
         document.getElementById('print-root')?.remove();
 
         const printRoot = document.createElement('div');
@@ -79,20 +86,15 @@ export class PrintUtils {
         document.body.appendChild(printRoot);
         document.body.classList.add('is-printing');
 
-        const mql = window.matchMedia ? window.matchMedia('print') : null;
-        let done = false;
+        const events = ['pointerdown', 'keydown'];
         const cleanup = () => {
-            if (done) return;
-            done = true;
+            events.forEach(evt =>
+                window.removeEventListener(evt, cleanup, true)
+            );
             printRoot.remove();
             document.body.classList.remove('is-printing');
-            window.removeEventListener('afterprint', cleanup);
-            mql?.removeEventListener?.('change', onMediaChange);
         };
-        const onMediaChange = (e) => { if (!e.matches) cleanup(); };
-
-        window.addEventListener('afterprint', cleanup);
-        mql?.addEventListener?.('change', onMediaChange);
+        events.forEach(evt => window.addEventListener(evt, cleanup, true));
 
         window.print();
     }

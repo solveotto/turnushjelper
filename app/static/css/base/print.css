@@ -14,6 +14,18 @@
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
     }
+    /* Navigation chrome never belongs on paper, on any page. Deliberately
+       outside the body.is-printing guard below: on mobile that class can go
+       missing before the print snapshot is rendered, and it was the mobile
+       menu — a full-screen fixed overlay — that then printed once per page
+       instead of the shifts. Unhooked from the guard, the worst case is a
+       printout of the page content rather than a stack of menus. */
+    header,
+    .modern-navbar,
+    .dropdown-menu,
+    .tour-help-btn {
+        display: none !important;
+    }
     /* When printing shift tables, hide the live page and show only the
        injected print root. Guarded by body.is-printing so a plain
        window.print() (e.g. søknadsskjema) still prints the whole page. */
