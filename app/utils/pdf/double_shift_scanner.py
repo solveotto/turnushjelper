@@ -287,7 +287,10 @@ def scan_double_shifts(pdf_path: str) -> DoubleShiftResult:
             seen.add(pair)
             unique.append({"first_shift": pair[0], "second_shift": pair[1]})
 
-    return {"dobbelt_tur": unique, "delt_dagsverk": list(set(delt_dagsverk_shifts))}
+    # Sorted, not list(set(...)): the file is tracked in git and rewritten on
+    # every strekliste regeneration, so a hash-ordered list produced a spurious
+    # diff on each server and blocked the next git pull.
+    return {"dobbelt_tur": unique, "delt_dagsverk": sorted(set(delt_dagsverk_shifts))}
 
 
 def main():

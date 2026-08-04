@@ -139,11 +139,18 @@ in `CLAUDE.md`.
 | `turnusdata/{year}/turnus_schedule_{YEAR}.json` | Scrape (Step 1) | Yes |
 | `turnusdata/{year}/turnus_stats_{YEAR}.json` | Stats (Step 1) | Yes |
 | `turnusdata/{year}/turnusnøkkel_{YEAR}_org.xlsx` | Manual upload (Step 2) | Yes |
-| `turnusdata/{year}/double_shifts_{year}.json` | Strekliste generate (Step 2) | No (gitignored) |
+| `turnusdata/{year}/double_shifts_{year}.json` | Strekliste generate (Step 2) | Yes (tracked) |
 | strekliste PNG images | Strekliste generate (Step 2) | No (gitignored) |
 | `instance/protected/{year}/innplassering_{YEAR}.pdf` + `Innplassering` rows | Innplassering import (Step 2) | No (PII — outside static, gitignored) |
 | `TurnusSet` row, `Shifts` rows | Create flow (Step 1) | DB |
 | `app/logs/turnus_import.log` | Every import (success/failure/crash) | No (log) |
+
+`double_shifts_{year}.json` is both **generated and tracked** — the strekliste
+generate step rewrites it on every run, including on the servers. The scanner
+sorts its output, so a regeneration that finds the same shifts leaves no diff at
+all. If `git status` on a server does show a change to this file, the shift set
+genuinely changed (different strekliste PDF edition) and the diff is worth
+reviewing and committing rather than discarding.
 
 ---
 
