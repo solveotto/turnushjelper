@@ -11,6 +11,9 @@ turnusdata/**/*.png
 # belong in instance/protected/. These rules block accidental re-adds.
 app/static/**/medlemsliste*.xlsx
 app/static/**/ansinitet*.pdf
+turnusdata/**/turnusplan_*.json.gz
+turnusdata/**/strekliste_*.json.gz
+
 nul
 General/
 .metadata
