@@ -12,6 +12,7 @@ from app.forms import CreateTurnusSetForm, UploadStreklisteForm
 from app.routes.admin import admin
 from app.services import turnus_service
 from app.utils import df_utils, protected_paths
+from app.services import strekliste_service
 from app.utils.pdf import strekliste_generator
 from app.utils.pdf.double_shift_scanner import scan_double_shifts
 from config import AppConfig
@@ -884,6 +885,19 @@ def generate_strekliste(turnus_set_id):
         except Exception as e:
             double_shift_error = str(e)
 
+        # Read the same PDF into strekliste_dagsverk/strekliste_aktivitet —
+        # the duties as data, not pictures. Its own try/except, like the
+        # double-shift scan: a parse problem is reported, not a failed
+        # generation.
+        strekliste_rapport = {}
+        strekliste_error = None
+        try:
+            strekliste_rapport = strekliste_service.import_strekliste(
+                turnus_set_id, paths["pdf_path"]
+            )
+        except Exception as e:
+            strekliste_error = str(e)
+
         response = {
             "status": "success",
             "message": message,
@@ -894,9 +908,15 @@ def generate_strekliste(turnus_set_id):
             "total": result["total"],
             "double_shift_count": len(double_shift_data.get("dobbelt_tur", [])),
             "delt_shift_count": len(double_shift_data.get("delt_dagsverk", [])),
+            "strekliste_dagsverk": strekliste_rapport.get("dagsverk", 0),
+            "strekliste_aktiviteter": strekliste_rapport.get("aktiviteter", 0),
+            "strekliste_advarsler": strekliste_rapport.get("advarsler", 0),
+            "strekliste_sidevarsler": strekliste_rapport.get("sidevarsler", [])[:10],
         }
         if double_shift_error:
             response["double_shift_error"] = double_shift_error
+        if strekliste_error:
+            response["strekliste_error"] = strekliste_error
 
         return jsonify(response)
     else:

@@ -116,6 +116,34 @@ The schedule JSON is an abstract 6-week rotation with no calendar dates. The onl
   ```
 
   A `force=True` run builds into a sibling `.png-gen-*` temp directory and swaps it in only once every image is written (`_swap_in`), so **an interrupted run leaves the existing images untouched** rather than destroying them — that holds even for a SIGKILL, which no `try/finally` could catch. Verify with `ls turnusdata/r26/streklister/png | wc -l` — r26 must be **423**; 492 means the wrong PDF edition (want md5 `9091cf5ee5b1fd5db797a6dc3ccf6888`). Per-shift failures do *not* abort the run: they collect in `result["errors"]`, which the admin route discards and the CLI form above prints. Guarded by `tests/test_strekliste_atomic_swap.py`.
+- **Strekliste as data** (`app/utils/pdf/strekliste_parser.py`, tables
+  `strekliste_dagsverk` / `strekliste_aktivitet`, `app/services/strekliste_service.py`).
+  The streker PDF is vector text: every label has exact coordinates, segment
+  boundaries are drawn lines, and the activity *type* is a tiled pattern image
+  that the page's own legend also uses (matched by tile bytes, learned per
+  page). The parser is pure and deterministic — no OCR, no LLM — and reads
+  the hour axis per page (19.5 pt/h in the "med beregninger" edition, 30 pt/h
+  in ours; never hard-code it). It runs inside the admin "generer strekliste"
+  step (`generate_strekliste` in `app/routes/admin/turnus.py`) beside the
+  double-shift scan, replaces the turnus set's rows wholesale, and
+  `scripts/export_strekliste.py --year R26` writes `turnusdata/r26/strekliste_R26.json.gz`
+  for nlfstreik (which imports it into `dagsverk_mal`). Layout rules the
+  parser depends on, all verified on real rows and pinned by
+  `tests/test_strekliste_parser.py` with single-page fixtures under
+  `tests/fixtures/strekliste/`: labels above the bar are left-aligned on their
+  start boundary or centred; station labels below are right-aligned on their
+  arrival boundary, and when pushed aside a leader tick marks that boundary;
+  the `43'` marks are the minute-of-hour at a boundary (a self-check, not a
+  duration); superscripts glue to the word on their line; a `+24t` sub-row
+  continues the duty after midnight and a train crossing it is merged into
+  one activity; a label the generator cut at a page edge (`OSL`→`OS`,
+  `2275`→`227`) is dropped with a warning rather than stored. A label that
+  names the activity (Tilsyn, Skjøting, Deling, Utt, Gangtid, Fra/Ins…)
+  outranks the tile it is drawn with — `type` is the keyword, `monster` the
+  tile. Unlabelled Togaktivitet legs inherit the train of the leg before them
+  (the number is printed once, the stops are not). Every unresolved case is
+  a warning on the duty (`advarsler`), never an exception; ~20 of 438 duties
+  carry one in r26, all genuine print quirks.
 - **Never seed a real `year_identifier` in tests that delete a turnus set.** `admin.delete_turnus_set` calls `strekliste_generator.delete_all_images(version)`, which resolves through `AppConfig.turnusfiler_dir` — a test using `"R26"` deletes the committed 423 PNGs on every run, silently (they are gitignored, so `git status` stays clean). `tests/test_turnus_set_delete_guard.py` uses `FAKE_YEAR = "T99"` *and* an autouse fixture repointing `turnusfiler_dir` at `tmp_path`.
 
 ### Kompdager

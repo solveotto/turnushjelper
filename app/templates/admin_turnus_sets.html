@@ -449,6 +449,12 @@ function generateStrekliste(turnusSetId) {
             } else {
                 dsText.innerHTML = `Fant ${data.double_shift_count} dobbelttur-par og ${data.delt_shift_count} delt dagsverk.`;
             }
+            if (data.strekliste_error) {
+                dsText.innerHTML += `<br><span class="text-warning">Lesing av streklisten feilet: ${data.strekliste_error}</span>`;
+            } else if (data.strekliste_dagsverk !== undefined) {
+                const adv = data.strekliste_advarsler ? `, ${data.strekliste_advarsler} med advarsler` : '';
+                dsText.innerHTML += `<br>Leste ${data.strekliste_dagsverk} dagsverk med ${data.strekliste_aktiviteter} aktiviteter fra streklisten${adv}.`;
+            }
 
             // Refresh the badge now; the modal stays until dismissed.
             loadStreklisteStatus(turnusSetId);

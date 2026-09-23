@@ -1,8 +1,10 @@
 import bcrypt
 from datetime import datetime
 from flask_login import UserMixin
-from sqlalchemy import Column, Integer, String, DateTime, LargeBinary, UniqueConstraint, func, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    JSON, Column, Integer, String, DateTime, LargeBinary, UniqueConstraint, func, ForeignKey, Index,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base, get_db_session
 from app.extensions import cache
@@ -115,6 +117,67 @@ class Innplassering(Base):
     is_7th_driver = Column(Integer, default=0)
     __table_args__ = (
         UniqueConstraint("turnus_set_id", "rullenummer", name="uq_innplassering_turnus_rullenr"),
+    )
+
+
+class StreklisteDagsverk(Base):
+    """One duty as the strekliste PDF draws it: a number, the weekdays it
+    runs, and (below) its activities. Plan data for a rutetermin, not a
+    record of anything that happened — a re-parse replaces it wholesale.
+
+    ``nr`` is the number as printed ("1203-Mod_1", "1313-N05_5"); ``nr_base``
+    its leading digits, which is all the roster export carries. The same
+    number recurs with different ``kjoredager`` (1310 on days 2+5 and on
+    days 3+4), so the key includes the days.
+    """
+    __tablename__ = "strekliste_dagsverk"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    turnus_set_id = Column(Integer, ForeignKey("turnus_sets.id", ondelete="CASCADE"), nullable=False)
+    stasjoneringssted = Column(String(10), nullable=True)
+    nr = Column(String(20), nullable=False)
+    nr_base = Column(String(10), nullable=False)
+    kjoredager = Column(String(7), nullable=False, default="")
+    materiell = Column(String(120), nullable=True)
+    start = Column(String(5), nullable=True)      # "HH:MM"
+    slutt = Column(String(5), nullable=True)
+    slutt_neste_dag = Column(Integer, nullable=False, default=0)
+    side = Column(Integer, nullable=True)
+    beregninger = Column(JSON, nullable=True)     # the Timer columns, when the file has them
+    kommentar = Column(String(300), nullable=True)
+    advarsler = Column(JSON, nullable=True)       # what the parser could not settle
+    created_at = Column(DateTime, default=func.now())
+    aktiviteter = relationship(
+        "StreklisteAktivitet", back_populates="dagsverk",
+        cascade="all, delete-orphan", order_by="StreklisteAktivitet.radnr",
+    )
+    __table_args__ = (
+        UniqueConstraint("turnus_set_id", "stasjoneringssted", "nr", "kjoredager",
+                         name="uq_strekliste_dagsverk_nokkel"),
+        Index("ix_strekliste_dagsverk_base", "turnus_set_id", "nr_base"),
+    )
+
+
+class StreklisteAktivitet(Base):
+    """One segment of a duty's bar, in order. Times are clock times ("HH:MM"),
+    with ``*_neste_dag`` set on the far side of midnight."""
+    __tablename__ = "strekliste_aktivitet"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dagsverk_id = Column(Integer, ForeignKey("strekliste_dagsverk.id", ondelete="CASCADE"),
+                         nullable=False)
+    radnr = Column(Integer, nullable=False)
+    fra_tid = Column(String(5), nullable=True)
+    til_tid = Column(String(5), nullable=True)
+    fra_neste_dag = Column(Integer, nullable=False, default=0)
+    til_neste_dag = Column(Integer, nullable=False, default=0)
+    fra_stasjon = Column(String(10), nullable=True)
+    til_stasjon = Column(String(10), nullable=True)
+    type = Column(String(30), nullable=False)      # label keyword, else the pattern's legend name
+    monster = Column(String(30), nullable=True)    # the pattern the segment is drawn with
+    tognumre = Column(String(120), nullable=True)  # comma-separated, as printed
+    tekst = Column(String(300), nullable=True)     # every label on the segment, verbatim
+    dagsverk = relationship("StreklisteDagsverk", back_populates="aktiviteter")
+    __table_args__ = (
+        UniqueConstraint("dagsverk_id", "radnr", name="uq_strekliste_aktivitet_rad"),
     )
 
 
