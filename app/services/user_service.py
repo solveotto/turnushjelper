@@ -457,27 +457,40 @@ def sync_employees_from_scrape(employees: list) -> dict:
       rullenummer + HR data into that user
     - Otherwise (no matching user at all) → skipped, no DB write
 
-    After processing all PDF records, any DB user with a rullenummer that was
-    NOT in the PDF has their seniority_nr cleared (set to NULL). This causes
-    them to appear in the "not on list" section in the admin UI.
+    Rows without a rullenummer (the employer's list dropped the column in
+    October 2026) are matched on name, or surname plus hire date, against
+    every user. Nothing is merged for them — no rullenummer is written — only
+    ``seniority_nr`` is set. The date-only fallback is off for such rows: it
+    was tolerable against the small pool of rullenummer-less stubs, but
+    against all users it would hand a stranger's number to the wrong person.
+
+    After processing all PDF records, any DB user that was on a previous list
+    but NOT in this one has their seniority_nr cleared (set to NULL). This
+    causes them to appear in the "not on list" section in the admin UI. With
+    rullenummer rows that means "rullenummer not in the PDF"; without, it
+    means "not matched by any row".
 
     Returns ``{"updated": int, "unchanged": int, "merged_by_name": int,
-    "removed_from_list": int, "skipped_unmatched": int}``
+    "merged_by_date": int, "removed_from_list": int, "skipped_unmatched": int,
+    "nr_from_rullenummer": int, "without_rullenummer": int}``
     """
     db_session = get_db_session()
     skipped_unmatched = updated = unchanged = merged_by_name = merged_by_date = 0
+    without_rullenummer = 0
     try:
         scraped_rullenummers = set()
+        matched_ids = set()
 
-        # Users without a rullenummer, keyed by normalized name, by
-        # (normalized_lastname, ans_dato, fodt_dato), and by ans_dato alone —
-        # so PDF rows can be merged into member-list users instead of duplicated.
+        # Every user, keyed by normalized name, by (normalized_lastname, word
+        # of first name), by lastname (when ans_dato is known), and by
+        # ans_dato alone. Rows carrying a rullenummer may only merge into
+        # users WITHOUT one (see ``eligible``); rows without may match anyone.
         by_name = {}
         by_lastname = {}
         by_first_last = {}
         by_word_set = {}
         by_date = {}
-        for u in db_session.query(DBUser).filter(DBUser.rullenummer.is_(None)).all():
+        for u in db_session.query(DBUser).all():
             if u.name:
                 by_name.setdefault(_normalize_name(u.name), []).append(u)
                 if "," in u.name:
@@ -497,70 +510,72 @@ def sync_employees_from_scrape(employees: list) -> dict:
         # rows in the PDF when autoflush=False would hide in-flight INSERTs.
         processed_this_run = set()
 
+        def eligible(u, rullenummer):
+            if u.id in merged_ids:
+                return False
+            if rullenummer and u.rullenummer is not None:
+                return False
+            return True
+
         rullenummer_to_nr = {
             str(emp.get("rullenummer", "")).strip(): emp.get("seniority_nr")
             for emp in employees
             if str(emp.get("rullenummer", "")).strip()
         }
+        pdf_has_rullenummer = bool(rullenummer_to_nr)
 
         for emp in employees:
             rullenummer = str(emp.get("rullenummer", "")).strip()
-            if not rullenummer:
-                continue
-            if rullenummer in processed_this_run:
-                logger.warning(
-                    "sync_employees: duplicate rullenummer %s in scraped data, skipping",
-                    rullenummer,
-                )
-                continue
-            processed_this_run.add(rullenummer)
-
-            scraped_rullenummers.add(rullenummer)
+            if rullenummer:
+                if rullenummer in processed_this_run:
+                    logger.warning(
+                        "sync_employees: duplicate rullenummer %s in scraped data, skipping",
+                        rullenummer,
+                    )
+                    continue
+                processed_this_run.add(rullenummer)
+                scraped_rullenummers.add(rullenummer)
+            else:
+                without_rullenummer += 1
 
             etternavn = (emp.get("etternavn") or "").strip()
             fornavn = (emp.get("fornavn") or "").strip()
             name = f"{etternavn}, {fornavn}"
-            stasjoneringssted = emp.get("stasjoneringssted") or None
             ans_dato = emp.get("ans_dato") or None
-            fodt_dato = emp.get("fodt_dato") or None
             seniority_nr = emp.get("seniority_nr") or None
 
-            user = db_session.query(DBUser).filter_by(rullenummer=rullenummer).first()
+            user = None
+            found_via = None  # "name" or "date" when found through the indexes
+            if rullenummer:
+                user = db_session.query(DBUser).filter_by(rullenummer=rullenummer).first()
 
             if user is None:
                 candidates = [
                     u for u in by_name.get(_normalize_name(name), [])
-                    if u.id not in merged_ids
+                    if eligible(u, rullenummer)
                 ]
                 if len(candidates) == 1:
-                    user = candidates[0]
-                    user.rullenummer = rullenummer
-                    merged_ids.add(user.id)
-                    merged_by_name += 1
+                    user, found_via = candidates[0], "name"
 
             if user is None:
                 pdf_words = frozenset(
                     _normalize_name(f"{etternavn} {fornavn}").split()
                 )
-                ws_candidates = [u for u in by_word_set.get(pdf_words, []) if u.id not in merged_ids]
+                ws_candidates = [
+                    u for u in by_word_set.get(pdf_words, []) if eligible(u, rullenummer)
+                ]
                 if len(ws_candidates) == 1:
-                    user = ws_candidates[0]
-                    user.rullenummer = rullenummer
-                    merged_ids.add(user.id)
-                    merged_by_name += 1
+                    user, found_via = ws_candidates[0], "name"
 
             if user is None and etternavn and fornavn:
                 last_norm = _normalize_name(etternavn)
                 fl_seen = {}
                 for word in _normalize_name(fornavn).split():
                     for u in by_first_last.get((last_norm, word), []):
-                        if u.id not in merged_ids:
+                        if eligible(u, rullenummer):
                             fl_seen[u.id] = u
                 if len(fl_seen) == 1:
-                    user = next(iter(fl_seen.values()))
-                    user.rullenummer = rullenummer
-                    merged_ids.add(user.id)
-                    merged_by_name += 1
+                    user, found_via = next(iter(fl_seen.values())), "name"
 
             if user is None and etternavn and ans_dato:
                 last_norm = _normalize_name(etternavn)
@@ -568,7 +583,7 @@ def sync_employees_from_scrape(employees: list) -> dict:
                     pdf_date = datetime.strptime(ans_dato, "%d.%m.%Y")
                     lastname_date_candidates = []
                     for u in by_lastname.get(last_norm, []):
-                        if u.id in merged_ids:
+                        if not eligible(u, rullenummer):
                             continue
                         try:
                             stub_date = datetime.strptime(u.ans_dato, "%d.%m.%Y")
@@ -577,25 +592,28 @@ def sync_employees_from_scrape(employees: list) -> dict:
                         except ValueError:
                             pass
                     if len(lastname_date_candidates) == 1:
-                        user = lastname_date_candidates[0]
-                        user.rullenummer = rullenummer
-                        merged_ids.add(user.id)
-                        merged_by_date += 1
+                        user, found_via = lastname_date_candidates[0], "date"
                 except ValueError:
                     pass
 
-            if user is None and ans_dato:
+            if user is None and ans_dato and rullenummer:
                 date_candidates = [
                     u for u in by_date.get(ans_dato, [])
-                    if u.id not in merged_ids
+                    if eligible(u, rullenummer)
                 ]
                 if len(date_candidates) == 1:
-                    user = date_candidates[0]
-                    user.rullenummer = rullenummer
-                    merged_ids.add(user.id)
-                    merged_by_date += 1
+                    user, found_via = date_candidates[0], "date"
 
-            if user is None:
+            if found_via is not None:
+                merged_ids.add(user.id)
+                if rullenummer:
+                    user.rullenummer = rullenummer
+                    if found_via == "name":
+                        merged_by_name += 1
+                    else:
+                        merged_by_date += 1
+
+            if user is None and rullenummer:
                 username = f"__stub_{rullenummer}"
                 # Fallback: a user may already hold this username but have had
                 # their rullenummer cleared (e.g. absorbed by a member-list
@@ -603,30 +621,24 @@ def sync_employees_from_scrape(employees: list) -> dict:
                 user = db_session.query(DBUser).filter_by(username=username).first()
                 if user is not None:
                     user.rullenummer = rullenummer
-                    # fall through to update block
-                else:
-                    # Not on the NLF member list — this sync only enriches
-                    # existing members with rullenummer/HR data, it never
-                    # creates new users.
-                    skipped_unmatched += 1
-                    logger.warning(
-                        "sync_employees: skipped rullenummer=%s name=%r pdf_ans_dato=%r",
-                        rullenummer, name, ans_dato,
-                    )
-                    continue
 
-            if user is not None:
-                changed = False
-                for attr, val in [
-                    ("seniority_nr", seniority_nr),
-                ]:
-                    if getattr(user, attr) != val:
-                        setattr(user, attr, val)
-                        changed = True
-                if changed:
-                    updated += 1
-                else:
-                    unchanged += 1
+            if user is None:
+                # Not on the NLF member list — this sync only enriches
+                # existing members with rullenummer/HR data, it never
+                # creates new users.
+                skipped_unmatched += 1
+                logger.warning(
+                    "sync_employees: skipped rullenummer=%r name=%r pdf_ans_dato=%r",
+                    rullenummer, name, ans_dato,
+                )
+                continue
+
+            matched_ids.add(user.id)
+            if user.seniority_nr != seniority_nr:
+                user.seniority_nr = seniority_nr
+                updated += 1
+            else:
+                unchanged += 1
 
         # Second pass: users with a manually-set rullenummer but no seniority_nr.
         # Covers registered users who entered their rullenummer after the last scan,
@@ -644,10 +656,10 @@ def sync_employees_from_scrape(employees: list) -> dict:
                     nr_from_rullenummer += 1
 
         # Clear seniority_nr for any employee no longer present in the PDF.
-        # Only targets rows that previously had a seniority_nr (i.e. were from a
-        # prior PDF import) — avoids touching system/admin users with no rullenummer.
         removed_from_list = 0
-        if scraped_rullenummers:
+        if pdf_has_rullenummer:
+            # Only targets rows that previously had a seniority_nr (i.e. were from a
+            # prior PDF import) — avoids touching system/admin users with no rullenummer.
             missing = (
                 db_session.query(DBUser)
                 .filter(
@@ -657,14 +669,28 @@ def sync_employees_from_scrape(employees: list) -> dict:
                 )
                 .all()
             )
-            for user in missing:
-                user.seniority_nr = None
-                removed_from_list += 1
+        elif matched_ids:
+            # No rullenummer to compare on: anyone with a number from an
+            # earlier list that no row of this list matched is off the list.
+            missing = (
+                db_session.query(DBUser)
+                .filter(
+                    DBUser.seniority_nr.isnot(None),
+                    DBUser.id.notin_(matched_ids),
+                )
+                .all()
+            )
+        else:
+            missing = []
+        for user in missing:
+            user.seniority_nr = None
+            removed_from_list += 1
 
         db_session.commit()
         logger.info(
             "sync_employees: updated=%d unchanged=%d merged_by_name=%d "
-            "merged_by_date=%d removed_from_list=%d skipped_unmatched=%d nr_from_rullenummer=%d",
+            "merged_by_date=%d removed_from_list=%d skipped_unmatched=%d "
+            "nr_from_rullenummer=%d without_rullenummer=%d",
             updated,
             unchanged,
             merged_by_name,
@@ -672,6 +698,7 @@ def sync_employees_from_scrape(employees: list) -> dict:
             removed_from_list,
             skipped_unmatched,
             nr_from_rullenummer,
+            without_rullenummer,
         )
         return {
             "updated": updated,
@@ -681,6 +708,7 @@ def sync_employees_from_scrape(employees: list) -> dict:
             "removed_from_list": removed_from_list,
             "skipped_unmatched": skipped_unmatched,
             "nr_from_rullenummer": nr_from_rullenummer,
+            "without_rullenummer": without_rullenummer,
         }
     except Exception as e:
         db_session.rollback()

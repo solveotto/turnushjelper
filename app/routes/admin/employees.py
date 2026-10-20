@@ -185,6 +185,11 @@ def import_employees():
             f"{result['updated']} oppdatert, {result['unchanged']} uendret "
             f"av {len(scraped)} totalt."
         )
+        if result.get("without_rullenummer"):
+            msg += (
+                f" PDF-en mangler rullenummer for {result['without_rullenummer']} rader;"
+                " disse er koblet på navn og ansettelsesdato."
+            )
         if result["merged_by_name"]:
             msg += f" {result['merged_by_name']} koblet til medlemsliste på navn."
         if result["merged_by_date"]:
@@ -277,6 +282,11 @@ def upload_ansinitet_pdf():
             f"PDF lastet opp og synkronisert ({len(scraped)} ansatte i PDF): "
             f"{result['updated']} oppdatert, {result['unchanged']} uendret."
         )
+        if result.get("without_rullenummer"):
+            msg += (
+                f" PDF-en mangler rullenummer for {result['without_rullenummer']} rader;"
+                " disse er koblet på navn og ansettelsesdato."
+            )
         if result["merged_by_name"]:
             msg += f" {result['merged_by_name']} koblet til medlemsliste på navn."
         if result["merged_by_date"]:

@@ -1,9 +1,13 @@
 """Scrape employee seniority list from ansinitet.pdf.
 
 Parses tables with columns:
-  Nr | Etternavn | For- og mellomnavn | Ans. Asp | Født. Dato | Rullenr.
+  Nr | Etternavn | For- og mellomnavn | Ans. Asp | Født. Dato | [Rullenr.]
 
-and extracts the stasjoneringssted from each page header.
+The ``Rullenr.`` column disappeared from the employer's export in October
+2026, so it is optional: rows from a five-column list get ``rullenummer == ""``
+and the sync matches them on name/dates instead.
+
+The stasjoneringssted is read from each page header.
 """
 import logging
 import re
@@ -31,12 +35,36 @@ def scrape_pdf_date(pdf_path) -> str | None:
     return None
 
 
+def _cell(row: list, index: int) -> str:
+    """Return the stripped cell text, or "" when the column is absent."""
+    if index >= len(row):
+        return ""
+    return (row[index] or "").strip()
+
+
+def _clean_date(cell: str | None) -> str:
+    """Normalise a date cell to DD.MM.YYYY.
+
+    In the real PDF long first names overflow into the Ans. Asp column, and
+    pdfplumber returns the name letters interleaved with the date digits
+    (``e2s0.11.2000``). The digits keep their order, so eight digits are
+    enough to rebuild the date. Anything else is returned stripped.
+    """
+    text = (cell or "").strip()
+    digits = re.sub(r"\D", "", text)
+    if len(digits) == 8:
+        return f"{digits[:2]}.{digits[2:4]}.{digits[4:]}"
+    return text
+
+
 def scrape_employees(pdf_path) -> list[dict]:
     """Return a list of employee dicts scraped from the PDF.
 
     Each dict has keys:
         seniority_nr, etternavn, fornavn, ans_dato, fodt_dato,
         rullenummer, stasjoneringssted
+
+    ``rullenummer`` is "" when the PDF has no Rullenr. column.
     """
     employees = []
     with pdfplumber.open(pdf_path) as pdf:
@@ -65,11 +93,11 @@ def scrape_employees(pdf_path) -> list[dict]:
 
                 employees.append({
                     "seniority_nr": nr,
-                    "etternavn": (row[1] or "").strip(),
-                    "fornavn": (row[2] or "").strip(),
-                    "ans_dato": (row[3] or "").strip(),
-                    "fodt_dato": (row[4] or "").strip(),
-                    "rullenummer": (row[5] or "").strip(),
+                    "etternavn": _cell(row, 1),
+                    "fornavn": _cell(row, 2),
+                    "ans_dato": _clean_date(_cell(row, 3)),
+                    "fodt_dato": _clean_date(_cell(row, 4)),
+                    "rullenummer": _cell(row, 5),
                     "stasjoneringssted": stasjoneringssted,
                 })
 

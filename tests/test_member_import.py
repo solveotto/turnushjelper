@@ -461,3 +461,95 @@ class TestFuzzyNameMatching:
         }])
         assert report["created"] == 1
         assert report["matched"] == 0
+
+
+class TestPdfWithoutRullenummer:
+    """The October 2026 ansiennitetsliste has no Rullenr. column. Rows then
+    carry ``rullenummer == ""`` and must be matched on name/dates alone,
+    without ever writing a rullenummer."""
+
+    ROW = {
+        "rullenummer": "", "etternavn": "Nordmann", "fornavn": "Ola",
+        "stasjoneringssted": "OSLO", "ans_dato": "01.01.2020",
+        "fodt_dato": "02.02.1990", "seniority_nr": 4,
+    }
+
+    def test_matches_registered_user_with_rullenummer_by_name(self, patch_db, db_session):
+        add_user(db_session, "ola", name="Nordmann, Ola", rullenummer="555",
+                 medlemsnummer="60060")
+        result = user_service.sync_employees_from_scrape([self.ROW])
+        assert result["updated"] == 1
+        assert result["skipped_unmatched"] == 0
+        assert result["without_rullenummer"] == 1
+        user = db_session.query(DBUser).filter_by(username="ola").one()
+        assert user.seniority_nr == 4
+        assert user.rullenummer == "555"
+
+    def test_matches_member_stub_without_writing_rullenummer(self, patch_db, db_session):
+        user_service.sync_members_from_excel(
+            [{"name": "Nordmann, Ola", "medlemsnummer": "60061"}]
+        )
+        result = user_service.sync_employees_from_scrape([self.ROW])
+        assert result["updated"] == 1
+        assert result["merged_by_name"] == 0  # nothing merged, no rullenummer written
+        user = db_session.query(DBUser).filter_by(name="Nordmann, Ola").one()
+        assert user.seniority_nr == 4
+        assert user.rullenummer is None
+
+    def test_ambiguous_name_is_skipped(self, patch_db, db_session):
+        add_user(db_session, "ola1", name="Nordmann, Ola", rullenummer="1")
+        add_user(db_session, "ola2", name="Nordmann, Ola", rullenummer="2")
+        result = user_service.sync_employees_from_scrape([self.ROW])
+        assert result["skipped_unmatched"] == 1
+        assert db_session.query(DBUser).filter(
+            DBUser.seniority_nr.isnot(None)
+        ).count() == 0
+
+    def test_lastname_plus_hire_date_resolves(self, patch_db, db_session):
+        add_user(db_session, "ola", name="Nordmann, Ola Petter", rullenummer="1",
+                 ans_dato="01.01.2020")
+        row = dict(self.ROW, fornavn="Ola P.")
+        result = user_service.sync_employees_from_scrape([row])
+        assert result["updated"] == 1
+        assert db_session.query(DBUser).filter_by(username="ola").one().seniority_nr == 4
+
+    def test_hire_date_alone_never_matches(self, patch_db, db_session):
+        # A date-only match was tolerable when the pool was rullenummer-less
+        # stubs; against every user it would hand a stranger's number to the
+        # wrong person, so the fallback is off for rows without rullenummer.
+        add_user(db_session, "kari", name="Hansen, Kari", rullenummer="1",
+                 ans_dato="01.01.2020")
+        result = user_service.sync_employees_from_scrape([self.ROW])
+        assert result["skipped_unmatched"] == 1
+        assert db_session.query(DBUser).filter_by(username="kari").one().seniority_nr is None
+
+    def test_unmatched_users_lose_seniority_nr(self, patch_db, db_session):
+        add_user(db_session, "ola", name="Nordmann, Ola", rullenummer="555",
+                 seniority_nr=9)
+        add_user(db_session, "kari", name="Hansen, Kari", rullenummer="556",
+                 seniority_nr=10)
+        add_user(db_session, "per", name="Olsen, Per", medlemsnummer="60062",
+                 is_stub=1, seniority_nr=11)
+        result = user_service.sync_employees_from_scrape([self.ROW])
+        assert result["updated"] == 1
+        assert result["removed_from_list"] == 2
+        by_name = {u.username: u.seniority_nr for u in db_session.query(DBUser).all()}
+        assert by_name["ola"] == 4
+        assert by_name["kari"] is None
+        assert by_name["per"] is None
+
+    def test_same_user_not_matched_twice(self, patch_db, db_session):
+        add_user(db_session, "ola", name="Nordmann, Ola", rullenummer="555")
+        rows = [self.ROW, dict(self.ROW, seniority_nr=5)]
+        result = user_service.sync_employees_from_scrape(rows)
+        assert result["updated"] == 1
+        assert result["skipped_unmatched"] == 1
+        assert db_session.query(DBUser).filter_by(username="ola").one().seniority_nr == 4
+
+    def test_second_run_is_idempotent(self, patch_db, db_session):
+        add_user(db_session, "ola", name="Nordmann, Ola", rullenummer="555")
+        user_service.sync_employees_from_scrape([self.ROW])
+        result = user_service.sync_employees_from_scrape([self.ROW])
+        assert result["updated"] == 0
+        assert result["unchanged"] == 1
+        assert result["removed_from_list"] == 0
