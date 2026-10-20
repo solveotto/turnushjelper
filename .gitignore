@@ -13,6 +13,8 @@ app/static/**/medlemsliste*.xlsx
 app/static/**/ansinitet*.pdf
 turnusdata/**/turnusplan_*.json.gz
 turnusdata/**/strekliste_*.json.gz
+# Strekliste review report: generated, read locally, never committed or served.
+turnusdata/**/gjennomgang_*.html
 
 nul
 General/

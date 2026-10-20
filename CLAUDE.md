@@ -142,8 +142,16 @@ The schedule JSON is an abstract 6-week rotation with no calendar dates. The onl
   outranks the tile it is drawn with — `type` is the keyword, `monster` the
   tile. Unlabelled Togaktivitet legs inherit the train of the leg before them
   (the number is printed once, the stops are not). Every unresolved case is
-  a warning on the duty (`advarsler`), never an exception; ~20 of 438 duties
-  carry one in r26, all genuine print quirks.
+  a warning on the duty (`advarsler`), never an exception; ~35 of 463 duties
+  carry one in r26, all genuine print quirks. A row marked `<<` is a double
+  duty (3006<<3007: one in the afternoon, the other next morning, each with
+  its own kjøredager line) and is split into two duties that carry
+  `dobbelt_tur`. **Before trusting a parse, read the review report**:
+  `scripts/strekliste_gjennomgang.py --year R26` writes
+  `turnusdata/r26/streklister/gjennomgang_r26.html` (not for git, not served)
+  with every duty's PNG above the rows read from it, warnings first — the
+  duty-number join rule and the double-duty split were both found there, not
+  by the tests.
 - **Never seed a real `year_identifier` in tests that delete a turnus set.** `admin.delete_turnus_set` calls `strekliste_generator.delete_all_images(version)`, which resolves through `AppConfig.turnusfiler_dir` — a test using `"R26"` deletes the committed 423 PNGs on every run, silently (they are gitignored, so `git status` stays clean). `tests/test_turnus_set_delete_guard.py` uses `FAKE_YEAR = "T99"` *and* an autouse fixture repointing `turnusfiler_dir` at `tmp_path`.
 
 ### Kompdager

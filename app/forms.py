@@ -73,7 +73,7 @@ class SelectTurnusSetForm(FlaskForm):
 # User Profile Forms
 class ChangePasswordForm(FlaskForm):
     current_password = PasswordField('Nåværende passord', validators=[DataRequired()])
-    new_password = PasswordField('Nytt passord', validators=[DataRequired(), Length(min=6)])
+    new_password = PasswordField('Nytt passord', validators=[DataRequired(), Length(min=8, message='Passord må være minst 8 tegn')])
     confirm_password = PasswordField('Bekreft nytt passord', validators=[DataRequired(), EqualTo('new_password')])
     submit = SubmitField('Endre passord')
 

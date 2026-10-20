@@ -12,79 +12,128 @@ Data correctness is the app's entire value: **never bypass
 `validate_turnus_json`, never silently "fix" source data, and report every
 anomaly and cross-source difference to Solve at the end.**
 
-## Ingestion path — check before starting
+Read `CLAUDE.md` → "Turnus Data Sources & Ingestion" first: the Timeskjema
+parsing traps, the kl_timer tolerance rationale and the strekliste rules all
+live there. `docs/guides/CREATING_TURNUS_SETS.md` is the step-by-step guide
+to the admin UI that this skill assumes.
 
-Timeskjema TSV is the intended primary source, but the parser lives on the
-unmerged branch `ny_shift_ingress`. Check whether it has landed
-(`ls app/utils/pdf/ | grep -i timeskjema`):
+## Ingestion path
 
-- **Parser present** → TSV is primary, PDF scrape is cross-verification.
-- **Parser absent (current state)** → PDF scrape is primary; keep the
-  Timeskjema `.xls` (really ISO-8859-1 TSV, not Excel) for later verification.
+The Timeskjema export is the primary source and the PDF scrape is the
+cross-check (decided 2026-07-08; the parser is on `main` at
+`app/utils/timeskjema_parser.py`). Both run through the same admin page,
+**"Opprett turnussett"** (`create_turnus_set` in `app/routes/admin/turnus.py`),
+which sniffs the uploaded file by content:
 
-Read `CLAUDE.md` → "Turnus Data Sources & Ingestion" for the TSV parsing
-traps and the kl_timer tolerance rationale before touching either path.
+- **Timeskjema `.xls`** (really ISO-8859-1 TSV, not Excel) → parsed,
+  self-checked, validated. If a verification PDF is uploaded alongside, the
+  PDF is scraped too and every difference is staged on a review page
+  (`/admin/import-turnusset/review/<year>`) for Solve to approve or cancel.
+  Nothing is written until approval.
+- **Turnus PDF** only → `ShiftScraper` (hardcoded pixel boxes; do not modify
+  it — hardening goes in the validator). Use this when the drop is a PDF
+  with no Timeskjema yet, which is typical for a first draft.
+- Anything else (real OLE2 Excel, HTML) is refused. Run
+  `scripts/probe_timeskjema.py <file>` on a new Timeskjema **before**
+  uploading: it diffs the file's shape against the R26 export and says in
+  seconds whether the parser will accept it. `--convert` fixes a wrong
+  encoding losslessly.
+
+The stored source names matter: the create flow saves
+`turnusdata/{rxx}/turnuser_RXX.xls` and `turnusdata/{rxx}/pdf/turnuser_RXX.pdf`,
+and **"refresh"** on an existing set re-ingests exactly those files
+(Timeskjema preferred, PDF fallback), renames/adds/removes shift rows while
+**preserving favourites**, and regenerates stats. Later revisions of the
+same rutetermin go through refresh, never through a second create.
 
 ## Expected inputs
 
-Place in `turnusdata/{rXX}/` (match R26's naming) — the data store lives outside `app/`, since anything under `app/static/` is served without authentication:
+Place in `turnusdata/{rXX}/` (match R26's naming) — the data store lives
+outside `app/`, since anything under `app/static/` is served without
+authentication:
 
 | File | Purpose |
 |---|---|
-| turnus PDF (e.g. `Oslo R27 ....pdf`) | schedule scrape source |
-| Timeskjema `.xls` | TSV cross-check / future primary |
-| `streklister/{rxx}_streker.pdf` | strekliste PNGs + double shifts |
-| `turnusnøkkel_RXX_org.xlsx` | only calendar-date source; kompdager |
+| Timeskjema `.xls` → `turnuser_RXX.xls` | primary schedule source |
+| turnus PDF → `pdf/turnuser_RXX.pdf` | cross-check, or primary when no Timeskjema |
+| `streklister/{rxx}_streker.pdf` | strekliste PNGs, strekliste tables, double shifts |
+| `turnusnøkkel_RXX_org.xlsx` | only calendar-date source; kompdager; søknadsskjema |
 | `søknadsskjema_org.docx` | application form template |
 
-**PII exception:** `innplassering_RXX.pdf` (who is placed on which tur) goes in
-`instance/protected/{rXX}/` (`AppConfig.protected_dir`), NOT under `app/static/` —
-everything under static is served without authentication. Same for
-`medlemsliste.xlsx` and `ansinitet.pdf`. `tests/test_protected_files.py`
-enforces this.
+A first draft usually arrives without the nøkkel, streker and innplassering.
+That is fine: kompdager show `–`, strekliste tabs stay empty and
+søknadsskjema will not generate until the files exist. Never fake them.
+
+**PII exception:** `innplassering_RXX.pdf` (who is placed on which tur) goes
+in `instance/protected/{rXX}/` (`AppConfig.protected_dir`), NOT under
+`app/static/`. Same for `medlemsliste.xlsx` and `ansinitet.pdf`.
+`tests/test_protected_files.py` enforces this.
+
+## Where to run it
+
+`turnus_schedule_RXX.json`, `turnus_stats_RXX.json` and
+`double_shifts_{rxx}.json` are tracked in git; the source PDFs, PNGs and
+`.xls` are not. Preferred flow: import locally through the admin UI, read
+the diff, commit the generated JSON, `git pull` on the server and create the
+set there with **"Bruk eksisterende filer"** (same validator, no re-scrape).
+Then `sudo systemctl restart turnushjelper` — production runs two gunicorn
+workers with per-process caches, and an un-restarted worker serves the old
+set for up to an hour. Deploy status is per host: record host *and* SHA.
 
 ## Steps
 
 Everything runs with `venv/bin/` prefixes. Start with a baseline
-`venv/bin/pytest -q` (must pass before you begin).
+`venv/bin/pytest -q` (must pass before you begin) and `venv/bin/alembic
+current` (must be at head on the DB you import into).
 
-1. **Scrape**: `venv/bin/python app/utils/pdf/shiftscraper.py <pdf> RXX`
-   → writes `turnus_schedule_RXX.json`. The scraper uses hardcoded pixel
-   boxes — do not modify it; hardening goes in the validator.
-2. **Validate**: confirm the JSON passes `validate_turnus_json`
-   (`app/utils/pdf/scraper_validator.py`). A failure means stop and report,
-   not patch the JSON by hand.
-3. **Cross-verify** against the second source when available. Differences do
-   NOT mean scrape error — R26's two sources differed in 20 real revision
-   cells. Produce a diff (turnus, week, day, both values) for Solve to
-   adjudicate. Never hard-fail on inequality.
-4. **Double shifts**: `app/utils/pdf/double_shift_scanner.py` has
-   `version = "r26"` **hardcoded in `main()`** — edit it to the new version
-   (or fix it to take an argument) before running, else it silently rescans
-   r26. Writes `double_shifts_{rxx}.json` from the streker PDF.
-5. **DB set**: `venv/bin/python scripts/create_new_turnus_year_in_database.py`
-   (creates the TurnusSet, imports shifts, auto-generates
-   `turnus_stats_RXX.json` if missing). Alternative: admin-UI PDF upload
-   (`handle_pdf_upload` in `app/routes/admin/turnus.py`) does scrape+create
-   in one step.
-6. **Innplassering**:
-   `venv/bin/python scripts/import_innplassering.py --year RXX`.
-   Known caveat: the 7.fører linjenummer parsing is unverified
-   (`TODO_remaining_fixes.md` Task 7) — spot-check a few 7.fører rows.
-7. **Strekliste PNGs**: upload/place the streker PDF, then generate via the
-   admin UI or `strekliste_generator.generate_all_images("rxx")`. Geometry
-   auto-calibrates from the PDF's hour header; if
-   `tests/test_strekliste_geometry.py` fails, the PDF layout changed — report,
-   don't retune constants.
-8. **Kompdager**: with the nøkkel Excel in place, run
-   `count_kompdager(turnus_set_id)` per linje, show Solve the counts, then
-   add a reference assertion to `tests/test_kompdag_routes.py` mirroring the
-   R26 pattern (`OSL_01 R26 = [4, 1, 3, 2, 2, 4]`).
-9. **Activate** the set in the admin panel (sets `is_active=1`, invalidates
-   caches on refresh).
-10. **Finish**: full `venv/bin/pytest -q` (all green, count may grow with the
-    new kompdag test), then report: files produced, validator results,
-    cross-source diff, anomalies, and anything left for Solve to decide.
+1. **Create the set** in "Opprett turnussett": name, `RXX`, upload the
+   Timeskjema (plus the PDF as verification if available) or the PDF alone.
+   Leave **"Sett som aktivt turnussett"** unticked for a draft — users can
+   browse any set from the navbar selector, and R26 stays live until the
+   final version lands. The year check warns if the Timeskjema's rutetermin
+   end year does not match `RXX`.
+2. **Read the validation flashes and the review page.** A red "Validering
+   feilet" means stop and report — never patch JSON by hand. Cross-source
+   differences do NOT mean scrape error: R26's two sources differed in 20
+   real revision cells. Hand the diff (turnus, week, day, both values) to
+   Solve to adjudicate. The full log is `app/logs/turnus_import.log`.
+3. **Strekliste**: upload `{rxx}_streker.pdf` on "Administrer turnussett"
+   and press "Generer". That one step renders the PNGs, scans double shifts
+   into `double_shifts_{rxx}.json`, and parses the duties into
+   `strekliste_dagsverk` / `strekliste_aktivitet`. It is synchronous and
+   slow (~35 s on the servers) — the CLI form in `CLAUDE.md` is better for
+   routine regeneration. Geometry auto-calibrates from the PDF's hour
+   header; if `tests/test_strekliste_geometry.py` fails, the layout
+   changed — report, don't retune. Then run
+   `scripts/strekliste_gjennomgang.py --year RXX` and **read the report**
+   (`turnusdata/{rxx}/streklister/gjennomgang_{rxx}.html`, gitignored)
+   warnings-first before trusting the parse. For the CLI,
+   `app/utils/pdf/double_shift_scanner.py <rxx>` takes the version as an
+   argument.
+4. **Turnusnøkkel**: upload `turnusnøkkel_RXX_org.xlsx` on "Administrer
+   turnussett" when it arrives.
+5. **Innplassering**: `venv/bin/python scripts/import_innplassering.py
+   --year RXX` (or the admin button). It prints which DB it is about to
+   write to — check that line; a wrong `DB_TYPE` once wrote R26 into an
+   empty local SQLite while prod stayed unchanged. The 7.fører linjenummer
+   parsing is unverified — spot-check a few 7.fører rows with
+   `scripts/check_7th_drivers.py --year RXX`.
+6. **Kompdager**: with the nøkkel in place, run `count_kompdager(turnus_set_id)`
+   per linje, show Solve the counts, then add a reference assertion to
+   `tests/test_kompdag_routes.py` mirroring the R26 pattern
+   (`OSL_01 R26 = [4, 1, 3, 2, 2, 4]`).
+7. **Exports for nlfstreik** once the set is final:
+   `scripts/export_turnusplan.py --year RXX` (needs the nøkkel) and
+   `scripts/export_strekliste.py --year RXX`.
+8. **Activate** the set in the admin panel when the final version lands,
+   restart the service, and run the `verify-turnus-data` skill.
+9. **Finish**: full `venv/bin/pytest -q` (all green, count may grow with the
+   new kompdag test), then report: files produced, validator results,
+   cross-source diff, anomalies, and anything left for Solve to decide.
+
+CLI fallbacks exist for every step (`app/utils/pdf/shiftscraper.py <pdf> RXX`,
+`scripts/create_new_turnus_year_in_database.py RXX "<name>"`), but they
+skip the review page, so prefer the UI for the initial import.
 
 ## Red flags — stop and report instead
 
@@ -93,6 +142,10 @@ Everything runs with `venv/bin/` prefixes. Start with a baseline
   one dataset fit
 - Treating cross-source differences as scrape errors without checking the
   PDF's own text
+- Creating a second turnus set for a revision instead of using refresh
+  (`year_identifier` is unique; favourites are per set)
 - Regenerating stats for an *existing* set (only
   `tests/test_shift_stats.py::test_stored_stats_match_fresh_computation`
   failing justifies that)
+- Seeding a real `year_identifier` in any test that deletes a turnus set
+  (it deletes the real PNGs — see `tests/test_turnus_set_delete_guard.py`)

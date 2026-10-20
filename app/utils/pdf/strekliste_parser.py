@@ -226,19 +226,38 @@ def _slaa_sammen_linjer(linjer):
     return ut
 
 
+def _slaa_sammen_nr(linjer):
+    """The duty number from the lines of its cell, named the way the PNG
+    generator names them: wrapped parts joined with "_" ("1411-N05_3_5"),
+    nothing after a trailing hyphen ("1203-Mod_1"), the "!" marker dropped,
+    and a double duty kept as "3006<<3007"."""
+    deler = [t.strip() for t in linjer if t.strip() and t.strip() != "!"]
+    if not deler:
+        return ""
+    ut = deler[0]
+    for t in deler[1:]:
+        if ut.endswith("-") or ut.endswith("<<") or t.startswith("<<"):
+            ut += t
+        else:
+            ut += "_" + t
+    return re.sub(r"\s+", "_", ut)
+
+
 def _venstre(page, y0, y1, h0):
-    """(nr, kjoredager, materiell, [y of each +24t mark]) for one band."""
+    """(nr, kjoredager, materiell, [y of each +24t mark], [(y, kjoredager)])
+    for one band. The last item keeps each kjøredager line with its height,
+    which a double-duty row needs to pair the lines with its two bar rows."""
     chars = [c for c in page.chars if y0 <= c["top"] <= y1 and c["x0"] < h0 - 1]
     nr_l = _linjer_fra_tegn(c for c in chars if c["x0"] < _X_NR_MAX)
     dag_l = _linjer_fra_tegn(c for c in chars if _X_NR_MAX <= c["x0"] < _X_DAGER_MAX)
     mat_l = _linjer_fra_tegn(c for c in chars if c["x0"] >= _X_DAGER_MAX)
 
-    nr = "".join(t for _, t in nr_l)
-    nr = re.sub(r"\s+", "_", nr)
+    nr = _slaa_sammen_nr(t for _, t in nr_l)
     pluss24 = [y for y, t in dag_l if t == "+24t"]
-    dager = "".join(t for _, t in dag_l if _KJOREDAGER.match(t))
+    dager_linjer = [(y, t) for y, t in dag_l if _KJOREDAGER.match(t)]
+    dager = "".join(t for _, t in dager_linjer)
     materiell = _slaa_sammen_linjer(t for _, t in mat_l) or None
-    return nr, dager, materiell, pluss24
+    return nr, dager, materiell, pluss24, dager_linjer
 
 
 # ── Timer columns ──────────────────────────────────────────────────────
@@ -418,10 +437,12 @@ def _stasjon_i(tokens):
 #: the station the previous activity ended at.
 _FLYTTER = {"Togaktivitet", "Passreise", "Gangtid", "Taxi", "Assistanse"}
 
-#: How far below a bar its own labels reach (two station lines, minute
-#: marks, the clock label at the row's foot). Anything lower belongs to the
-#: next bar's stack of labels above it.
-_UNDER_BAR = 27.0
+#: How far below a bar its own labels reach: minute marks and two station
+#: lines, the lowest about 13 pt down. Anything lower belongs to the next
+#: bar's stack of labels above it — in the compact rendition a +24t row's
+#: labels start only 20 pt under the row above. The clock label at a row's
+#: foot is handled separately, since it sits deeper.
+_UNDER_BAR = 16.0
 
 
 class _Segment:
@@ -644,17 +665,6 @@ def _les_bar(geo, legende, bar_y, tiles, vlines, ticks, tokens, x_start, x_slutt
     return ut, forrige_til
 
 
-def _arv_tognummer(aktiviteter):
-    """An unlabelled leg drawn straight after a labelled one is the same
-    train: the number is printed once, the stops along the way are not."""
-    for i in range(1, len(aktiviteter)):
-        her, forrige = aktiviteter[i], aktiviteter[i - 1]
-        if her["type"] == "Togaktivitet" and not her["tognumre"] \
-                and forrige["type"] == "Togaktivitet" and forrige["tognumre"] \
-                and forrige["til_tid"] == her["fra_tid"]:
-            her["tognumre"] = forrige["tognumre"]
-
-
 def _fyll_inn_ankomst(aktiviteter):
     """A stop labelled with a station says where the train before it went:
     "1590" then "Fra/Ins ... LOD" means 1590 ran to LOD."""
@@ -667,6 +677,36 @@ def _fyll_inn_ankomst(aktiviteter):
             her["fra_stasjon"] = her["til_stasjon"]
     for a in aktiviteter:
         del a["_eksplisitt"]
+
+
+def _arv_tognummer(aktiviteter):
+    """Adjacent Togaktivitet legs are one train unless a label says otherwise:
+    the number is printed once, on the leg with room for it, and the stops
+    and short legs on either side of it are not labelled. Within a run of
+    adjacent legs, an unlabelled leg takes the number of the nearest
+    labelled leg before it, or after it when none precedes it."""
+    i, n = 0, len(aktiviteter)
+    while i < n:
+        if aktiviteter[i]["type"] != "Togaktivitet":
+            i += 1
+            continue
+        j = i
+        while j + 1 < n and aktiviteter[j + 1]["type"] == "Togaktivitet" \
+                and aktiviteter[j]["til_tid"] == aktiviteter[j + 1]["fra_tid"]:
+            j += 1
+        lop = aktiviteter[i:j + 1]
+        siste = None
+        for a in lop:
+            if a["tognumre"]:
+                siste = a["tognumre"]
+            elif siste:
+                a["tognumre"] = siste
+        forste = next((a["tognumre"] for a in lop if a["tognumre"]), None)
+        for a in lop:
+            if a["tognumre"]:
+                break
+            a["tognumre"] = forste or ""
+        i = j + 1
 
 
 def _slaa_sammen_midnatt(forrige, neste):
@@ -688,9 +728,10 @@ def _slaa_sammen_midnatt(forrige, neste):
 
 # ── Assembly ───────────────────────────────────────────────────────────
 
-def _les_dagsverk(page, geo, legende, vlines, y0, y1, pluss24):
+def _les_dagsverk(page, geo, legende, vlines, y0, y1, pluss24, delrader=None):
     """One band: its bars, their labels, and the activities in order."""
-    delrader = _delrader(page, y0, y1, geo.h0)
+    if delrader is None:
+        delrader = _delrader(page, y0, y1, geo.h0)
     if not delrader:
         return None
     bar_ys = [by for by, _ in delrader]
@@ -775,23 +816,36 @@ def _les_side(page, side_nr):
     duties, warnings = [], []
 
     for y0, y1 in _rader(page):
-        nr, dager, materiell, pluss24 = _venstre(page, y0, y1, geo.h0)
+        nr, dager, materiell, pluss24, dager_linjer = _venstre(page, y0, y1, geo.h0)
         if not _DV_NR.match(nr):
             continue
+        felles = {"stasjoneringssted": sted, "materiell": materiell, "side": side_nr,
+                  "beregninger": _beregninger(words, kolonner, y0, y1, geo.h24), "kommentar": None}
+        if "<<" in nr:
+            # A double duty: two duties in one band, each on its own bar row
+            # with its own kjøredager line beside it (the second runs the
+            # next morning, so its days are shifted by one).
+            deler = nr.split("<<")
+            delrader = _delrader(page, y0, y1, geo.h0)
+            if len(deler) == len(delrader):
+                # Each duty is read within its own half of the band, so the
+                # other duty's clock labels cannot reach it.
+                kanter = [y0] + [(a[0] + b[0]) / 2 for a, b in zip(delrader, delrader[1:])] + [y1]
+                for i, (del_nr, delrad) in enumerate(zip(deler, delrader)):
+                    naermeste = min(dager_linjer, key=lambda l: abs(l[0] - delrad[0]), default=(0, dager))
+                    lest = _les_dagsverk(page, geo, legende, vlines, kanter[i], kanter[i + 1], [],
+                                         delrader=[delrad])
+                    if lest is None:
+                        continue
+                    duties.append({**felles, "nr": del_nr, "kjoredager": naermeste[1],
+                                   "dobbelt_tur": nr, **lest})
+                continue
+            warnings.append(f"{nr}: dobbelt tur med {len(delrader)} strekrader, kan ikke deles (side {side_nr}).")
         lest = _les_dagsverk(page, geo, legende, vlines, y0, y1, pluss24)
         if lest is None:
             warnings.append(f"{nr}: ingen strek funnet (side {side_nr}).")
             continue
-        duties.append({
-            "stasjoneringssted": sted,
-            "nr": nr,
-            "kjoredager": dager,
-            "materiell": materiell,
-            "side": side_nr,
-            "beregninger": _beregninger(words, kolonner, y0, y1, geo.h24),
-            "kommentar": None,
-            **lest,
-        })
+        duties.append({**felles, "nr": nr, "kjoredager": dager, "dobbelt_tur": None, **lest})
     return duties, warnings
 
 

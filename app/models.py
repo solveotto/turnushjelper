@@ -137,6 +137,7 @@ class StreklisteDagsverk(Base):
     nr = Column(String(20), nullable=False)
     nr_base = Column(String(10), nullable=False)
     kjoredager = Column(String(7), nullable=False, default="")
+    dobbelt_tur = Column(String(30), nullable=True)   # "3006<<3007" when the row held two duties
     materiell = Column(String(120), nullable=True)
     start = Column(String(5), nullable=True)      # "HH:MM"
     slutt = Column(String(5), nullable=True)

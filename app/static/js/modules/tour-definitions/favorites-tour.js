@@ -106,7 +106,7 @@ export default function () {
       popover: {
         title: "Fjern favoritt",
         description: `
-          <p>Klikk på <strong>søppelkassen</strong> for å fjerne en turnus fra favorittlisten.</p>
+          <p>Klikk på <strong>X</strong> for å fjerne en turnus fra favorittlisten.</p>
           <p class="tour-hint">Du kan alltid legge den til igjen fra turnuslisten.</p>
         `,
         side: isMobile ? "bottom" : "left",

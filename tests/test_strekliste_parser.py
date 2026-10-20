@@ -316,3 +316,56 @@ def test_labels_clipped_at_the_page_edge_are_dropped_with_a_warning():
     res = sp.parse_strekliste(_side(37))
     d = next(x for x in res.duties if x["nr"] == "1749")
     assert not any("227" == nr for a in d["aktiviteter"] for nr in a["tognumre"].split(","))
+
+
+def test_wrapped_duty_numbers_join_like_the_png_generator_names_them():
+    # Lines of the Nr. cell, as pdfplumber rebuilds them.
+    assert sp._slaa_sammen_nr(["1203-", "Mod_1"]) == "1203-Mod_1"
+    assert sp._slaa_sammen_nr(["1313-", "N05 5"]) == "1313-N05_5"
+    assert sp._slaa_sammen_nr(["1411-", "N05 3", "5"]) == "1411-N05_3_5"
+    assert sp._slaa_sammen_nr(["1432-70", "N05 3"]) == "1432-70_N05_3"
+    assert sp._slaa_sammen_nr(["3049", "!"]) == "3049"
+    assert sp._slaa_sammen_nr(["3006<<3007"]) == "3006<<3007"
+
+
+def test_a_double_duty_row_is_two_duties():
+    # 3006<<3007 on page 34 of turnushjelper's rendition: 3006 in the afternoon
+    # on days 1-4, 3007 the next morning on days 2-5, two bar rows in one band.
+    res = sp.parse_strekliste(_side("34_th"))
+    par = [d for d in res.duties if d["nr"] in ("3006", "3007")]
+    assert [(d["nr"], d["kjoredager"], d["start"], d["slutt"], d["slutt_neste_dag"]) for d in par] == [
+        ("3006", "1234", "13:13", "19:01", 0),
+        ("3007", "2345", "04:24", "09:56", 0),
+    ]
+    assert par[0]["aktiviteter"][-1]["til_tid"] == "19:01"
+    assert par[1]["aktiviteter"][0]["fra_tid"] == "04:24"
+    assert par[1]["aktiviteter"][0]["fra_neste_dag"] == 0
+    assert par[0]["dobbelt_tur"] == "3006<<3007" and par[1]["dobbelt_tur"] == "3006<<3007"
+    assert not any("<<" in d["nr"] for d in res.duties)
+
+
+def test_labels_of_a_compact_plus24_row_are_not_taken_by_the_row_above():
+    # 1648-N05_3 on page 29 of turnushjelper's rendition: the continuation
+    # row's labels sit only ~20 pt under the first row's bar. Found in the
+    # review report, where the morning legs had lost their train numbers.
+    res = sp.parse_strekliste(_side("29_th"))
+    d = next(x for x in res.duties if x["nr"] == "1648-N05_3")
+    tog = [(a["fra_tid"], a["type"], a["tognumre"]) for a in d["aktiviteter"] if a["tognumre"]]
+    assert tog == [
+        ("23:41", "Togaktivitet", "2275"),
+        ("00:45", "Togaktivitet", "12295"),
+        ("01:19", "Fra/Ins", "12295,12212"),
+        ("06:15", "Uttak", "12216"),
+        ("06:50", "Togaktivitet", "12216"),
+        ("07:47", "Togaktivitet", "2216"),
+    ]
+
+
+def test_unlabelled_legs_before_the_labelled_one_belong_to_the_same_train():
+    # 1247 on page 4 of turnushjelper's rendition: a two-minute stop at HVK
+    # and a one-minute leg to STB come before the segment that carries 1179.
+    res = sp.parse_strekliste(_side("4_th"))
+    d = next(x for x in res.duties if x["nr"] == "1247")
+    legs = [(a["fra_tid"], a["fra_stasjon"], a["til_stasjon"], a["tognumre"])
+            for a in d["aktiviteter"] if a["type"] == "Togaktivitet" and a["fra_tid"] in ("00:33", "00:35", "00:36")]
+    assert legs == [("00:33", "HVK", "HVK", "1179"), ("00:35", "HVK", "STB", "1179"), ("00:36", "STB", "MOS", "1179")]

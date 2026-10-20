@@ -116,8 +116,8 @@ export default function () {
             popover: {
                 title: "Turnusnøkkel 🔑",
                 description: `
-                    <p>Klikk på <strong>nøkkelen</strong> for å se turnusnøkelen for den aktuelle turnus.</p>
-                    <p class="tour-hint">Her kan du velge rekkefølgen på linjene du søker og om du vil jobbe H-dag. De vil automatisk bli lagt til søknadskjema.</p>
+                    <p>Klikk på <strong>nøkkelen</strong> for å se turnusnøkkelen for den aktuelle turnusen.</p>
+                    <p class="tour-hint">Her kan du velge rekkefølgen på linjene du søker. Valget legges automatisk inn i søknadsskjemaet. H-dag velger du i selve skjemaet.</p>
                 `,
                 side: isMobile ? "bottom" : "left",
                 align: "start",

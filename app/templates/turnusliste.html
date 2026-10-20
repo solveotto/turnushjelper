@@ -16,7 +16,7 @@
 </li>
 <li class="d-md-none">
     <a class="dropdown-item" href="{{ url_for('shifts.import_favorites', ref='turnusliste') }}">
-        <i class="bi bi-stars"></i> <span class="gen-favorites-ai-label">AI</span> Generer favoritter
+        <i class="bi bi-stars"></i> Generer favoritter
     </a>
 </li>
 {% endblock %} {% block mobile_sorter %}
@@ -60,7 +60,6 @@
 <a href="{{ url_for('shifts.import_favorites', ref='turnusliste') }}" id="gen-favorites-btn"
     class="btn navbar-action-btn me-1"
     title="Generer favorittliste automatisk — finn turnuser som ligner dine tidligere favoritter">
-    <span class="gen-favorites-ai-label">AI</span>
     <i class="bi bi-stars"></i>
 </a>
 {% endblock %} {% block content %}
@@ -143,7 +142,7 @@
                                                     height: 31px;
                                                     padding: 0;
                                                 " data-toggle="tooltip" data-placement="top"
-                                                title="Klikk for å lagre turnusnøkkel."
+                                                title="Klikk for å åpne turnusnøkkelen."
                                                 onclick="handleKeyFunction('{{ name }}')">
                                                 <i class="bi bi-key text-primary" style="font-size: 1rem"></i>
                                                 <i class="bi bi-key-fill text-white" style="font-size: 1rem"></i>

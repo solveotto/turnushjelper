@@ -8,6 +8,7 @@ Scans a strekliste PDF for shift markers:
 Outputs a JSON file with both types of markers.
 """
 
+import argparse
 import json
 import os
 import re
@@ -294,7 +295,11 @@ def scan_double_shifts(pdf_path: str) -> DoubleShiftResult:
 
 
 def main():
-    version = "r26"
+    parser = argparse.ArgumentParser(
+        description="Scan a strekliste PDF for dobbelt tur / delt dagsverk markers"
+    )
+    parser.add_argument("version", help="Turnus version, e.g. r26 or R27")
+    version = parser.parse_args().version.lower()
     pdf_path = os.path.join(
         AppConfig.turnusfiler_dir, version, "streklister", f"{version}_streker.pdf"
     )
