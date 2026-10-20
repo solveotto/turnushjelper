@@ -3,36 +3,52 @@ from flask_login import current_user, login_required
 
 from app.routes.shifts import _classify_shift_type, shifts
 from app.services.innplassering_service import get_innplassering_for_user
-from app.services import turnus_service
 from app.utils import df_utils, turnuskalender
 from app.utils.kompdag_utils import count_kompdager, get_holidays_for_dates
 
 
-def _load_mintur_data(user_id: int) -> dict | None:
+def _pick_record(records: list[dict], turnus_set_id: int | None = None) -> dict | None:
+    """The innplassering to show: the requested set if the driver is placed
+    in it, else the newest set they are placed in.
+
+    Mintur follows the driver's placements, not the active set. Around a
+    rutetermin change that means the old set stays until the new
+    innplassering is imported, after which the new set is the default and
+    the old one is still viewable.
+    """
+    if not records:
+        return None
+    if turnus_set_id is not None:
+        for record in records:
+            if record["turnus_set_id"] == turnus_set_id:
+                return record
+    return max(records, key=lambda r: r["turnus_set_id"])
+
+
+def _load_mintur_data(user_id: int, turnus_set_id: int | None = None) -> dict | None:
     """Load all data needed by both mintur() and export_ical().
 
     Returns a dict with keys: shift_title, linjenummer, year_identifier,
-    turnus_set_id, active_set, groups, template_found, raw, dm.
-    Returns None if the user has no innplassering or no active turnus set.
+    turnus_set_id, turnus_set, available_sets, groups, template_found, raw, dm.
+    Returns None if the user has no innplassering at all.
 
     Each cell dict in groups includes a 'tid' key (raw ["HH:MM","HH:MM"] list).
     Each date dict in groups includes a 'date_obj' key (Python date or None).
     """
-    active_set = turnus_service.get_active_turnus_set()
     records = get_innplassering_for_user(user_id)
-    if not records or not active_set:
-        return None
-
-    user_record = next(
-        (r for r in records if r["turnus_set_id"] == active_set["id"]), None
-    )
+    user_record = _pick_record(records, turnus_set_id)
     if not user_record:
         return None
 
     shift_title = user_record["shift_title"]
     linjenummer = user_record["linjenummer"]
-    turnus_set_id = active_set["id"]
-    year_identifier = active_set["year_identifier"]
+    turnus_set_id = user_record["turnus_set_id"]
+    year_identifier = user_record["year_identifier"]
+    turnus_set = {"id": turnus_set_id, "year_identifier": year_identifier}
+    available_sets = [
+        {"id": r["turnus_set_id"], "year_identifier": r["year_identifier"]}
+        for r in sorted(records, key=lambda r: r["turnus_set_id"], reverse=True)
+    ]
 
     dm = df_utils.DataframeManager(turnus_set_id)
     raw = next((t[shift_title] for t in dm.turnus_data if shift_title in t), None)
@@ -126,7 +142,8 @@ def _load_mintur_data(user_id: int) -> dict | None:
         "linjenummer": linjenummer,
         "year_identifier": year_identifier,
         "turnus_set_id": turnus_set_id,
-        "active_set": active_set,
+        "turnus_set": turnus_set,
+        "available_sets": available_sets,
         "groups": groups,
         "template_found": template_found,
         "raw": raw,
@@ -137,7 +154,9 @@ def _load_mintur_data(user_id: int) -> dict | None:
 @shifts.route("/mintur")
 @login_required
 def mintur():
-    data = _load_mintur_data(int(current_user.get_id()))
+    data = _load_mintur_data(
+        int(current_user.get_id()), turnus_set_id=request.args.get("sett", type=int)
+    )
     if not data:
         return redirect(url_for("shifts.turnusliste"))
 
@@ -171,8 +190,9 @@ def mintur():
         template_found=data["template_found"],
         year_identifier=data["year_identifier"],
         turnus_set_id=data["turnus_set_id"],
-        active_set=data["active_set"],
-        current_turnus_set=data["active_set"],
+        turnus_set=data["turnus_set"],
+        available_sets=data["available_sets"],
+        current_turnus_set=data["turnus_set"],
         all_turnus_sets=[],
     )
 
@@ -188,7 +208,9 @@ def export_ical():
     mode = request.args.get("mode", "fixed")
     label = request.args.get("label", "Jobb")
 
-    data = _load_mintur_data(int(current_user.get_id()))
+    data = _load_mintur_data(
+        int(current_user.get_id()), turnus_set_id=request.args.get("sett", type=int)
+    )
     if not data:
         from flask import jsonify
 

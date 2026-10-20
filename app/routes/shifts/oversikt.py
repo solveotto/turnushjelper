@@ -1,7 +1,7 @@
 from flask import render_template
 from flask_login import current_user, login_required
 
-from app.routes.shifts import shifts
+from app.routes.shifts import shifts, transition_notice_response
 from app.services.innplassering_service import get_innplassering_for_user
 from app.services import favorites_service, turnus_service
 from app.utils import df_utils
@@ -14,6 +14,9 @@ from app.utils.turnus_helpers import get_user_turnus_set, iter_turnus_days
 @shifts.route("/oversikt")
 @login_required
 def oversikt():
+    notice = transition_notice_response()
+    if notice:
+        return notice
     # Get user's selected turnus set
     user_turnus_set = get_user_turnus_set()
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None

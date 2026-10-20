@@ -1,12 +1,12 @@
 # Turnushjelper – infoark for testpanelet
 
-20. oktober 2026
+21. oktober 2026
 
 ## Velkommen til testpanelet
 
-Turnushjelper (turnushjelper.no) er et nettverktøy som hjelper deg å se gjennom alle turnusene i den nye ruteterminen, finne de som passer deg best, sette dem i prioritert rekkefølge og lage et ferdig utfylt søknadsskjema. Bruk dette verktøyet og fortelle meg hva som fungerer, hva som er forvirrende, og hva som er feil.
+Turnushjelper (turnushjelper.no) er et nettverktøy som hjelper deg å se gjennom alle turnusene i den nye ruteterminen, fargelegge dagsverkene, sette dem i prioritert rekkefølge og lage et ferdig utfylt søknadsskjema. Bruk dette verktøyet og fortelle meg hva som fungerer, hva som er forvirrende og hva som er feil.
 
-**Send tilbakemelding underveis.** Ikke vent til slutten. Hver gang du lurer på noe, finner en feil eller har et forslag, send en e-post til **support@turnushjelper.no**. Skriv gjerne hvilken side du var på og hva du prøvde å gjøre. Du kan også bruke **Kontakt**-knappen i menyen oppe til høyre i appen. Der velger du kategori (Feil/Bug, Spørsmål, Tilbakemelding eller Annet), skriver meldingen og trykker Send. Siden du står på legges ved automatisk.
+**Send tilbakemelding underveis.** Ikke vent til slutten. Hver gang du lurer på noe, finner en feil eller har et forslag, send en e-post til **support@turnushjelper.no**. Skriv gjerne hvilken side du var på og hva du prøvde å gjøre. Du kan også bruke **Kontakt**-knappen i menyen oppe til høyre i appen.
 
 ## Viktig: du er selv ansvarlig for å kontrollere
 
@@ -19,25 +19,25 @@ Det betyr:
 - turnushjelper.no er ikke ansvarlig for eventuelle feil eller konsekvenser som følger av avvik mellom det som står i appen og det som står i de offisielle filene fra NLF.
 - Kontroller særlig favorittlisten og søknadsskjemaet mot NLF-filene før du leverer.
 
-Finner du et avvik, er det akkurat det vi vil vite om. Send det til support@turnushjelper.no med turnusnavn, uke og dag.
+Finner du et avvik, er det akkurat det jeg vil vite om. Send det til support@turnushjelper.no med turnusnavn, uke og dag.
 
 ## Komme i gang: registrering og innlogging
 
 Gå til turnushjelper.no og velg **Opprett en konto**.
 
-1. Fyll inn **Brukernavn** (visningsnavn), **NLF-medlemsnummer**, **Rullenummer**, **E-postadresse** og **Passord** (minst 8 tegn). Medlemsnummeret sjekkes mens du skriver. Står du på ansiennitetslisten, hentes rullenummeret automatisk.
+1. Fyll inn **Brukernavn** (visningsnavn), **NLF-medlemsnummer**, **Rullenummer**, **E-postadresse** og **Passord** (minst 8 tegn).
 2. Trykk **Registrer**. Du får en e-post med en aktiveringslenke. Sjekk søppelpost om den ikke dukker opp. Lenken varer i 48 timer.
-3. Klikk lenken i e-posten. Da blir du logget inn automatisk.s
+3. Klikk lenken i e-posten. Da blir du logget inn automatisk.
 
 Senere logger du inn med brukernavn eller e-post og passord.
 
-Første gang du logger inn starter en kort veiledning som viser deg rundt. Du finner den igjen når som helst via **Hjelp**-knappen (spørsmålstegnet) oppe til høyre.
+Første gang du logger inn starter en veiledning som viser deg rundt. Du finner den igjen når som helst via **Hjelp**-knappen (spørsmålstegnet) oppe til høyre.
 
 ## Finne turnuser: Turnusliste og sortering
 
-**Turnusliste** i toppmenyen viser alle turnusene i ruteterminen, en boks per turnus (for eksempel OSL 01). Hver boks viser seks uker med dagsverknummer og arbeidstid per dag, fargelagt etter vakttype: tidlig, morgen, dag, kveld, natt, fridag og H-dag. Under tabellen står nøkkeltall som antall dagsverk, tidlig/kveld/natt, helgetimer, lengste friperiode, lengste arbeidsperiode og kompdager.
+**Turnusliste** i toppmenyen viser alle turnusene i ruteterminen, fargelagt etter vakttype: tidlig, morgen, dag, kveld, natt, fridag og H-dag. Under tabellen står nøkkeltall som antall dagsverk, tidlig/kveld/natt, helgetimer, lengste friperiode, lengste arbeidsperiode og kompdager.
 
-**Du søker ved å sortere, ikke ved å skrive inn tekst.** Trykk **Sorter** (på mobil åpnes et eget vindu). Der er det glidebrytere for det som betyr noe for deg:
+**Du søker ved å sortere, ikke ved å skrive inn tekst.** Trykk **Sorter** (på nettbrett åpnes et eget vindu). Der er det glidebrytere for det som betyr noe for deg:
 
 - **Skifttyper**: Tidlig, Ettermiddag, Natt
 - **Oppstart**: Før 06:00, Tidlig 6–8, Tidlig 8–12
@@ -53,9 +53,7 @@ Andre nyttige grep på Turnusliste:
 - I menyen oppe til høyre kan du velge **Skjul favoritter**, **Skjul tabell**, endre størrelse og vise flere turnuser ved siden av hverandre.
 - Leter du etter et bestemt turnusnavn, bruk nettleserens eget søk (Ctrl+F / Cmd+F).
 
-_\[Bilde: Turnusliste med Sorter-menyen åpen\]_
-
-_\[Bilde: strekliste-vinduet\]_
+Det anbefales å bruke en datamaskin når du skal sortere turnuser. Men nettbrett skal også fungere. Mobil kan bli litt liten skjerm.
 
 ## Velge favoritter og sette rekkefølge
 
@@ -70,39 +68,26 @@ _\[Bilde: strekliste-vinduet\]_
 
 Rekkefølgen her blir rekkefølgen i søknadsskjemaet (Alt.1, Alt.2 og så videre). Det er ingen øvre grense for antall favoritter, men skjemaet har bare plass til 71.
 
-**Generer favorittliste automatisk** (knappen **AI** på Turnusliste, eller fra tom favorittliste) finner turnuser i den nye ruteterminen som ligner favorittene eller innplasseringene dine fra tidligere år. Du velger hvilket år som skal brukes som grunnlag, hvor mange treff du vil se per favoritt, krysser av de du vil ha og trykker **Legg til valgte favoritter**. Sjekk forslagene like nøye som om du hadde valgt dem selv.
-
-_\[Bilde: Favoritter-siden med pilknapper og nummer\]_
+**Generer favorittliste automatisk** (knappen på Turnusliste, eller fra tom favorittliste) finner turnuser i den nye ruteterminen som ligner favorittene eller innplasseringene dine fra tidligere år. Du velger hvilket år som skal brukes som grunnlag, hvor mange treff du vil se per favoritt, krysser av de du vil ha og trykker **Legg til valgte favoritter**. Sjekk forslagene like nøye som om du hadde valgt dem selv.
 
 ## Turnusnøkkel
 
 Turnusnøkkelen viser hvilke dagsverk du går på hvilke datoer, avhengig av hvilken **linje** (1–6) du blir plassert på. Du åpner den med nøkkelknappen (**Turnusnøkkel**) øverst i en turnusboks på Turnusliste eller Favoritter. Den åpnes i en ny fane.
 
-På siden ser du:
-
-- Seks rotasjonsblokker med dag, linje 1–6 og de faktiske datoene for hver uke gjennom hele ruteterminen. Lørdag og søndag er skravert.
-- **Røde datoer** er helge- og høytidsdager (overenskomsten §5.13.1).
-- Knappene **Linje 1** til **Linje 6** med et tall for hvor mange **kompdager** linjen gir. Et kompdag oppstår når en fridag i turnusen faller på en rød dato. Tallet varierer mye mellom linjene i samme turnus.
-- Klikk linjeknappene i den rekkefølgen du ønsker linjene. Rekkefølgen (for eksempel «Prioritet: 3 1 2 4 5 6») lagres automatisk i kolonne 3 i søknadsskjemaet. **Fjern** nullstiller valget.
-- **Skriv ut / Lagre PDF** og **Last ned Excel** øverst på siden.
-
-Kompdag-tallet vises også som **Kompdager (maks)** i Turnusliste, for eksempel «4 (L1)»: høyest antall og hvilken linje som gir det.
-
-_\[Bilde: turnusnøkkel med linjeknapper og røde datoer\]_
+Kompdag-tallet vises som **Kompdager (maks)** i Turnusliste, for eksempel «4 (L1)»: høyest antall og hvilken linje som gir det.
 
 ## Andre funksjoner det er verdt å prøve
 
-**Søknadsskjema (Skjema i toppmenyen).** En digital versjon av «Søknad turplassering for Lokomotivpersonalet». Kolonne 1 (Tur nummer) fylles automatisk med favorittene dine i prioritert rekkefølge, Alt.1 til Alt.71. Kolonne 3 (Linjeprioritering) kommer fra valget du gjorde i turnusnøkkelen. Kolonne 2 (Linje 1,3,5 / Linje 2,4,6) og kolonne 4 (H-dag, skriv J for jobb) merker du ved å klikke i cellene. Dato, rullenummer og navn, stasjoneringssted og kommentarer kan du redigere. Last ned som **.docx** eller **.pdf**, eller **Skriv ut**. Sjekk alltid det ferdige skjemaet mot NLF-filene før du leverer.
+**Søknadsskjema (Skjema i toppmenyen).** En digital versjon av «Søknad turplassering for Lokomotivpersonalet». Sjekk alltid det ferdige skjemaet mot NLF-filene før du leverer.
 
-**Oversikt.** Sammenligner alle turnusene i ruteterminen på ett sted: hvem har flest nattevakter, minst helgetimer, lengste fri, og så videre. Det er et varmekart for vakttyper og helg, diagrammer for vaktprofil og helgeprofil, fridager per ukedag og kompdager per linje. Klikk på et turnusnavn for å se turnusen i et vindu, og merk den som favoritt derfra om du vil.
+**Oversikt.** Sammenligner alle turnusene i ruteterminen på ett sted: hvem har flest nattevakter, minst helgetimer, lengste fri, og så videre.
 
-**Min Tur.** Vises i toppmenyen bare hvis innplasseringen din er lagt inn. Da ser du din egen turnus og linje med faktiske datoer, og kan eksportere den til Google Calendar eller Outlook med **Eksporter til kalender** (.ics-fil). Du kan ikke velge turnus her selv.
+**Min Tur.** Vises i toppmenyen bare hvis innplasseringen din er lagt inn for inneværende turnus. Da ser du din egen turnus og linje med faktiske datoer, og kan eksportere den til Google Calendar eller Outlook med **Eksporter til kalender** (.ics-fil). Du kan ikke velge turnus her selv.
+Denne vil bli oppdatert etter at du er plassert i en turnus.
 
 **Min Side.** Brukerinformasjon, innplassering og bytte av passord. Finnes i menyen oppe til høyre.
 
 **Velg Turnusår.** Hvis flere ruteterminer er lagt inn, kan du bytte mellom dem i menyen. En gul varsellinje viser når du ser på et annet år enn det aktive.
-
-_\[Bilde: søknadsskjemaet med favoritter i kolonne 1\]_
 
 ## Etter at turnusene er levert: skriv en vurdering
 
@@ -112,25 +97,9 @@ _\[Bilde: søknadsskjemaet med favoritter i kolonne 1\]_
 2. Hva var mest nyttig? Hva var minst nyttig?
 3. Hva var forvirrende eller vanskelig å finne? Hvor stoppet du opp?
 4. Fant du feil i data (dagsverk, tider, datoer, kompdager) sammenlignet med NLF-filene? Hvilke?
-5. Fungerte det på mobil like godt som på PC?
+5. Fungerte det på mobil/nettbrett like godt som på PC?
 6. Stolte du på det ferdige søknadsskjemaet? Brukte du det, eller fylte du ut for hånd?
 7. Hva mangler? Hva ville fått deg til å anbefale det til en kollega?
 8. Hvor mange ganger og hvor lenge brukte du appen, omtrent?
-
-Skriv gjerne på e-post, i et dokument eller som punktliste. Det du sendte underveis trenger du ikke gjenta, men vis gjerne til det.
-
-## Sjekkliste for testpanelet
-
-- [ ] Opprettet konto og aktivert e-posten
-- [ ] Gått gjennom veiledningen (Hjelp-knappen)
-- [ ] Prøvd Sorter-bryterne på Turnusliste
-- [ ] Åpnet en strekliste
-- [ ] Merket minst fem favoritter og satt dem i rekkefølge
-- [ ] Åpnet turnusnøkkelen og valgt linjeprioritering
-- [ ] Sett på Oversikt-siden
-- [ ] Lastet ned søknadsskjemaet (.pdf eller .docx)
-- [ ] Kontrollert favorittene og skjemaet mot de offisielle NLF-filene
-- [ ] Sendt minst én tilbakemelding underveis til support@turnushjelper.no
-- [ ] Sendt vurderingen etter at turnusene er levert
 
 Takk for at du er med. Det du finner, gjør verktøyet bedre for alle som skal søke turnus senere.

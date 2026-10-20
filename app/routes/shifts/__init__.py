@@ -22,6 +22,24 @@ def log_page_view():
     log_event(current_user.id, "page_view", details=page)
 
 
+def transition_notice_response():
+    """The waiting page while ``AppConfig.TRANSITION_NOTICE`` is set, else None.
+
+    The browsing pages return this instead of rendering the old turnus set
+    between two ruteterminer. Mintur does not call it.
+    """
+    from flask import render_template
+
+    from config import AppConfig
+
+    notice = AppConfig.TRANSITION_NOTICE
+    if not notice:
+        return None
+    return render_template(
+        "transition_notice.html", page_name="Venter på turnuser", notice=notice
+    )
+
+
 def _classify_shift_type(start_str: str, end_str: str) -> str:
     """Map shift start/end times to a Norwegian shift-type label.
 

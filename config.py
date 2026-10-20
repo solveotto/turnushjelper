@@ -51,6 +51,11 @@ class AppConfig:
     # Database
     DB_TYPE = _env("DB_TYPE", "sqlite")
 
+    # Between two ruteterminer: when set, turnusliste, favoritter, oversikt and
+    # søknadsskjema show this text instead of the old set. Mintur is unaffected.
+    # Read at request time; edit .env and restart to change or remove it.
+    TRANSITION_NOTICE = _env("TRANSITION_NOTICE", "")
+
     # Session/auth cookie hardening.
     # SESSION_COOKIE_SECURE defaults ON in production (DB_TYPE=mysql) so the
     # session cookie is never transmitted over plaintext HTTP; it stays OFF for

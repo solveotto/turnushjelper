@@ -154,6 +154,23 @@ The schedule JSON is an abstract 6-week rotation with no calendar dates. The onl
   by the tests.
 - **Never seed a real `year_identifier` in tests that delete a turnus set.** `admin.delete_turnus_set` calls `strekliste_generator.delete_all_images(version)`, which resolves through `AppConfig.turnusfiler_dir` — a test using `"R26"` deletes the committed 423 PNGs on every run, silently (they are gitignored, so `git status` stays clean). `tests/test_turnus_set_delete_guard.py` uses `FAKE_YEAR = "T99"` *and* an autouse fixture repointing `turnusfiler_dir` at `tmp_path`.
 
+### Rutetermin changeover
+
+- **Mintur follows the driver's innplassering, not the active set**
+  (`_pick_record` in `app/routes/shifts/mintur.py`, decided 2026-10-20). It
+  shows the newest set the driver is placed in, with `?sett=<id>` to view an
+  older one and a switch on the page when there is more than one. So
+  activating R27 in October does not move anyone's mintur to December; it
+  moves the day the R27 innplassering is imported. The navbar "Min tur" link
+  likewise checks any set. "Active" only means the set turnusliste,
+  favorites, oversikt and søknadsskjema work on.
+- **`TRANSITION_NOTICE`** in `.env` (read at request time, empty by default):
+  when set, those four pages render `transition_notice.html` with the text
+  instead of the old set, via `transition_notice_response()` in
+  `app/routes/shifts/__init__.py`. Mintur and the set dropdown are unaffected.
+  Remove the line and restart when the new set is active. Guarded by
+  `tests/test_transition_notice.py`.
+
 ### Kompdager
 
 All logic lives in `app/utils/kompdag_utils.py`. A kompdag is generated when a rostered fridag falls on a helge-/høytidsdag (overenskomsten §5.13.1). Holiday dates are **computed** (fixed dates + Easter-offset formula in `_easter()`), never read from the Excel's red font (which is manually colored and incomplete) and never fetched externally. Counting rules (all user-confirmed):

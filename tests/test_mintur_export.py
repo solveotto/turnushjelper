@@ -35,20 +35,8 @@ from app.models import TurnusSet
 
 
 class TestLoadMinturData:
-    def test_returns_none_when_no_active_set(self, monkeypatch):
-        from app.routes.shifts.mintur import _load_mintur_data
-        monkeypatch.setattr("app.routes.shifts.mintur.turnus_service.get_active_turnus_set", lambda: None)
-        monkeypatch.setattr(
-            "app.routes.shifts.mintur.get_innplassering_for_user", lambda uid: []
-        )
-        assert _load_mintur_data(1) is None
-
     def test_returns_none_when_no_records(self, monkeypatch):
         from app.routes.shifts.mintur import _load_mintur_data
-        monkeypatch.setattr(
-            "app.routes.shifts.mintur.turnus_service.get_active_turnus_set",
-            lambda: {"id": 1, "year_identifier": "T26", "name": "Test"},
-        )
         monkeypatch.setattr(
             "app.routes.shifts.mintur.get_innplassering_for_user", lambda uid: []
         )
@@ -112,7 +100,7 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid, turnus_set_id=None: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=fixed&label=Jobb")
         assert resp.status_code == 200
@@ -158,7 +146,7 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid, turnus_set_id=None: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=auto&label=Vy")
         assert resp.status_code == 200
@@ -199,7 +187,7 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid, turnus_set_id=None: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=fixed&label=Nattjobb")
         body = resp.data.decode("utf-8")
@@ -240,9 +228,140 @@ class TestExportIcal:
                 }
             ],
         }
-        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid: fake_data)
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", lambda uid, turnus_set_id=None: fake_data)
 
         resp = client.get("/mintur/export_ical?mode=fixed&label=Jobb")
         assert resp.status_code == 200
         body = resp.data.decode("utf-8")
         assert "BEGIN:VEVENT" not in body
+
+
+class _FakeDm:
+    """Stands in for DataframeManager: one turnus, one week, one day."""
+
+    def __init__(self, turnus_set_id):
+        import pandas as pd
+        self.turnus_set_id = turnus_set_id
+        self.turnus_data = [
+            {"OSL_01": {"1": {"1": {"tid": ["07:00", "15:00"], "dagsverk": "3006"}}}}
+        ]
+        self.df = pd.DataFrame()
+
+
+RECORDS = [
+    {"turnus_set_id": 2, "year_identifier": "T27", "turnus_set_name": "T27",
+     "shift_title": "OSL_01", "linjenummer": 2},
+    {"turnus_set_id": 1, "year_identifier": "T26", "turnus_set_name": "T26",
+     "shift_title": "OSL_01", "linjenummer": 1},
+]
+
+
+class TestMinturFollowsInnplassering:
+    """Mintur shows the newest set the driver is placed in, not the active
+    set: R26 until the R27 innplassering arrives, then R27 by default with
+    R26 still viewable."""
+
+    def test_pick_record_defaults_to_newest_set(self):
+        from app.routes.shifts.mintur import _pick_record
+        assert _pick_record(list(reversed(RECORDS)))["turnus_set_id"] == 2
+
+    def test_pick_record_honours_requested_set(self):
+        from app.routes.shifts.mintur import _pick_record
+        assert _pick_record(RECORDS, 1)["year_identifier"] == "T26"
+
+    def test_pick_record_ignores_set_without_placement(self):
+        from app.routes.shifts.mintur import _pick_record
+        assert _pick_record(RECORDS, 99)["turnus_set_id"] == 2
+
+    def test_pick_record_empty(self):
+        from app.routes.shifts.mintur import _pick_record
+        assert _pick_record([]) is None
+
+    def test_load_without_active_set_uses_newest_placement(self, monkeypatch):
+        from app.routes.shifts import mintur as mod
+        monkeypatch.setattr(mod, "get_innplassering_for_user", lambda uid: RECORDS)
+        monkeypatch.setattr(mod.df_utils, "DataframeManager", _FakeDm)
+        data = mod._load_mintur_data(1)
+        assert data["turnus_set"] == {"id": 2, "year_identifier": "T27"}
+        assert data["turnus_set_id"] == 2
+        assert data["linjenummer"] == 2
+        assert data["available_sets"] == [
+            {"id": 2, "year_identifier": "T27"},
+            {"id": 1, "year_identifier": "T26"},
+        ]
+
+    def test_load_requested_set(self, monkeypatch):
+        from app.routes.shifts import mintur as mod
+        monkeypatch.setattr(mod, "get_innplassering_for_user", lambda uid: RECORDS)
+        monkeypatch.setattr(mod.df_utils, "DataframeManager", _FakeDm)
+        data = mod._load_mintur_data(1, turnus_set_id=1)
+        assert data["turnus_set"]["year_identifier"] == "T26"
+        assert data["linjenummer"] == 1
+
+    def _fake_data(self):
+        return {
+            "shift_title": "OSL_01", "linjenummer": 2, "year_identifier": "T27",
+            "turnus_set_id": 2, "turnus_set": {"id": 2, "year_identifier": "T27"},
+            "available_sets": [{"id": 2, "year_identifier": "T27"},
+                               {"id": 1, "year_identifier": "T26"}],
+            "groups": [], "template_found": False, "raw": {}, "dm": _FakeDm(2),
+        }
+
+    def test_route_passes_sett_and_renders_switch(self, client, monkeypatch, sample_user):
+        login_user(client, sample_user["username"], sample_user["password"])
+        seen = {}
+
+        def loader(uid, turnus_set_id=None):
+            seen["sett"] = turnus_set_id
+            return self._fake_data()
+
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", loader)
+        monkeypatch.setattr("app.routes.shifts.mintur.count_kompdager", lambda sid: None)
+        resp = client.get("/mintur?sett=1")
+        assert resp.status_code == 200
+        assert seen["sett"] == 1
+        body = resp.data.decode()
+        assert "/mintur?sett=1" in body
+        assert "/mintur?sett=2" in body
+
+    def test_route_without_sett_passes_none(self, client, monkeypatch, sample_user):
+        login_user(client, sample_user["username"], sample_user["password"])
+        seen = {}
+
+        def loader(uid, turnus_set_id=None):
+            seen["sett"] = turnus_set_id
+            return self._fake_data()
+
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", loader)
+        monkeypatch.setattr("app.routes.shifts.mintur.count_kompdager", lambda sid: None)
+        assert client.get("/mintur").status_code == 200
+        assert seen["sett"] is None
+
+    def test_ical_passes_sett(self, client, monkeypatch, sample_user):
+        login_user(client, sample_user["username"], sample_user["password"])
+        seen = {}
+
+        def loader(uid, turnus_set_id=None):
+            seen["sett"] = turnus_set_id
+            d = self._fake_data()
+            d["template_found"] = True
+            return d
+
+        monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data", loader)
+        resp = client.get("/mintur/export_ical?sett=1")
+        assert resp.status_code == 200
+        assert seen["sett"] == 1
+
+    def test_navbar_link_for_placement_in_inactive_set(self, client, db_session, sample_user):
+        from app.models import DBUser, Innplassering
+        ts = TurnusSet(name="T27", year_identifier="T27", is_active=0)
+        db_session.add(ts)
+        db_session.commit()
+        user = db_session.query(DBUser).filter_by(id=sample_user["id"]).one()
+        user.rullenummer = "555"
+        db_session.add(Innplassering(turnus_set_id=ts.id, rullenummer="555",
+                                     shift_title="OSL_01", linjenummer=1))
+        db_session.commit()
+        login_user(client, sample_user["username"], sample_user["password"])
+        body = client.get("/favorites").data.decode()
+        assert 'href="/mintur"' in body

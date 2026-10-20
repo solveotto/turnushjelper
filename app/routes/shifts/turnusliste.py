@@ -3,7 +3,7 @@ import math
 from flask import redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
-from app.routes.shifts import shifts
+from app.routes.shifts import shifts, transition_notice_response
 from app.services import favorites_service, turnus_service
 from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager, kompdager_max_label
@@ -76,6 +76,9 @@ def _build_turnus_metrics(turnus_data, df_by_name, komp):
 @shifts.route("/turnusliste")
 @login_required
 def turnusliste():
+    notice = transition_notice_response()
+    if notice:
+        return notice
     # Get the turnus set for this user (their choice or system default)
     user_turnus_set = get_user_turnus_set()
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None

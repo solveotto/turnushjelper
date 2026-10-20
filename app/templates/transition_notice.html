@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="alert alert-info d-flex align-items-center gap-3" role="alert">
+                <i class="bi bi-hourglass-split fs-2"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">Nye turnuser er på vei</h5>
+                    <div>{{ notice }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

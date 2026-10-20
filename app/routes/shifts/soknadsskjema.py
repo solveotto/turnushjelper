@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from app.database import get_db_session
 from app.models import DBUser, SoknadsskjemaChoice
-from app.routes.shifts import shifts
+from app.routes.shifts import shifts, transition_notice_response
 from app.services import favorites_service, turnus_service
 from app.utils.soknadsskjema_gen import (
     build_soknadsskjema_doc,
@@ -47,6 +47,9 @@ def _get_soknadsskjema_choices(user_id, turnus_set_id):
 @shifts.route("/soknadsskjema", methods=["GET", "POST"])
 @login_required
 def soknadsskjema():
+    notice = transition_notice_response()
+    if notice:
+        return notice
     user_turnus_set = get_user_turnus_set()
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None
     user_id = current_user.get_id()

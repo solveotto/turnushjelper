@@ -31,7 +31,7 @@
     class="container-fluid printable mt-3"
     data-tour-page="mintur"
     data-tour-seen="{{ has_seen_mintur_tour }}"
-    data-current-turnus-set-id="{{ active_set.id if active_set else 'null' }}"
+    data-current-turnus-set-id="{{ turnus_set.id }}"
 >
     <div class="row justify-content-center">
         <div class="col-auto">
@@ -52,6 +52,16 @@
                                 </h5>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                {% if available_sets|length > 1 %}
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Velg turnussett">
+                                    {% for ts in available_sets %}
+                                    <a href="{{ url_for('shifts.mintur', sett=ts.id) }}"
+                                       class="btn {% if ts.id == turnus_set.id %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        {{ ts.year_identifier | display_name }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                                 <span class="badge bg-primary">Linje {{ linjenummer }}</span>
                             </div>
                         </div>
@@ -608,7 +618,8 @@
         const label = autoRadio.checked
             ? encodeURIComponent(autoPrefix.value.trim() || "Vy")
             : encodeURIComponent(fixedLabel.value.trim() || "Jobb");
-        downloadBtn.href = `/mintur/export_ical?mode=${mode}&label=${label}`;
+        const sett = document.querySelector('[data-tour-page="mintur"]').dataset.currentTurnusSetId;
+        downloadBtn.href = `/mintur/export_ical?mode=${mode}&label=${label}&sett=${sett}`;
     }
 
     function toggleMode() {

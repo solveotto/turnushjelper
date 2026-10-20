@@ -1,7 +1,7 @@
 from flask import render_template
 from flask_login import current_user, login_required
 
-from app.routes.shifts import shifts
+from app.routes.shifts import shifts, transition_notice_response
 from app.services import favorites_service, turnus_service
 from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager, kompdager_max_label
@@ -11,6 +11,9 @@ from app.utils.turnus_helpers import get_user_turnus_set
 @shifts.route("/favorites")
 @login_required
 def favorites():
+    notice = transition_notice_response()
+    if notice:
+        return notice
     # Get user's selected turnus set (same logic as turnusliste)
     user_turnus_set = get_user_turnus_set()
     turnus_set_id = user_turnus_set["id"] if user_turnus_set else None

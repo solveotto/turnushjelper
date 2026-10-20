@@ -61,7 +61,7 @@ def create_app():
     @app.context_processor
     def inject_tour_state():
         if current_user.is_authenticated:
-            from app.models import Innplassering, TurnusSet
+            from app.models import Innplassering
             from app.utils.pdf_downloads import get_pdf_downloads
             from app.utils.turnus_helpers import get_user_turnus_set
             from flask import url_for
@@ -103,12 +103,11 @@ def create_app():
                     db_user = db_session.query(DBUser).filter_by(id=current_user.id).first()
                     has_min_turnus = False
                     if db_user and db_user.rullenummer:
-                        active_ts = db_session.query(TurnusSet).filter_by(is_active=1).first()
-                        if active_ts:
-                            has_min_turnus = db_session.query(Innplassering).filter_by(
-                                turnus_set_id=active_ts.id,
-                                rullenummer=str(db_user.rullenummer),
-                            ).first() is not None
+                        # Any set, not only the active one: mintur follows the
+                        # driver's placements (routes/shifts/mintur.py).
+                        has_min_turnus = db_session.query(Innplassering).filter_by(
+                            rullenummer=str(db_user.rullenummer),
+                        ).first() is not None
                 finally:
                     db_session.close()
                 cache.set(min_turnus_key, has_min_turnus, timeout=60)
