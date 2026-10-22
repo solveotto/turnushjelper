@@ -316,6 +316,7 @@ def main():
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
+        f.write("\n")
 
     print(f"Found {len(result['dobbelt_tur'])} dobbelt tur pairs.")
     print(f"Found {len(result['delt_dagsverk'])} delt dagsverk shifts.")

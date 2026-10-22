@@ -878,6 +878,7 @@ def generate_strekliste(turnus_set_id):
             )
             with open(double_shift_output, "w", encoding="utf-8") as f:
                 json.dump(double_shift_data, f, indent=2, ensure_ascii=False)
+                f.write("\n")
 
             # Double-shift flags are baked into the cached turnus data at
             # load time — drop the cache so the new flags take effect now.

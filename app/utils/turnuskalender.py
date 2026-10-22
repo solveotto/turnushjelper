@@ -3,8 +3,11 @@
 The schedule JSON is an abstract 6-week rotation carrying no dates at all, so
 ``turnusnøkkel_{YEAR}_org.xlsx`` is the project's only calendar-date source.
 Sheet "Turnusnøkkel" holds 6 nøkkel groups of 8 rows each (one header row then
-seven weekday rows, Monday first), with dates in columns H-P — nine columns,
-one for each time that group comes round in the rutetermin.
+seven weekday rows, Monday first), with nine week columns — one for each
+time that group comes round in the rutetermin. They are usually H-P, but a
+group starts wherever its header row says "Uke": the R27 draft had groups 1-4
+shifted one column right, so ``date_columns`` reads the header rather than
+trusting a fixed range.
 
 A worker on linje ``j`` follows rotation week ``((g + j - 1) % 6) + 1`` while
 the calendar is in group ``g``. That one line is the whole mapping, and it used
@@ -28,8 +31,11 @@ SHEET_NAME = "Turnusnøkkel"
 NOKKEL_GROUPS = 6
 ROWS_PER_GROUP = 8
 DAYS_PER_WEEK = 7
-#: Columns H-P, zero-based and end-exclusive — the nine week columns per group.
-DATE_COLUMNS = slice(7, 16)
+#: Nine week columns per group.
+WEEK_COLUMNS = 9
+#: Columns H-P, zero-based and end-exclusive — where the week columns sit when
+#: the header row carries no "Uke" label to locate them by.
+DATE_COLUMNS = slice(7, WEEK_COLUMNS + 7)
 #: The grid occupies the first 48 rows: 6 groups x 8 rows.
 GRID_ROWS = NOKKEL_GROUPS * ROWS_PER_GROUP
 
@@ -80,6 +86,20 @@ def load_nokkel_rows(year_identifier):
     return rows
 
 
+def date_columns(header_row):
+    """The slice of one group's nine week columns, located by its header.
+
+    ``header_row`` is the group's first row. The week columns start at the
+    first cell whose text begins with "Uke" (any case, padding ignored) and
+    fall back to H-P when no such label exists.
+    """
+    for index, cell in enumerate(header_row):
+        value = getattr(cell, "value", None)
+        if value is not None and str(value).strip().lower().startswith("uke"):
+            return slice(index, index + WEEK_COLUMNS)
+    return DATE_COLUMNS
+
+
 def cell_date(cell):
     """The date in a cell, or None. Openpyxl hands back datetimes, not dates."""
     value = getattr(cell, "value", None)
@@ -101,9 +121,10 @@ def build_date_index(year_identifier=None, *, rows=None):
 
     index = {}
     for group in range(NOKKEL_GROUPS):
+        columns = date_columns(rows[group * ROWS_PER_GROUP])
         for day in range(DAYS_PER_WEEK):
             row = rows[group * ROWS_PER_GROUP + 1 + day]
-            for cell in row[DATE_COLUMNS]:
+            for cell in row[columns]:
                 date = cell_date(cell)
                 if date is not None:
                     index[date] = (group, day)

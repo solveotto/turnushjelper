@@ -126,10 +126,13 @@ def get_holiday_positions(year_identifier):
     all_rows = [list(row) for row in sheet.iter_rows(min_row=1, max_row=48)]
     wb.close()
 
+    from app.utils.turnuskalender import date_columns
+
     cell_dates = []
     for g in range(6):
+        columns = date_columns(all_rows[g * 8])
         for d in range(7):
-            for cell in all_rows[g * 8 + 1 + d][7:16]:
+            for cell in all_rows[g * 8 + 1 + d][columns]:
                 cal_date = _cell_date(cell)
                 if cal_date is not None:
                     cell_dates.append((g, d, cal_date))
