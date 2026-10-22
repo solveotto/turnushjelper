@@ -76,6 +76,10 @@ def _build_turnus_metrics(turnus_data, df_by_name, komp):
 @shifts.route("/turnusliste")
 @login_required
 def turnusliste():
+    # Imported here, not at module level: a test reloads ``config``, and a
+    # module-level AppConfig would keep pointing at the pre-reload class.
+    from config import AppConfig
+
     notice = transition_notice_response()
     if notice:
         return notice
@@ -128,6 +132,7 @@ def turnusliste():
         active_set=active_set,
         all_turnus_sets=turnus_service.get_all_turnus_sets(),
         highlighted_turnus=highlighted_turnus,
+        turnusliste_notice=AppConfig.TURNUSLISTE_NOTICE,
     )
 
 

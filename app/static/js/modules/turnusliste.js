@@ -8,6 +8,25 @@ function handleKeyFunction(turnusName) {
     window.open(`/turnusnokkel/${turnusSetId}/${encodeURIComponent(turnusName)}`, '_blank');
 }
 
+// Admin notice from .env (TURNUSLISTE_NOTICE). Dismissal is remembered per
+// text, so a changed message shows again. Called inline right after the
+// element so a dismissed notice is removed before first paint — waiting for
+// DOMContentLoaded made it flash on every page load.
+const NOTICE_DISMISSED_KEY = 'turnuslisteNoticeDismissed';
+
+function hideDismissedNotice() {
+    const notice = document.getElementById('turnusliste-notice');
+    if (!notice) return;
+    const text = notice.dataset.noticeText || '';
+    if (localStorage.getItem(NOTICE_DISMISSED_KEY) === text) {
+        notice.remove();
+    } else {
+        notice.addEventListener('closed.bs.alert', function() {
+            localStorage.setItem(NOTICE_DISMISSED_KEY, text);
+        });
+    }
+}
+
 // Helper function to get current turnus set ID
 function getCurrentTurnusSetId() {
     // Try to get from the printable container

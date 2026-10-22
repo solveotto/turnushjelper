@@ -56,6 +56,12 @@ class AppConfig:
     # Read at request time; edit .env and restart to change or remove it.
     TRANSITION_NOTICE = _env("TRANSITION_NOTICE", "")
 
+    # Optional message shown as a dismissible yellow banner above the
+    # turnusliste. The page itself is unaffected. Edit .env and restart to
+    # change or remove it; a changed text reappears for users who dismissed
+    # the previous one.
+    TURNUSLISTE_NOTICE = _env("TURNUSLISTE_NOTICE", "")
+
     # Session/auth cookie hardening.
     # SESSION_COOKIE_SECURE defaults ON in production (DB_TYPE=mysql) so the
     # session cookie is never transmitted over plaintext HTTP; it stays OFF for

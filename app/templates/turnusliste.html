@@ -86,6 +86,15 @@
     <main class="main-content">
         <div class="container-fluid printable"
             data-current-turnus-set-id="{% if current_turnus_set %}{{ current_turnus_set.id }}{% else %}null{% endif %}">
+            {% if turnusliste_notice %}
+            <div id="turnusliste-notice" class="alert alert-warning alert-dismissible fade show d-flex align-items-center gap-2 no-print"
+                role="alert" data-notice-text="{{ turnusliste_notice }}">
+                <i class="bi bi-info-circle-fill"></i>
+                <div>{{ turnusliste_notice }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Lukk"></button>
+            </div>
+            <script>hideDismissedNotice();</script>
+            {% endif %}
             {% if current_turnus_set and active_set and current_turnus_set.id != active_set.id %}
             <div class="alert alert-warning d-flex align-items-center gap-2 no-print" role="alert">
                 <i class="bi bi-exclamation-triangle-fill"></i>
