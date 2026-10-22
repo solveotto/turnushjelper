@@ -147,14 +147,21 @@ does three things:
 2. Scans double and split shifts into `turnusdata/{rxx}/double_shifts_{rxx}.json` (tracked in git).
 3. Parses every duty into the `strekliste_dagsverk` and `strekliste_aktivitet` tables.
 
-It runs synchronously inside the request and takes about 35 s on the
-servers, so the gunicorn unit needs `--timeout 300`. If the browser shows
-"En feil oppstod under generering", the request died; look in
-`/var/log/turnushjelper/error.log`, not journald. For routine regeneration
-prefer the CLI form in `CLAUDE.md`, which also prints the per-shift errors
-the admin route discards. A forced run builds into a temp directory and
-swaps in only when complete, so an interrupted run leaves the old images
-untouched.
+It runs synchronously inside one request. Locally that is about a minute
+for R27; on the servers it has exceeded gunicorn's `--timeout 300` and the
+browser then shows "Forespørselen brøt sammen under generering", which only
+means the request died (the worker abort lands in
+`/var/log/turnushjelper/error.log`, not journald). **On the servers, use the
+script instead of the button:**
+
+```bash
+venv/bin/python scripts/generate_strekliste.py --year RXX
+```
+
+It does the same three steps, prints the time and result of each, and runs
+outside gunicorn so no timeout applies and no web worker is tied up. Both
+paths build the images into a temp directory and swap them in only when
+complete, so an interrupted run leaves the old images untouched.
 
 Check the count: `ls turnusdata/{rxx}/streklister/png | wc -l` must equal
 the number of shifts in the set (423 for R26). A different count means the
@@ -240,7 +247,7 @@ Preferred flow:
 2. On the host: `git pull`, `venv/bin/alembic upgrade head`.
 3. Copy the streker PDF to `turnusdata/{rxx}/streklister/` and the innplassering PDF to `instance/protected/{rxx}/`.
 4. **Opprett turnussett** with **Bruk eksisterende filer** ticked. Same validator, no re-scrape.
-5. Strekliste **Generer**, innplassering import, as in sections 5 and 6.
+5. `venv/bin/python scripts/generate_strekliste.py --year RXX`, then the innplassering import, as in sections 5 and 6.
 6. `sudo systemctl restart turnushjelper`.
 
 Restart is not optional. Production runs two gunicorn workers with
@@ -322,7 +329,7 @@ someone regenerates.
 | "Validering feilet" on create | Source data failed the gate. Full list in `app/logs/turnus_import.log` |
 | "Feil ved skraping av PDF" | The PDF layout does not match the scraper's fixed boxes. Use the Timeskjema |
 | "Verifiserings-PDF kunne ikke leses" | Scrape crashed. Re-upload without the verification PDF to import unchecked, or fix the PDF |
-| "En feil oppstod under generering" | The strekliste request died, usually gunicorn timeout. Use the CLI |
+| "Forespørselen brøt sammen under generering" | The strekliste request died, usually gunicorn timeout. Use `scripts/generate_strekliste.py` |
 | Wrong PNG count | Wrong streker PDF edition |
 | Søknadsskjema will not generate | Nøkkel missing for the set |
 | Kompdager show `–` | Nøkkel missing. Not an error |
