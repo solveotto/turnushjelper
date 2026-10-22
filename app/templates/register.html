@@ -324,8 +324,12 @@
                     if (medlemsnummer) params.set("medlemsnummer", medlemsnummer);
                     const res = await fetch(`/api/check-rullenummer?${params}`);
                     const data = await res.json();
+                    // An unknown rullenummer is not an error: the seniority
+                    // list may lack the column entirely, and the server
+                    // accepts the typed value. Stay quiet rather than show
+                    // a warning that reads like a refusal.
                     if (!data.found) {
-                        preview.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Rullenummeret ble ikke funnet på ansienitetslisten.</span>`;
+                        preview.innerHTML = "";
                         return;
                     }
                     if (data.name_match === false) {
