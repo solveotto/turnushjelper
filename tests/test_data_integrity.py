@@ -35,6 +35,10 @@ _STATIC_PDF = os.path.join(
     AppConfig.turnusfiler_dir, "r26", "pdf", "turnuser_R26.pdf"
 )
 _PDF_PATH = _FIXTURE_PDF if os.path.exists(_FIXTURE_PDF) else _STATIC_PDF
+# Primary source (committed): the Timeskjema export the JSON was built from.
+_TIMESKJEMA_PATH = os.path.join(
+    AppConfig.turnusfiler_dir, "r26", "turnuser_R26.xls"
+)
 
 # ---------------------------------------------------------------------------
 # Shared fixture: load the stored JSON once per session
@@ -175,9 +179,11 @@ class TestTimeValues:
 
 class TestKnownValues:
     def test_osl01_totals(self, turnus_data):
+        # Timeskjema values. The PDF edition printed 203:27 / 223:14; the
+        # Timeskjema is the primary source (decided 2026-07-08).
         d = _get_turnus(turnus_data, "OSL_01")
-        assert d["kl_timer"] == "203:27"
-        assert d["tj_timer"] == "223:14"
+        assert d["kl_timer"] == "203:26"
+        assert d["tj_timer"] == "223:11"
 
     def test_osl01_w1d1(self, turnus_data):
         day = _get_turnus(turnus_data, "OSL_01")["1"]["1"]
@@ -245,23 +251,84 @@ class TestHardenedValidator:
 
 
 # ---------------------------------------------------------------------------
-# TestScraperRoundtrip — re-scrape the real PDF and compare to stored JSON
+# TestTimeskjemaRoundtrip — the committed JSON must be exactly what the
+# ingestion pipeline produces from the committed sources
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(
-    not os.path.exists(_PDF_PATH),
-    reason=f"PDF not available at {_PDF_PATH}",
-)
+@pytest.fixture(scope="module")
+def scraped():
+    """ShiftScraper output for the fixture PDF (int week/day keys)."""
+    if not os.path.exists(_PDF_PATH):
+        pytest.skip(f"PDF not available at {_PDF_PATH}")
+    from app.utils.pdf.shiftscraper import ShiftScraper
+
+    scraper = ShiftScraper()
+    scraper.scrape_pdf(_PDF_PATH)
+    return scraper.turnuser
+
+
+class TestTimeskjemaRoundtrip:
+    """The Timeskjema is the primary source and the PDF only enriches
+    dagsverk strings (``3006`` -> ``3006_SKNO``). Re-running that pipeline on
+    the committed sources must reproduce the committed JSON byte for byte.
+    A mismatch means the JSON was hand-edited, regenerated without the PDF in
+    place (enrichment silently skipped), or the sources were swapped without
+    a refresh."""
+
+    def test_stored_json_equals_enriched_timeskjema_parse(
+        self, turnus_data, scraped
+    ):
+        from app.utils.timeskjema_parser import parse_timeskjema
+        from app.utils.turnus_diff import enrich_dagsverk
+
+        if not os.path.exists(_TIMESKJEMA_PATH):
+            pytest.skip(f"Timeskjema not available at {_TIMESKJEMA_PATH}")
+        parsed = parse_timeskjema(_TIMESKJEMA_PATH).turnuser
+        # JSON round-trip: the parser emits int keys, the stored file has str.
+        expected = json.loads(json.dumps(enrich_dagsverk(parsed, scraped)))
+        assert expected == turnus_data
+
+
+# ---------------------------------------------------------------------------
+# TestScraperRoundtrip — the PDF edition differs from the Timeskjema in a
+# known, fixed set of revision cells and nothing else
+# ---------------------------------------------------------------------------
+
+# Every cell (turnus, uke, dag) and every turnus total where the fixture PDF
+# ("Oslo R26 etter listemøte", printed 09.10.2025) disagrees with the later
+# Timeskjema export. All 20 cells and 9 totals are genuine planning revisions
+# (verified against the PDF's own printed text), not scrape errors. See
+# CLAUDE.md "Cross-source verification must never hard-fail on inequality".
+_KNOWN_PDF_REVISION_CELLS = {
+    ("OSL_01", 3, 7),
+    ("OSL_02", 1, 2),
+    ("OSL_02", 1, 3),
+    ("OSL_03", 1, 6),
+    ("OSL_03", 1, 7),
+    ("OSL_04", 1, 5),
+    ("OSL_04", 1, 6),
+    ("OSL_07", 1, 3),
+    ("OSL_07", 1, 4),
+    ("OSL_15_Østre_Linje", 3, 3),
+    ("OSL_15_Østre_Linje", 3, 4),
+    ("OSL_19_Gjøvik", 1, 3),
+    ("OSL_19_Gjøvik", 3, 3),
+    ("OSL_25", 5, 7),
+    ("OSL_33", 5, 7),
+    ("OSL_Ramme_10", 1, 6),
+    ("OSL_Ramme_10", 1, 7),
+    ("OSL_Ramme_10", 5, 3),
+    ("OSL_Ramme_10", 5, 6),
+    ("OSL_Ramme_10", 5, 7),
+}
+_KNOWN_PDF_REVISION_TOTALS = {
+    "OSL_01", "OSL_03", "OSL_04", "OSL_07", "OSL_25", "OSL_28", "OSL_33",
+    "OSL_38", "OSL_Ramme_10",
+}
+
+
 class TestScraperRoundtrip:
-    @pytest.fixture(scope="class")
-    def scraped(self):
-        from app.utils.pdf.shiftscraper import ShiftScraper
-
-        scraper = ShiftScraper()
-        scraper.scrape_pdf(_PDF_PATH)
-        return scraper.turnuser
-
     def test_same_turnus_count(self, turnus_data, scraped):
         assert len(scraped) == len(turnus_data)
 
@@ -270,63 +337,33 @@ class TestScraperRoundtrip:
         scraped_names = {next(iter(e)) for e in scraped}
         assert scraped_names == stored_names
 
-    def test_all_tid_values_match(self, turnus_data, scraped):
-        # Stored JSON has string keys; scraper keeps integer keys in memory.
-        stored_map = {next(iter(e)): next(iter(e.values())) for e in turnus_data}
+    def test_pdf_differs_only_in_known_revision_cells(self, turnus_data, scraped):
+        # Exact set equality both ways: a new difference means the scraper or
+        # the JSON drifted; a vanished one means the sources were swapped and
+        # this list needs re-deriving.
+        from app.utils.turnus_diff import diff_turnus_data
+
+        diff = diff_turnus_data(turnus_data, scraped)
+        cells = {(c["turnus"], c["uke"], c["dag"]) for c in diff["cells"]}
+        totals = {t["turnus"] for t in diff["totals"]}
+        assert cells == _KNOWN_PDF_REVISION_CELLS, (
+            f"unexpected: {sorted(cells - _KNOWN_PDF_REVISION_CELLS)}, "
+            f"missing: {sorted(_KNOWN_PDF_REVISION_CELLS - cells)}"
+        )
+        assert totals == _KNOWN_PDF_REVISION_TOTALS, (
+            f"unexpected: {sorted(totals - _KNOWN_PDF_REVISION_TOTALS)}, "
+            f"missing: {sorted(_KNOWN_PDF_REVISION_TOTALS - totals)}"
+        )
+
+    def test_scraped_start_slutt_consistent(self, scraped):
+        # Locks the start/slutt assembly fix in the scraper itself: for every
+        # working day the derived fields must be the two ends of ``tid``.
         for entry in scraped:
             name, s_data = next(iter(entry.items()))
-            t_data = stored_map[name]
             for week_nr in range(1, 7):
                 for day_nr in range(1, 8):
-                    s_tid = s_data[week_nr][day_nr]["tid"]
-                    t_tid = t_data[str(week_nr)][str(day_nr)]["tid"]
-                    assert s_tid == t_tid, (
-                        f"{name} W{week_nr}D{day_nr}: "
-                        f"scraped tid {s_tid} != stored {t_tid}"
-                    )
-
-    def test_all_dagsverk_match(self, turnus_data, scraped):
-        stored_map = {next(iter(e)): next(iter(e.values())) for e in turnus_data}
-        for entry in scraped:
-            name, s_data = next(iter(entry.items()))
-            t_data = stored_map[name]
-            for week_nr in range(1, 7):
-                for day_nr in range(1, 8):
-                    s_dv = s_data[week_nr][day_nr]["dagsverk"]
-                    t_dv = t_data[str(week_nr)][str(day_nr)]["dagsverk"]
-                    assert s_dv == t_dv, (
-                        f"{name} W{week_nr}D{day_nr}: "
-                        f"scraped dagsverk '{s_dv}' != stored '{t_dv}'"
-                    )
-
-    def test_all_totals_match(self, turnus_data, scraped):
-        stored_map = {next(iter(e)): next(iter(e.values())) for e in turnus_data}
-        for entry in scraped:
-            name, s_data = next(iter(entry.items()))
-            t_data = stored_map[name]
-            assert s_data.get("kl_timer") == t_data.get("kl_timer"), (
-                f"{name}: kl_timer mismatch"
-            )
-            assert s_data.get("tj_timer") == t_data.get("tj_timer"), (
-                f"{name}: tj_timer mismatch"
-            )
-
-    def test_all_start_slutt_match(self, turnus_data, scraped):
-        # Locks the start/slutt assembly fix: scraped derived fields must equal
-        # the committed (regenerated) JSON for every day.
-        stored_map = {next(iter(e)): next(iter(e.values())) for e in turnus_data}
-        for entry in scraped:
-            name, s_data = next(iter(entry.items()))
-            t_data = stored_map[name]
-            for week_nr in range(1, 7):
-                for day_nr in range(1, 8):
-                    s_day = s_data[week_nr][day_nr]
-                    t_day = t_data[str(week_nr)][str(day_nr)]
-                    assert s_day["start"] == t_day["start"], (
-                        f"{name} W{week_nr}D{day_nr}: scraped start "
-                        f"{s_day['start']!r} != stored {t_day['start']!r}"
-                    )
-                    assert s_day["slutt"] == t_day["slutt"], (
-                        f"{name} W{week_nr}D{day_nr}: scraped slutt "
-                        f"{s_day['slutt']!r} != stored {t_day['slutt']!r}"
-                    )
+                    day = s_data[week_nr][day_nr]
+                    tid = day["tid"]
+                    if len(tid) == 2:
+                        assert day["start"] == tid[0], f"{name} W{week_nr}D{day_nr}"
+                        assert day["slutt"] == tid[1], f"{name} W{week_nr}D{day_nr}"

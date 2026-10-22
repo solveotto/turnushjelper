@@ -132,7 +132,7 @@ class AppConfig:
     WTF_CSRF_TIME_LIMIT = _env_int("WTF_CSRF_TIME_LIMIT", 8 * 60 * 60)
 
     # Landing page: "mintur" shows Min Turnus, "turnusliste" redirects to /turnusliste
-    LANDING_PAGE = _env("LANDING_PAGE", "mintur")
+    LANDING_PAGE = _env("LANDING_PAGE", "turnusliste")
 
     # Paths
     base_dir = os.path.dirname(__file__)
