@@ -27,6 +27,23 @@ def nr_base(nr):
     return m.group(0) if m else ""
 
 
+def _sjekk_lengder(rad):
+    """Raise ValueError when a string value exceeds its column.
+
+    SQLite stores any length while MySQL refuses the row, so without this the
+    development database accepts what production rejects (R27's 22-char
+    "1208-mod_1___N05_13_17" against nr String(20), 2026-10-22).
+    """
+    for kolonne in rad.__table__.columns:
+        maks = getattr(kolonne.type, "length", None)
+        verdi = getattr(rad, kolonne.name)
+        if maks and isinstance(verdi, str) and len(verdi) > maks:
+            raise ValueError(
+                f"Verdien «{verdi}» er {len(verdi)} tegn, men "
+                f"{rad.__tablename__}.{kolonne.name} tar høyst {maks}"
+            )
+
+
 def lagre_parse(turnus_set_id, res):
     """Replace the turnus set's strekliste rows with a ParseResult's duties."""
     db_session = get_db_session()
@@ -61,8 +78,11 @@ def lagre_parse(turnus_set_id, res):
                 kommentar=d.get("kommentar"),
                 advarsler=d.get("advarsler") or None,
             )
+            _sjekk_lengder(rad)
             for a in d.get("aktiviteter", []):
-                rad.aktiviteter.append(StreklisteAktivitet(**{f: a.get(f) for f in AKTIVITET_FELT}))
+                akt = StreklisteAktivitet(**{f: a.get(f) for f in AKTIVITET_FELT})
+                _sjekk_lengder(akt)
+                rad.aktiviteter.append(akt)
                 antall_akt += 1
             db_session.add(rad)
             per_sted[d.get("stasjoneringssted")] += 1

@@ -134,10 +134,10 @@ class StreklisteDagsverk(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     turnus_set_id = Column(Integer, ForeignKey("turnus_sets.id", ondelete="CASCADE"), nullable=False)
     stasjoneringssted = Column(String(10), nullable=True)
-    nr = Column(String(20), nullable=False)
+    nr = Column(String(60), nullable=False)       # R27 prints up to 22 chars ("1208-mod_1___N05_13_17")
     nr_base = Column(String(10), nullable=False)
     kjoredager = Column(String(7), nullable=False, default="")
-    dobbelt_tur = Column(String(30), nullable=True)   # "3006<<3007" when the row held two duties
+    dobbelt_tur = Column(String(130), nullable=True)  # "3006<<3007" when the row held two duties; two nr + "<<"
     materiell = Column(String(120), nullable=True)
     start = Column(String(5), nullable=True)      # "HH:MM"
     slutt = Column(String(5), nullable=True)

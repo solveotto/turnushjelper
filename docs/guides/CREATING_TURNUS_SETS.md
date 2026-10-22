@@ -330,7 +330,8 @@ someone regenerates.
 | "Feil ved skraping av PDF" | The PDF layout does not match the scraper's fixed boxes. Use the Timeskjema |
 | "Verifiserings-PDF kunne ikke leses" | Scrape crashed. Re-upload without the verification PDF to import unchecked, or fix the PDF |
 | "Forespørselen brøt sammen under generering" | The strekliste request died, usually gunicorn timeout. Use `scripts/generate_strekliste.py` |
-| Wrong PNG count | Wrong streker PDF edition |
+| Wrong PNG count | Wrong streker PDF edition, or the full multi-station file instead of the OSL pages |
+| "Data too long for column" from the parse | MySQL enforces column lengths, SQLite does not. Run `venv/bin/alembic upgrade head`; if it is at head, a new edition prints longer labels than the model allows |
 | Søknadsskjema will not generate | Nøkkel missing for the set |
 | Kompdager show `–` | Nøkkel missing. Not an error |
 | Some users see the old set | One worker not restarted |

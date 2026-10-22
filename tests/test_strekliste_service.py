@@ -85,3 +85,35 @@ def test_hent_dagsverk_picks_the_variant_for_a_weekday(turnus_set, db_session):
     assert strekliste_service.hent_dagsverk(turnus_set.id, "1310", ukedag=2)["start"] == "06:00"
     assert strekliste_service.hent_dagsverk(turnus_set.id, "1310", ukedag=4)["start"] == "07:00"
     assert strekliste_service.hent_dagsverk(turnus_set.id, "1310", ukedag=6) is None
+
+
+# --- column lengths -------------------------------------------------------
+# SQLite stores any length, MySQL refuses. Production found that out on
+# 2026-10-22 when R27's "1208-mod_1___N05_13_17" (22 chars) hit nr String(20)
+# after passing every test here. lagre_parse checks lengths itself so the
+# development database fails the same way the servers do.
+
+def test_lagre_accepts_the_longest_r27_label(turnus_set, db_session):
+    nr = "1208-mod_1___N05_13_17"
+    strekliste_service.lagre_parse(turnus_set.id, ParseResult(duties=[_duty(nr, "2345")]))
+    assert db_session.query(StreklisteDagsverk).one().nr == nr
+
+
+def test_lagre_rejects_a_duty_value_longer_than_its_column(turnus_set, db_session):
+    too_long = "1208-" + "x" * 80
+    with pytest.raises(ValueError, match="strekliste_dagsverk.nr"):
+        strekliste_service.lagre_parse(turnus_set.id, ParseResult(duties=[_duty(too_long, "1")]))
+    assert db_session.query(StreklisteDagsverk).count() == 0
+
+
+def test_lagre_rejects_an_activity_value_longer_than_its_column(turnus_set, db_session):
+    d = _duty("1201", "1")
+    d["aktiviteter"][0]["tekst"] = "y" * 301
+    with pytest.raises(ValueError, match="strekliste_aktivitet.tekst"):
+        strekliste_service.lagre_parse(turnus_set.id, ParseResult(duties=[d]))
+    assert db_session.query(StreklisteAktivitet).count() == 0
+
+
+def test_dobbelt_tur_column_holds_two_of_the_longest_labels():
+    nr_len = StreklisteDagsverk.__table__.c.nr.type.length
+    assert StreklisteDagsverk.__table__.c.dobbelt_tur.type.length >= 2 * nr_len + 2
