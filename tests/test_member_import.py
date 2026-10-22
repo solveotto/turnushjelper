@@ -1,5 +1,7 @@
 """Tests for the NLF member list import (parser + sync service)."""
 
+from datetime import datetime
+
 import pytest
 from openpyxl import Workbook
 
@@ -77,6 +79,50 @@ class TestParseMemberExcel:
             ("C, D", 60011),
         ])
         assert len(parse_member_excel(path)) == 2
+
+
+    def test_split_name_columns(self, tmp_path):
+        """New NLF export (Oct 2026): Etternavn + Fornavn instead of Navn."""
+        path = make_xlsx(
+            tmp_path / "m.xlsx",
+            [
+                ("068588", "Nordmann", "Ola Petter", "VY OSLO",
+                 datetime(2016, 10, 27), datetime(1984, 7, 27)),
+                ("068564", "Hansen", "Kari", "VY OSLO ", None, None),
+            ],
+            header=("Medlemsnr", "Etternavn", "Fornavn", "Tjenestested",
+                    "Innmeldt", "Født"),
+        )
+        members = parse_member_excel(path)
+        assert members[0]["name"] == "Nordmann, Ola Petter"
+        assert members[0]["medlemsnummer"] == "068588"
+        assert members[0]["ans_dato"] == "27.10.2016"
+        assert members[0]["fodt_dato"] == "27.07.1984"
+        assert members[0]["stasjoneringssted"] == "OSLO"
+        assert members[1]["name"] == "Hansen, Kari"
+        assert members[1]["stasjoneringssted"] == "OSLO"
+        assert members[1]["ans_dato"] is None
+
+    def test_split_name_missing_part(self, tmp_path):
+        path = make_xlsx(
+            tmp_path / "m.xlsx",
+            [("1", "Nordmann", None), ("2", None, "Kari"), ("3", None, None)],
+            header=("Medlemsnr", "Etternavn", "Fornavn"),
+        )
+        members = parse_member_excel(path)
+        assert members[0]["name"] == "Nordmann"
+        assert members[1]["name"] == "Kari"
+        # Only medlemsnr, no name at all: kept so the sync reports it invalid
+        assert members[2]["name"] == ""
+        assert len(members) == 3
+
+    def test_only_one_split_column_raises(self, tmp_path):
+        path = make_xlsx(
+            tmp_path / "m.xlsx", [("1", "Nordmann")],
+            header=("Medlemsnr", "Etternavn"),
+        )
+        with pytest.raises(ValueError, match="Navn"):
+            parse_member_excel(path)
 
 
 class TestSyncMembersFromExcel:

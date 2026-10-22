@@ -1,8 +1,12 @@
 """Parser for the NLF member list Excel file (Medlemsoppslag).
 
-Required columns: ``Navn`` ("Etternavn, Fornavn") and ``Medlemsnr``.
-Optional columns (new NLF export format): ``Innmeldt``, ``Født``, ``Tjenestested``.
+Required columns: ``Medlemsnr`` plus the name, either as one ``Navn``
+column ("Etternavn, Fornavn") or — in the export NLF switched to in
+October 2026 — as separate ``Etternavn`` and ``Fornavn`` columns, which are
+joined to the same "Etternavn, Fornavn" form the rest of the app expects.
+Optional columns: ``Innmeldt``, ``Født``, ``Tjenestested``.
 Files without the optional columns still parse correctly (those fields return None).
+Any other column (e.g. ``Mobil``, ``Status``) is ignored, never stored.
 """
 import logging
 from datetime import date, datetime
@@ -51,21 +55,36 @@ def parse_member_excel(path):
             for i, cell in enumerate(header)
             if cell is not None
         }
-        if "navn" not in col_index or "medlemsnr" not in col_index:
+        name_col = col_index.get("navn")
+        last_col = col_index.get("etternavn")
+        first_col = col_index.get("fornavn")
+        split_name = last_col is not None and first_col is not None
+        if "medlemsnr" not in col_index or (name_col is None and not split_name):
             raise ValueError(
-                "Fant ikke kolonnene 'Navn' og 'Medlemsnr' i Excel-fila"
+                "Fant ikke kolonnene 'Medlemsnr' og 'Navn' (eller "
+                "'Etternavn' + 'Fornavn') i Excel-fila"
             )
-        name_col = col_index["navn"]
         mnr_col = col_index["medlemsnr"]
         # Optional columns present in the richer NLF export format
         innmeldt_col = col_index.get("innmeldt")
         fodt_col = col_index.get("født")
         tjenestested_col = col_index.get("tjenestested")
 
+        def cell(row, col):
+            return row[col] if col is not None and len(row) > col else None
+
         members = []
         for row in rows:
-            name = row[name_col] if len(row) > name_col else None
-            mnr = row[mnr_col] if len(row) > mnr_col else None
+            if split_name:
+                last = str(cell(row, last_col) or "").strip()
+                first = str(cell(row, first_col) or "").strip()
+                if last and first:
+                    name = f"{last}, {first}"
+                else:
+                    name = last or first or None
+            else:
+                name = cell(row, name_col)
+            mnr = cell(row, mnr_col)
             if name is None and mnr is None:
                 continue
             if isinstance(mnr, float) and mnr.is_integer():

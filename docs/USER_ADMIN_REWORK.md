@@ -14,7 +14,7 @@ Summary of the user-administration rework: registration switched from rullenumme
 
 ### Excel import in the admin UI
 
-New upload card on `/admin/employees` (mirrors the PDF upload). Expects an `.xlsx` with the columns `Navn` ("Etternavn, Fornavn") and `Medlemsnr`. The file is saved as `instance/protected/medlemsliste.xlsx` (via `member_excel_path()` in `app/utils/protected_paths.py`) — it contains member PII and must never live under `app/static/`, which is served without authentication. See `docs/guides/PROTECTED_FILES.md`.
+New upload card on `/admin/employees` (mirrors the PDF upload). Expects an `.xlsx` with the column `Medlemsnr` and the name either as `Navn` ("Etternavn, Fornavn") or, since the October 2026 export format, as separate `Etternavn` and `Fornavn` columns. The file is saved as `instance/protected/medlemsliste.xlsx` (via `member_excel_path()` in `app/utils/protected_paths.py`) — it contains member PII and must never live under `app/static/`, which is served without authentication. See `docs/guides/PROTECTED_FILES.md`.
 
 Import logic (`user_service.sync_members_from_excel`):
 
