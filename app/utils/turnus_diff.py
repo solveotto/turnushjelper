@@ -12,13 +12,45 @@ admin adjudication instead of gating the import.
 ``enrich_dagsverk`` copies the PDF's fuller dagsverk strings (``3006_SKNO``)
 onto cells whose numeric prefix matches. It is display-only by construction —
 every consumer of ``dagsverk`` extracts the numeric prefix — and safe to re-run
-against an outdated PDF: a non-matching base number never enriches.
+against an outdated PDF: a non-matching base number never enriches. Turnuser
+pair by name, falling back to the tur number (``turnus_key``) when a name was
+corrected in one source only (R27: ``OSL_17_ALTSOM`` fixed to ``_ALSTOM`` in
+the Timeskjema, still misspelled in the PDF).
 """
 
 import copy
 import re
 
 _BASE_NR = re.compile(r"^(\d+)")
+
+# Same title shapes as innplassering_scraper._build_shift_lookup, which already
+# resolves innplassering rows by tur number.
+_KEY_PATTERNS = (
+    ("Tur", re.compile(r"^OSL_(\d+)(?:_|$)")),
+    ("Ramme", re.compile(r"^OSL_Ramme_(\d+)")),
+    ("Utland", re.compile(r"^OSL_Utland_(\d+)")),
+)
+
+
+def turnus_key(title):
+    """'OSL_17_ALTSOM' -> 'Tur:17', 'OSL_Ramme_01' -> 'Ramme:1'; None for any
+    other shape. Identifies a turnus independently of its name suffix."""
+    for kind, pattern in _KEY_PATTERNS:
+        m = pattern.match(title or "")
+        if m:
+            return f"{kind}:{int(m.group(1))}"
+    return None
+
+
+def unique_keys(titles):
+    """{turnus_key: title} for keys carried by exactly one of ``titles``.
+    An ambiguous number must never pair two turnuser."""
+    by_key = {}
+    for title in titles:
+        key = turnus_key(title)
+        if key:
+            by_key.setdefault(key, []).append(title)
+    return {key: names[0] for key, names in by_key.items() if len(names) == 1}
 
 
 def _as_map(data):
@@ -101,14 +133,21 @@ def diff_turnus_data(primary, secondary):
 def enrich_dagsverk(primary, secondary):
     """Return a deep copy of ``primary`` where each day-cell whose dagsverk
     numeric prefix matches the ``secondary`` (PDF) cell adopts the PDF's full
-    string. Non-matching cells, fridager/blanks, and turnuser missing from the
-    PDF keep the primary value. Inputs are not mutated."""
+    string. Turnuser pair by name, else by a tur number unique on both sides.
+    Non-matching cells, fridager/blanks, and turnuser missing from the PDF keep
+    the primary value. Inputs are not mutated."""
     enriched = copy.deepcopy(primary)
     secondary_map = _as_map(secondary)
+    primary_by_key = unique_keys(name for entry in primary for name in entry)
+    secondary_by_key = unique_keys(secondary_map)
 
     for entry in enriched:
         for name, turnus in entry.items():
             s_turnus = secondary_map.get(name)
+            if s_turnus is None:
+                key = turnus_key(name)
+                if key and primary_by_key.get(key) == name and key in secondary_by_key:
+                    s_turnus = secondary_map[secondary_by_key[key]]
             if s_turnus is None:
                 continue
             for uke in range(1, 7):

@@ -22,7 +22,7 @@
                     ],
                     "start": "6:25",
                     "slutt": "12:31",
-                    "dagsverk": "?",
+                    "dagsverk": "5022",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
                 },
@@ -659,7 +659,7 @@
                     ],
                     "start": "6:25",
                     "slutt": "12:31",
-                    "dagsverk": "?",
+                    "dagsverk": "5022",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
                 },
@@ -2717,7 +2717,7 @@
                     ],
                     "start": "6:25",
                     "slutt": "12:31",
-                    "dagsverk": "?",
+                    "dagsverk": "5022",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
                 },
@@ -8441,7 +8441,7 @@
         }
     },
     {
-        "OSL_17_ALTSOM": {
+        "OSL_17_ALSTOM": {
             "1": {
                 "1": {
                     "ukedag": "Mandag",
@@ -8969,7 +8969,7 @@
         }
     },
     {
-        "OSL_18_ALTSOM": {
+        "OSL_18_ALSTOM": {
             "1": {
                 "1": {
                     "ukedag": "Mandag",
@@ -29652,7 +29652,7 @@
                     ],
                     "start": "9:45",
                     "slutt": "17:46",
-                    "dagsverk": "?",
+                    "dagsverk": "5453",
                     "is_consecutive_shift": false,
                     "is_consecutive_receiver": false
                 },

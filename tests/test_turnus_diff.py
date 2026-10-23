@@ -2,8 +2,10 @@
 
 import copy
 
+import pytest
+
 from app.utils.pdf.scraper_validator import validate_turnus_json
-from app.utils.turnus_diff import diff_turnus_data, enrich_dagsverk
+from app.utils.turnus_diff import diff_turnus_data, enrich_dagsverk, turnus_key
 
 
 def make_day(tid=None, dagsverk=""):
@@ -125,6 +127,42 @@ class TestEnrichDagsverk:
         enriched = enrich_dagsverk(xls, pdf)
         assert enriched[0]["OSL_01"][3][7]["dagsverk"] == "3140_LHM"
 
+    def test_renamed_turnus_enriched_by_tur_number(self):
+        """R27: the Timeskjema was hand-fixed to OSL_17_ALSTOM while the PDF
+        still prints OSL_17_ALTSOM. Exact-name pairing would strip the PDF
+        annotations from the whole turnus."""
+        xls = dataset(OSL_17_ALSTOM=make_turnus({(5, 1): make_day(["5:10", "13:02"], "1411")}))
+        pdf = dataset(
+            OSL_17_ALTSOM=make_turnus({(5, 1): make_day(["5:10", "13:02"], "1411-N05_07_17")})
+        )
+        enriched = enrich_dagsverk(xls, pdf)
+        assert enriched[0]["OSL_17_ALSTOM"][5][1]["dagsverk"] == "1411-N05_07_17"
+
+    def test_no_number_fallback_when_pdf_number_is_ambiguous(self):
+        xls = dataset(OSL_17_ALSTOM=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001")}))
+        pdf = dataset(
+            OSL_17_A=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001_HLD")}),
+            OSL_17_B=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001_LHM")}),
+        )
+        enriched = enrich_dagsverk(xls, pdf)
+        assert enriched[0]["OSL_17_ALSTOM"][1][1]["dagsverk"] == "5001"
+
+    def test_no_number_fallback_when_xls_number_is_ambiguous(self):
+        xls = dataset(
+            OSL_17_A=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001")}),
+            OSL_17_B=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001")}),
+        )
+        pdf = dataset(OSL_17_X=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001_HLD")}))
+        enriched = enrich_dagsverk(xls, pdf)
+        assert enriched[0]["OSL_17_A"][1][1]["dagsverk"] == "5001"
+        assert enriched[1]["OSL_17_B"][1][1]["dagsverk"] == "5001"
+
+    def test_no_number_fallback_across_different_numbers(self):
+        xls = dataset(OSL_17_ALSTOM=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001")}))
+        pdf = dataset(OSL_18_ALTSOM=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001_HLD")}))
+        enriched = enrich_dagsverk(xls, pdf)
+        assert enriched[0]["OSL_17_ALSTOM"][1][1]["dagsverk"] == "5001"
+
     def test_fridag_and_blank_cells_untouched(self):
         xls = dataset(OSL_01=make_turnus({(1, 3): make_day(["X"]), (2, 2): make_day()}))
         pdf = dataset(OSL_01=make_turnus({(1, 3): make_day(["X"]), (2, 2): make_day()}))
@@ -157,3 +195,23 @@ class TestEnrichDagsverk:
         assert enriched[0]["OSL_01"][1][1]["dagsverk"] == "3006_SKNO"
         valid, errors = validate_turnus_json(enriched)
         assert valid, errors
+
+
+class TestTurnusKey:
+    @pytest.mark.parametrize(
+        "title, key",
+        [
+            ("OSL_17_ALTSOM", "Tur:17"),
+            ("OSL_17_ALSTOM", "Tur:17"),
+            ("OSL_03", "Tur:3"),
+            ("OSL_09_Østre_Linje", "Tur:9"),
+            ("OSL_Ramme_01", "Ramme:1"),
+            ("OSL_Utland_4", "Utland:4"),
+        ],
+    )
+    def test_known_title_shapes(self, title, key):
+        assert turnus_key(title) == key
+
+    @pytest.mark.parametrize("title", ["GONE_02", "OSL_", "OSL_Reserve", ""])
+    def test_unknown_shape_has_no_key(self, title):
+        assert turnus_key(title) is None

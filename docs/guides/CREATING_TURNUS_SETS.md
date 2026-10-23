@@ -299,6 +299,22 @@ review diff, since the stored PDF may be an older revision.
 Never create a second set for a revision. `year_identifier` is unique and
 favourites belong to the set, so a second set would strand them.
 
+Refresh pairs old and new turnus names by prefix, then by tur number when the
+number is unique on both sides, so a suffix correction such as
+`OSL_17_ALTSOM` to `OSL_17_ALSTOM` is a rename, not a remove and add. A rename
+carries favourites, søknadsskjema choices and innplassering rows. PDF
+enrichment pairs turnuser the same way.
+
+**Hand-fixing the stored Timeskjema** is acceptable for errors the employer's
+export gets wrong, as done for R27 in October 2026: three dagsverk printed as
+`?`, one more filled from identical rows elsewhere, and the `ALTSOM` misspelling.
+Say what was changed and why in the commit message. The fix is lost when a new
+edition replaces the file, so check the new one and redo it if needed. The file
+must stay ISO-8859-1 tab-separated text, never `.ods` or real Excel, and
+`scripts/probe_timeskjema.py` must accept it. LibreOffice pads every row with
+tabs and writes CRLF; the parser ignores both, but the git diff then shows the
+whole file.
+
 If the streker PDF changed too, regenerate with force and re-read the
 gjennomgang report. Stale PNGs from the previous PDF look correct until
 someone regenerates.

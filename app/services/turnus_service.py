@@ -3,7 +3,8 @@ import logging
 
 from app.database import get_db_session
 from app.extensions import cache
-from app.models import TurnusSet, Shifts, Favorites
+from app.models import TurnusSet, Shifts, Favorites, SoknadsskjemaChoice, Innplassering
+from app.utils.turnus_diff import unique_keys
 
 logger = logging.getLogger(__name__)
 
@@ -252,7 +253,9 @@ def update_turnus_set_paths(turnus_set_id, turnus_file_path, df_file_path):
 def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
     """Re-sync shift names from a new JSON file into the database.
 
-    Matches old names to new names by prefix to preserve favorites.
+    Matches old names to new names by prefix, then by a tur number unique on
+    both sides (OSL_17_ALTSOM -> OSL_17_ALSTOM), and carries favorites,
+    søknadsskjema choices and innplassering across a rename.
     Returns a summary dict: {renamed: [...], added: [...], removed: [...], unchanged: [...]}
     """
     db_session = get_db_session()
@@ -282,6 +285,15 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
                 # the same title (would violate the unique constraint).
                 unmatched_new.discard(candidates[0])
 
+        # Suffix corrections are no prefix match; pair those by tur number.
+        old_by_key = unique_keys(unmatched_old - set(rename_map))
+        new_by_key = unique_keys(unmatched_new)
+        for key, old_name in old_by_key.items():
+            if key in new_by_key:
+                rename_map[old_name] = new_by_key[key]
+                matched_new.add(new_by_key[key])
+                unmatched_new.discard(new_by_key[key])
+
         removed = unmatched_old - set(rename_map.keys())
         added = unmatched_new - matched_new
 
@@ -290,9 +302,10 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
             db_session.query(Shifts).filter_by(
                 title=old_name, turnus_set_id=turnus_set_id
             ).update({'title': new_name})
-            db_session.query(Favorites).filter_by(
-                shift_title=old_name, turnus_set_id=turnus_set_id
-            ).update({'shift_title': new_name})
+            for model in (Favorites, SoknadsskjemaChoice, Innplassering):
+                db_session.query(model).filter_by(
+                    shift_title=old_name, turnus_set_id=turnus_set_id
+                ).update({'shift_title': new_name})
 
         # 2. Delete orphaned shifts
         for name in removed:

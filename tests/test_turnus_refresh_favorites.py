@@ -1,9 +1,10 @@
 """What a re-import of the *same* turnus set does to users' favorites.
 
 ``refresh_turnus_set_shifts`` is the one ingestion path that keeps user data:
-it prefix-matches old shift titles to new ones and rewrites
-``Favorites.shift_title`` along with ``Shifts.title``. Everything else about a
-new set (create, activate) leaves the old rows alone and starts empty.
+it matches old shift titles to new ones (by prefix, else by a tur number unique
+on both sides) and rewrites the title in ``Shifts``, ``Favorites``,
+``SoknadsskjemaChoice`` and ``Innplassering``. Everything else about a new set
+(create, activate) leaves the old rows alone and starts empty.
 
 Two behaviours are pinned here, one good and one sharp:
 
@@ -22,7 +23,14 @@ import json
 
 import pytest
 
-from app.models import DBUser, Favorites, Shifts, TurnusSet
+from app.models import (
+    DBUser,
+    Favorites,
+    Innplassering,
+    Shifts,
+    SoknadsskjemaChoice,
+    TurnusSet,
+)
 from app.services import turnus_service
 from app.services.favorites_service import get_max_ordered_index
 
@@ -222,3 +230,146 @@ class TestRemovedShiftOrphansFavorites:
         )
 
         assert get_max_ordered_index(user.id, turnus_set.id) == 1
+
+
+def seed_choices(db_session, user_id, turnus_set_id, titles):
+    for title in titles:
+        db_session.add(
+            SoknadsskjemaChoice(
+                user_id=user_id, turnus_set_id=turnus_set_id, shift_title=title, linje_135=1
+            )
+        )
+    db_session.commit()
+
+
+def seed_innplassering(db_session, turnus_set_id, titles):
+    for i, title in enumerate(titles):
+        db_session.add(
+            Innplassering(
+                turnus_set_id=turnus_set_id,
+                rullenummer=f"9{i:04d}",
+                shift_title=title,
+                linjenummer=1,
+            )
+        )
+    db_session.commit()
+
+
+def choice_titles(db_session, turnus_set_id):
+    db_session.expire_all()
+    return sorted(
+        c.shift_title
+        for c in db_session.query(SoknadsskjemaChoice).filter_by(turnus_set_id=turnus_set_id)
+    )
+
+
+def innplassering_titles(db_session, turnus_set_id):
+    db_session.expire_all()
+    return sorted(
+        r.shift_title
+        for r in db_session.query(Innplassering).filter_by(turnus_set_id=turnus_set_id)
+    )
+
+
+class TestRenameByTurNumber:
+    """R27: the Timeskjema was hand-fixed from OSL_17_ALTSOM to OSL_17_ALSTOM.
+    Neither title is a prefix of the other, so without the number match the
+    refresh deleted and re-added the shift and every favorite on it vanished."""
+
+    def test_misspelled_suffix_renamed_by_tur_number(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_16_ALSTOM", "OSL_17_ALTSOM"])
+        seed_favorites(db_session, user.id, turnus_set.id, ["OSL_16_ALSTOM", "OSL_17_ALTSOM"])
+
+        summary = turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_16_ALSTOM", "OSL_17_ALSTOM"])
+        )
+
+        assert summary["renamed"] == [{"old": "OSL_17_ALTSOM", "new": "OSL_17_ALSTOM"}]
+        assert summary["removed"] == []
+        assert summary["added"] == []
+        assert shift_titles(db_session, turnus_set.id) == ["OSL_16_ALSTOM", "OSL_17_ALSTOM"]
+        db_session.expire_all()
+        renamed = (
+            db_session.query(Favorites)
+            .filter_by(user_id=user.id, turnus_set_id=turnus_set.id, shift_title="OSL_17_ALSTOM")
+            .one()
+        )
+        assert renamed.order_index == 1
+
+    def test_ambiguous_old_number_is_remove_and_add(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_17_A", "OSL_17_B"])
+
+        summary = turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_17_C"])
+        )
+
+        assert summary["renamed"] == []
+        assert summary["removed"] == ["OSL_17_A", "OSL_17_B"]
+        assert summary["added"] == ["OSL_17_C"]
+
+    def test_ambiguous_new_number_is_remove_and_add(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_17_A"])
+
+        summary = turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_17_B", "OSL_17_C"])
+        )
+
+        assert summary["renamed"] == []
+        assert summary["removed"] == ["OSL_17_A"]
+        assert summary["added"] == ["OSL_17_B", "OSL_17_C"]
+
+
+class TestRenameCarriesAllUserData:
+    def test_number_rename_carries_choices_and_innplassering(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_17_ALTSOM"])
+        seed_choices(db_session, user.id, turnus_set.id, ["OSL_17_ALTSOM"])
+        seed_innplassering(db_session, turnus_set.id, ["OSL_17_ALTSOM", "OSL_17_ALTSOM"])
+
+        turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_17_ALSTOM"])
+        )
+
+        assert choice_titles(db_session, turnus_set.id) == ["OSL_17_ALSTOM"]
+        assert innplassering_titles(db_session, turnus_set.id) == [
+            "OSL_17_ALSTOM",
+            "OSL_17_ALSTOM",
+        ]
+
+    def test_prefix_rename_carries_choices_and_innplassering(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_01"])
+        seed_choices(db_session, user.id, turnus_set.id, ["OSL_01"])
+        seed_innplassering(db_session, turnus_set.id, ["OSL_01"])
+
+        turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_01_A"])
+        )
+
+        assert choice_titles(db_session, turnus_set.id) == ["OSL_01_A"]
+        assert innplassering_titles(db_session, turnus_set.id) == ["OSL_01_A"]
+
+    def test_rows_in_another_set_are_untouched(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        other = TurnusSet(name="T98", year_identifier="T98", is_active=0)
+        db_session.add(other)
+        db_session.commit()
+        seed_shifts(db_session, turnus_set.id, ["OSL_17_ALTSOM"])
+        seed_choices(db_session, user.id, other.id, ["OSL_17_ALTSOM"])
+        seed_innplassering(db_session, other.id, ["OSL_17_ALTSOM"])
+
+        turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_17_ALSTOM"])
+        )
+
+        assert choice_titles(db_session, other.id) == ["OSL_17_ALTSOM"]
+        assert innplassering_titles(db_session, other.id) == ["OSL_17_ALTSOM"]
