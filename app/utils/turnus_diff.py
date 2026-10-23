@@ -67,6 +67,16 @@ def _base_nr(dagsverk):
     return m.group(1) if m else ""
 
 
+def _from_base(dagsverk, base):
+    """The tail of a PDF dagsverk string starting at ``base`` as a whole
+    "_"-separated token, else "". The scraper prepends whatever the previous
+    day's label spilled into this column: "13_17_9912002048-H"."""
+    if not base:
+        return ""
+    m = re.search(rf"(?:^|_)({base})(?!\d)", dagsverk or "")
+    return dagsverk[m.start(1):] if m else ""
+
+
 def diff_turnus_data(primary, secondary):
     """Structured, JSON-serializable diff between two turnus datasets.
 
@@ -132,8 +142,9 @@ def diff_turnus_data(primary, secondary):
 
 def enrich_dagsverk(primary, secondary):
     """Return a deep copy of ``primary`` where each day-cell whose dagsverk
-    numeric prefix matches the ``secondary`` (PDF) cell adopts the PDF's full
-    string. Turnuser pair by name, else by a tur number unique on both sides.
+    numeric prefix appears in the ``secondary`` (PDF) cell adopts the PDF's
+    string from that number on, dropping text spilled in from the previous
+    day. Turnuser pair by name, else by a tur number unique on both sides.
     Non-matching cells, fridager/blanks, and turnuser missing from the PDF keep
     the primary value. Inputs are not mutated."""
     enriched = copy.deepcopy(primary)
@@ -158,7 +169,9 @@ def enrich_dagsverk(primary, secondary):
                     p_day, s_day = _get(p_week, dag), _get(s_week, dag)
                     if not isinstance(p_day, dict) or not isinstance(s_day, dict):
                         continue
-                    base = _base_nr(p_day.get("dagsverk"))
-                    if base and base == _base_nr(s_day.get("dagsverk")):
-                        p_day["dagsverk"] = s_day["dagsverk"]
+                    pdf_value = _from_base(
+                        s_day.get("dagsverk"), _base_nr(p_day.get("dagsverk"))
+                    )
+                    if pdf_value:
+                        p_day["dagsverk"] = pdf_value
     return enriched

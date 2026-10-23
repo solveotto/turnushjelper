@@ -115,6 +115,24 @@ class TestEnrichDagsverk:
         enriched = enrich_dagsverk(xls, pdf)
         assert enriched[0]["OSL_01"][5][7]["dagsverk"] == "1720"
 
+    def test_spillover_from_previous_day_is_skipped(self):
+        """R27 OSL_22 uke 1: Monday's "1464-N05 13_17" spills its suffix into
+        Tuesday's column, so the scraper reads Tuesday as
+        "13_17_9912002048-H". Requiring the base number at the start lost the
+        cell's -H, the only source of the H-dag marking."""
+        xls = dataset(OSL_22=make_turnus({(1, 2): make_day(["12:00", "20:48"], "9912002048")}))
+        pdf = dataset(
+            OSL_22=make_turnus({(1, 2): make_day(["12:00", "20:48"], "13_17_9912002048-H")})
+        )
+        enriched = enrich_dagsverk(xls, pdf)
+        assert enriched[0]["OSL_22"][1][2]["dagsverk"] == "9912002048-H"
+
+    def test_spilled_base_must_be_a_whole_token(self):
+        xls = dataset(OSL_01=make_turnus({(1, 2): make_day(["6:00", "14:00"], "1505")}))
+        pdf = dataset(OSL_01=make_turnus({(1, 2): make_day(["6:00", "14:00"], "13_15050-N05")}))
+        enriched = enrich_dagsverk(xls, pdf)
+        assert enriched[0]["OSL_01"][1][2]["dagsverk"] == "1505"
+
     def test_turnus_missing_from_pdf_untouched(self):
         xls = dataset(OSL_02=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001")}))
         pdf = dataset(OSL_01=make_turnus({(1, 1): make_day(["6:00", "14:00"], "5001_HLD")}))
