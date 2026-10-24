@@ -16,6 +16,17 @@ from config import AppConfig
 '''
 
 
+def _longest_circular_run(flags: list[bool]) -> int:
+    """Longest run of True in a sequence whose end wraps around to its start."""
+    if all(flags):
+        return len(flags)
+    longest = current = 0
+    for flag in flags + flags:
+        current = current + 1 if flag else 0
+        longest = max(longest, current)
+    return longest
+
+
 
 
 class Turnus():
@@ -102,8 +113,7 @@ class Turnus():
             total_shift_hours = 0
             current_work_streak = 0
             longest_work_streak = 0
-            current_off_streak = 0
-            longest_off_streak = 0
+            off_days = []  # per rotation day: a true day off?
             prev_was_night = False
 
             # Day-of-week off-rate tracking
@@ -131,14 +141,11 @@ class Turnus():
                 if is_work_day:
                     current_work_streak += 1
                     longest_work_streak = max(longest_work_streak, current_work_streak)
-                    current_off_streak = 0
+                    off_days.append(False)
                 else:
-                    if prev_was_night:
-                        # Recovery day after night shift — doesn't count as true day off
-                        prev_was_night = False
-                    else:
-                        current_off_streak += 1
-                        longest_off_streak = max(longest_off_streak, current_off_streak)
+                    # Recovery day after night shift — doesn't count as true day off
+                    off_days.append(not prev_was_night)
+                    prev_was_night = False
                     current_work_streak = 0
                     current_kveld_streak = 0
 
@@ -267,6 +274,13 @@ class Turnus():
 
                 #### TEST ####
                 #print(f"{_dagsverk['turnus']}, {_dagsverk['uke_nr']}, {_dagsverk['ukedag']}, {sunday_hours}")
+
+            # The rotation repeats, so week 6 runs on into week 1: a free period
+            # can span the wrap, and a night shift on the last day (prev_was_night
+            # still holds it) makes the first day its recovery day.
+            if prev_was_night:
+                off_days[0] = False
+            longest_off_streak = _longest_circular_run(off_days)
 
             avg_shift_hours = round(total_shift_hours / shift_cnt, 1) if shift_cnt > 0 else 0
 

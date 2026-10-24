@@ -245,6 +245,54 @@ class TestWeekendHourBuckets:
         assert _compute_helg("10:00", "18:00", ONSDAG) == (0.0, 0.0, 0.0)
 
 
+def _compute_longest_off(off_days, night_days=()):
+    """Helper: longest_off_streak of a rotation that works every day except
+    ``off_days``; days in ``night_days`` get a nattevakt instead of a day shift.
+    Both are sets of (week, day)."""
+    import tempfile
+    from tests.conftest import WEEKDAYS_NB
+
+    data = {}
+    for w in range(1, 7):
+        week = {}
+        for d in range(1, 8):
+            if (w, d) in off_days:
+                tid = ["X"]
+            elif (w, d) in night_days:
+                tid = ["22:00", "6:00"]
+            else:
+                tid = ["7:00", "15:00"]
+            week[str(d)] = {"ukedag": WEEKDAYS_NB[d - 1], "tid": tid, "dagsverk": "TEST"}
+        data[str(w)] = week
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False, encoding="utf-8"
+    ) as f:
+        json.dump([{"TEST": data}], f)
+        path = f.name
+    try:
+        result = Turnus(path).stats_df
+        return int(result[result["turnus"] == "TEST"]["longest_off_streak"].iloc[0])
+    finally:
+        os.unlink(path)
+
+
+class TestLongestOffStreakWrap:
+    """The rotation repeats: week 6 day 7 is followed by week 1 day 1."""
+
+    def test_off_period_across_week_6_to_week_1_is_one_period(self):
+        off = {(6, 5), (6, 6), (6, 7), (1, 1), (1, 2)}
+        assert _compute_longest_off(off) == 5
+
+    def test_day_after_night_shift_in_week_6_is_not_a_day_off(self):
+        """A nattevakt on week 6 Søndag makes week 1 Mandag its sleep-off day."""
+        off = {(1, 1), (1, 2), (1, 3)}
+        assert _compute_longest_off(off, night_days={(6, 7)}) == 2
+
+    def test_off_period_within_rotation_is_unchanged(self):
+        off = {(3, 2), (3, 3), (3, 4), (3, 5)}
+        assert _compute_longest_off(off) == 4
+
+
 # ---------------------------------------------------------------------------
 # TestStatsFreshness
 #
