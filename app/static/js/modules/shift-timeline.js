@@ -1,8 +1,27 @@
 /**
  * Shift Timeline Modal Module
- * Displays a modal with shift timeline image from static files
- * Includes smooth pan and zoom functionality
+ * Displays a modal with the strekliste PNG for a dagsverk.
+ *
+ * The image is shown at a fixed, readable size inside a scroll box instead of
+ * being shrunk to fit: the PNG is a ~8:1 strip covering 24 hours, so fitting
+ * it to a phone's width left the text unreadable. Scrolling and pinch-zoom are
+ * the browser's own; the only custom input handling is mouse drag-to-scroll.
  */
+
+// Where the hour axis sits in a strekliste PNG, in natural pixels. Follows from
+// compute_page_geometry() in strekliste_generator.py at PDF_ZOOM 4: the crop
+// starts 22 pt into the page and hour 0 is printed at 103.5 pt, so hour 0 is
+// 326 px in; the crop ends 4 pt past the hour-24 gridline, 16 px from the
+// right. Holds for both the 19.5 and the 30 pt/hour PDF editions; only used to
+// pick the opening scroll position.
+const HOUR_0_PX = 326;
+const HOUR_24_FROM_RIGHT_PX = 16;
+
+// Open this many hours before the duty starts, so the start is not flush left
+const LEAD_HOURS = 0.5;
+
+const SCALES = [0.6, 0.8, 1, 1.3];
+const DEFAULT_SCALE_INDEX = 1;
 
 export class ShiftTimelineModal {
     constructor() {
@@ -11,22 +30,11 @@ export class ShiftTimelineModal {
         this.modalTitle = null;
         this.modalSpinner = null;
         this.modalError = null;
-        this.imageContainer = null;
+        this.imageWrapper = null;
+        this.scroller = null;
 
-        // Zoom/pan state
-        this.scale = 1;
-        this.translateX = 0;
-        this.translateY = 0;
-        this.isDragging = false;
-        this.dragStartX = 0;
-        this.dragStartY = 0;
-        this.lastTranslateX = 0;
-        this.lastTranslateY = 0;
-
-        // Zoom settings
-        this.minScale = 1;
-        this.maxScale = 5;
-        this.zoomStep = 0.25;
+        this.scaleIndex = DEFAULT_SCALE_INDEX;
+        this.startHour = null;
 
         this.init();
     }
@@ -40,6 +48,15 @@ export class ShiftTimelineModal {
         return match ? match[1] : shiftNr;
     }
 
+    /**
+     * Read the start time from the cell's time text ("05:33 - 14:41").
+     * Returns fractional hours, or null when the cell has no time.
+     */
+    parseStartHour(timeText) {
+        const match = (timeText || '').match(/(\d{1,2}):(\d{2})/);
+        return match ? parseInt(match[1], 10) + parseInt(match[2], 10) / 60 : null;
+    }
+
     init() {
         // Get modal elements
         this.modal = document.getElementById('shiftTimelineModal');
@@ -51,49 +68,19 @@ export class ShiftTimelineModal {
         this.modalError = document.getElementById('shiftTimelineError');
         this.modalErrorText = document.getElementById('shiftTimelineErrorText');
         this.modalErrorIcon = document.getElementById('shiftTimelineErrorIcon');
-        this.imageContainer = document.getElementById('shiftTimelineContainer');
         this.imageWrapper = document.getElementById('shiftTimelineWrapper');
+        this.scroller = document.getElementById('shiftTimelineScroller');
 
         // Set up click handlers on shift names
         this.setupClickHandlers();
 
-        // Set up zoom/pan handlers
-        this.setupZoomPanHandlers();
+        // Set up zoom buttons and mouse drag
+        this.setupZoomButtons();
+        this.setupDragScroll();
 
-        // Reset zoom when modal closes
-        this.modal.addEventListener('hidden.bs.modal', () => this.resetZoom());
-
-        // Set up resize bar
-        this.setupResizeBar();
-    }
-
-    setupResizeBar() {
-        const resizeBar = document.getElementById('shiftTimelineResizeBar');
-        if (!resizeBar || !this.imageWrapper) return;
-
-        let startY, startHeight;
-
-        const onMouseMove = (e) => {
-            const newHeight = startHeight + (e.clientY - startY);
-            const clamped = Math.max(150, Math.min(window.innerHeight * 0.85, newHeight));
-            this.imageWrapper.style.height = clamped + 'px';
-        };
-
-        const onMouseUp = () => {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-        };
-
-        resizeBar.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            startY = e.clientY;
-            startHeight = this.imageWrapper.offsetHeight;
-            document.body.style.cursor = 'ns-resize';
-            document.body.style.userSelect = 'none';
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
+        // Next duty opens at the default size again
+        this.modal.addEventListener('hidden.bs.modal', () => {
+            this.scaleIndex = DEFAULT_SCALE_INDEX;
         });
     }
 
@@ -115,7 +102,9 @@ export class ShiftTimelineModal {
 
             e.preventDefault();
             e.stopPropagation();
-            this.show(turnusSetId, trimmedShiftNr);
+
+            const timeText = element.closest('td')?.querySelector('.time-text')?.textContent;
+            this.show(turnusSetId, trimmedShiftNr, this.parseStartHour(timeText));
         });
 
         // Apply visual hint to elements already in the DOM (non-lazy pages like /favorites)
@@ -141,8 +130,10 @@ export class ShiftTimelineModal {
         });
     }
 
-    async show(turnusSetId, shiftNr) {
+    async show(turnusSetId, shiftNr, startHour = null) {
         if (!this.modal) return;
+
+        this.startHour = startHour;
 
         // Strip suffixes for image lookup
         const lookupShiftNr = this.extractNumericPrefix(shiftNr);
@@ -170,7 +161,6 @@ export class ShiftTimelineModal {
                     this.modalImage.src = imageUrl;
                     this.modalImage.onload = () => {
                         this.setLoading(false);
-                        this.sizeContainerToImage();
                         this.showImage();
                     };
                     this.modalImage.onerror = () => {
@@ -196,41 +186,30 @@ export class ShiftTimelineModal {
         if (this.modalSpinner) {
             this.modalSpinner.style.display = loading ? 'block' : 'none';
         }
-        if (this.modalImage) {
-            this.modalImage.style.display = 'none';
+        if (this.imageWrapper) {
+            this.imageWrapper.style.display = 'none';
         }
         if (this.modalError) {
             this.modalError.style.display = 'none';
         }
-    }
-
-    sizeContainerToImage() {
-        if (!this.modalImage || !this.imageWrapper) return;
-
-        // Get the image's natural aspect ratio and the wrapper width
-        const wrapperWidth = this.imageWrapper.clientWidth - 32; // minus padding
-        const imgNaturalWidth = this.modalImage.naturalWidth;
-        const imgNaturalHeight = this.modalImage.naturalHeight;
-
-        // Calculate how tall the image will be when scaled to fit wrapper width
-        const scaledHeight = (imgNaturalHeight / imgNaturalWidth) * wrapperWidth;
-
-        // Set wrapper height to image height + small padding, capped at 85vh
-        const maxHeight = window.innerHeight * 0.85;
-        const targetHeight = Math.min(scaledHeight + 32, maxHeight);
-
-        this.imageWrapper.style.height = targetHeight + 'px';
     }
 
     showImage() {
-        if (this.modalImage) {
-            this.modalImage.style.display = 'block';
+        if (this.imageWrapper) {
+            this.imageWrapper.style.display = 'block';
         }
         if (this.modalError) {
             this.modalError.style.display = 'none';
         }
-        this.resetZoom();
-        this.updateZoomButtons();
+        this.applyScale();
+
+        // A cached image can load before Bootstrap has laid out the modal
+        // (it waits for the backdrop fade); scrolling then would be ignored
+        if (this.scroller && this.scroller.clientWidth === 0) {
+            this.modal.addEventListener('shown.bs.modal', () => this.scrollToStart(), { once: true });
+        } else {
+            this.scrollToStart();
+        }
     }
 
     showError(message) {
@@ -244,8 +223,8 @@ export class ShiftTimelineModal {
             }
             this.modalError.style.display = 'block';
         }
-        if (this.modalImage) {
-            this.modalImage.style.display = 'none';
+        if (this.imageWrapper) {
+            this.imageWrapper.style.display = 'none';
         }
     }
 
@@ -260,8 +239,8 @@ export class ShiftTimelineModal {
             }
             this.modalError.style.display = 'block';
         }
-        if (this.modalImage) {
-            this.modalImage.style.display = 'none';
+        if (this.imageWrapper) {
+            this.imageWrapper.style.display = 'none';
         }
     }
 
@@ -274,192 +253,95 @@ export class ShiftTimelineModal {
         }
     }
 
-    // Zoom and pan functionality
-    setupZoomPanHandlers() {
-        if (!this.imageContainer || !this.modalImage) return;
+    // Size and scroll
 
-        // Mouse wheel zoom
-        this.imageContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -this.zoomStep : this.zoomStep;
-            this.zoom(delta, e.clientX, e.clientY);
-        }, { passive: false });
+    applyScale() {
+        if (!this.modalImage || !this.modalImage.naturalWidth) return;
+        const scale = SCALES[this.scaleIndex];
+        this.modalImage.style.width = `${this.modalImage.naturalWidth * scale}px`;
+        this.updateZoomButtons();
+    }
 
-        // Mouse drag for panning
-        this.imageContainer.addEventListener('mousedown', (e) => {
-            if (this.scale > 1) {
-                this.isDragging = true;
-                this.dragStartX = e.clientX;
-                this.dragStartY = e.clientY;
-                this.lastTranslateX = this.translateX;
-                this.lastTranslateY = this.translateY;
-                this.imageContainer.style.cursor = 'grabbing';
-                e.preventDefault();
-            }
-        });
+    // Scroll so the duty's start is just inside the left edge. Without a start
+    // time the box stays at the left, which shows the duty number columns.
+    scrollToStart() {
+        if (!this.scroller || !this.modalImage) return;
+        if (this.startHour === null) {
+            this.scroller.scrollLeft = 0;
+            return;
+        }
+        const naturalWidth = this.modalImage.naturalWidth;
+        const pxPerHour = (naturalWidth - HOUR_0_PX - HOUR_24_FROM_RIGHT_PX) / 24;
+        const hour = Math.max(0, this.startHour - LEAD_HOURS);
+        const scale = this.modalImage.offsetWidth / naturalWidth;
+        this.scroller.scrollLeft = (HOUR_0_PX + hour * pxPerHour) * scale;
+    }
 
-        document.addEventListener('mousemove', (e) => {
-            if (this.isDragging) {
-                const dx = e.clientX - this.dragStartX;
-                const dy = e.clientY - this.dragStartY;
-                this.translateX = this.lastTranslateX + dx;
-                this.translateY = this.lastTranslateY + dy;
-                this.constrainPan();
-                this.applyTransform();
-            }
-        });
+    setScale(index) {
+        if (!this.scroller || !this.modalImage) return;
+        const clamped = Math.min(SCALES.length - 1, Math.max(0, index));
+        if (clamped === this.scaleIndex) return;
 
-        document.addEventListener('mouseup', () => {
-            if (this.isDragging) {
-                this.isDragging = false;
-                if (this.imageContainer) {
-                    this.imageContainer.style.cursor = this.scale > 1 ? 'grab' : 'default';
-                }
-            }
-        });
+        // Keep the part of the duty in the middle of the box where it is
+        const oldWidth = this.modalImage.offsetWidth;
+        const centre = (this.scroller.scrollLeft + this.scroller.clientWidth / 2) / oldWidth;
 
-        // Touch support for mobile
-        let lastTouchDistance = 0;
-        let lastTouchCenter = { x: 0, y: 0 };
+        this.scaleIndex = clamped;
+        this.applyScale();
+        this.scroller.scrollLeft = centre * this.modalImage.offsetWidth - this.scroller.clientWidth / 2;
+    }
 
-        this.imageContainer.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                lastTouchDistance = this.getTouchDistance(e.touches);
-                lastTouchCenter = this.getTouchCenter(e.touches);
-            } else if (e.touches.length === 1 && this.scale > 1) {
-                this.isDragging = true;
-                this.dragStartX = e.touches[0].clientX;
-                this.dragStartY = e.touches[0].clientY;
-                this.lastTranslateX = this.translateX;
-                this.lastTranslateY = this.translateY;
-            }
-        }, { passive: true });
-
-        this.imageContainer.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const currentDistance = this.getTouchDistance(e.touches);
-                const currentCenter = this.getTouchCenter(e.touches);
-                const scaleDelta = (currentDistance - lastTouchDistance) * 0.01;
-                this.zoom(scaleDelta, currentCenter.x, currentCenter.y);
-                lastTouchDistance = currentDistance;
-                lastTouchCenter = currentCenter;
-            } else if (e.touches.length === 1 && this.isDragging) {
-                const dx = e.touches[0].clientX - this.dragStartX;
-                const dy = e.touches[0].clientY - this.dragStartY;
-                this.translateX = this.lastTranslateX + dx;
-                this.translateY = this.lastTranslateY + dy;
-                this.constrainPan();
-                this.applyTransform();
-            }
-        }, { passive: false });
-
-        this.imageContainer.addEventListener('touchend', () => {
-            this.isDragging = false;
-            lastTouchDistance = 0;
-        });
-
-        // Zoom buttons
+    setupZoomButtons() {
         const zoomInBtn = document.getElementById('shiftTimelineZoomIn');
         const zoomOutBtn = document.getElementById('shiftTimelineZoomOut');
         const zoomResetBtn = document.getElementById('shiftTimelineZoomReset');
 
         if (zoomInBtn) {
-            zoomInBtn.addEventListener('click', () => this.zoomIn());
+            zoomInBtn.addEventListener('click', () => this.setScale(this.scaleIndex + 1));
         }
         if (zoomOutBtn) {
-            zoomOutBtn.addEventListener('click', () => this.zoomOut());
+            zoomOutBtn.addEventListener('click', () => this.setScale(this.scaleIndex - 1));
         }
         if (zoomResetBtn) {
-            zoomResetBtn.addEventListener('click', () => this.resetZoom());
+            zoomResetBtn.addEventListener('click', () => {
+                this.scaleIndex = DEFAULT_SCALE_INDEX;
+                this.applyScale();
+                this.scrollToStart();
+            });
         }
     }
 
-    getTouchDistance(touches) {
-        const dx = touches[0].clientX - touches[1].clientX;
-        const dy = touches[0].clientY - touches[1].clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-    }
+    // Mouse only: touch and trackpads already scroll the box natively
+    setupDragScroll() {
+        if (!this.scroller) return;
 
-    getTouchCenter(touches) {
-        return {
-            x: (touches[0].clientX + touches[1].clientX) / 2,
-            y: (touches[0].clientY + touches[1].clientY) / 2
-        };
-    }
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
 
-    zoom(delta, centerX, centerY) {
-        const oldScale = this.scale;
-        this.scale = Math.min(this.maxScale, Math.max(this.minScale, this.scale + delta));
+        this.scroller.addEventListener('pointerdown', (e) => {
+            if (e.pointerType !== 'mouse' || e.button !== 0) return;
+            // A press on the scroll box's own scrollbar targets the box, not the image
+            if (e.target !== this.modalImage) return;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = this.scroller.scrollLeft;
+            startTop = this.scroller.scrollTop;
+            this.scroller.setPointerCapture(e.pointerId);
+            this.scroller.classList.add('dragging');
+            e.preventDefault();
+        });
 
-        if (this.scale !== oldScale && this.imageWrapper) {
-            // Zoom toward cursor/touch point
-            const rect = this.imageWrapper.getBoundingClientRect();
-            const x = centerX - rect.left - rect.width / 2;
-            const y = centerY - rect.top - rect.height / 2;
-            const scaleDiff = this.scale / oldScale;
+        this.scroller.addEventListener('pointermove', (e) => {
+            if (!this.scroller.classList.contains('dragging')) return;
+            this.scroller.scrollLeft = startLeft - (e.clientX - startX);
+            this.scroller.scrollTop = startTop - (e.clientY - startY);
+        });
 
-            this.translateX = x - (x - this.translateX) * scaleDiff;
-            this.translateY = y - (y - this.translateY) * scaleDiff;
-
-            this.constrainPan();
-            this.applyTransform();
-            this.updateZoomButtons();
-            this.updateCursor();
-        }
-    }
-
-    zoomIn() {
-        if (this.imageWrapper) {
-            const rect = this.imageWrapper.getBoundingClientRect();
-            this.zoom(this.zoomStep, rect.left + rect.width / 2, rect.top + rect.height / 2);
-        }
-    }
-
-    zoomOut() {
-        if (this.imageWrapper) {
-            const rect = this.imageWrapper.getBoundingClientRect();
-            this.zoom(-this.zoomStep, rect.left + rect.width / 2, rect.top + rect.height / 2);
-        }
-    }
-
-    resetZoom() {
-        this.scale = 1;
-        this.translateX = 0;
-        this.translateY = 0;
-        this.applyTransform();
-        this.updateZoomButtons();
-        this.updateCursor();
-        // Reset wrapper height for next image
-        if (this.imageWrapper) {
-            this.imageWrapper.style.height = '';
-        }
-    }
-
-    constrainPan() {
-        if (!this.modalImage || !this.imageWrapper) return;
-
-        const wrapperRect = this.imageWrapper.getBoundingClientRect();
-        const imgWidth = this.modalImage.offsetWidth * this.scale;
-        const imgHeight = this.modalImage.offsetHeight * this.scale;
-
-        const maxX = Math.max(0, (imgWidth - wrapperRect.width) / 2);
-        const maxY = Math.max(0, (imgHeight - wrapperRect.height) / 2);
-
-        this.translateX = Math.min(maxX, Math.max(-maxX, this.translateX));
-        this.translateY = Math.min(maxY, Math.max(-maxY, this.translateY));
-    }
-
-    applyTransform() {
-        if (this.modalImage) {
-            this.modalImage.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
-        }
-    }
-
-    updateCursor() {
-        if (this.imageContainer) {
-            this.imageContainer.style.cursor = this.scale > 1 ? 'grab' : 'default';
-        }
+        const endDrag = () => this.scroller.classList.remove('dragging');
+        this.scroller.addEventListener('pointerup', endDrag);
+        this.scroller.addEventListener('pointercancel', endDrag);
     }
 
     updateZoomButtons() {
@@ -468,13 +350,13 @@ export class ShiftTimelineModal {
         const zoomLevel = document.getElementById('shiftTimelineZoomLevel');
 
         if (zoomInBtn) {
-            zoomInBtn.disabled = this.scale >= this.maxScale;
+            zoomInBtn.disabled = this.scaleIndex >= SCALES.length - 1;
         }
         if (zoomOutBtn) {
-            zoomOutBtn.disabled = this.scale <= this.minScale;
+            zoomOutBtn.disabled = this.scaleIndex <= 0;
         }
         if (zoomLevel) {
-            zoomLevel.textContent = `${Math.round(this.scale * 100)}%`;
+            zoomLevel.textContent = `${Math.round(SCALES[this.scaleIndex] * 100)}%`;
         }
     }
 }

@@ -511,7 +511,7 @@
                                 <i class="bi bi-zoom-out"></i>
                             </button>
                             <span class="zoom-level" id="shiftTimelineZoomLevel"
-                                >100%</span
+                                >80%</span
                             >
                             <button
                                 type="button"
@@ -525,7 +525,7 @@
                                 type="button"
                                 class="btn btn-sm btn-outline-light ms-2"
                                 id="shiftTimelineZoomReset"
-                                title="Tilbakestill zoom"
+                                title="Tilbake til start"
                             >
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </button>
@@ -548,26 +548,26 @@
                             </div>
                             <p class="mt-3 text-muted">Henter tidslinje...</p>
                         </div>
-                        <!-- Timeline image container with zoom/pan -->
+                        <!-- Timeline image at fixed size in a native scroll box -->
                         <div
                             id="shiftTimelineWrapper"
                             class="shift-timeline-wrapper"
+                            style="display: none"
                         >
                             <div
-                                id="shiftTimelineContainer"
-                                class="shift-timeline-container"
+                                id="shiftTimelineScroller"
+                                class="shift-timeline-scroller"
                             >
                                 <img
                                     id="shiftTimelineImage"
                                     class="shift-timeline-image"
-                                    alt="Tidslinje"
-                                    style="display: none"
+                                    alt="Strekliste"
+                                    draggable="false"
                                 />
                             </div>
-                            <div
-                                id="shiftTimelineResizeBar"
-                                class="shift-timeline-resize-bar"
-                            ></div>
+                            <p class="shift-timeline-hint">
+                                ← Sveip sideveis for resten av dagsverket →
+                            </p>
                         </div>
                         <!-- Error message -->
                         <div
