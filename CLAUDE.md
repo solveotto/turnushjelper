@@ -209,6 +209,28 @@ page ever needs caching, key it on the turnus set alone. Guarded by
 
 UI language is **Norwegian**. Code and comments are in English.
 
+**Static URLs are versioned; keep it that way.** nginx on both hosts serves
+`/static/` itself with `Cache-Control: max-age=2592000` (30 days), while pages
+are `no-store`. With unversioned URLs, browsers ran old cached JS against new
+markup after a deploy. That blanked the strekliste modal on staging
+(2026-10-25), and dev never shows it because Flask's own static route sends
+`no-cache`. So `create_app()` passes `static_folder=None`, and
+`app/utils/static_assets.py` serves the `static` endpoint at
+`/assets/<version>/<path>`, where the version fingerprints every file under
+`app/static/` (path, size, mtime), recomputed per request.
+- Always link assets with `url_for('static', ...)`. Relative ES-module imports
+  and CSS `@import`s inherit the versioned prefix. An absolute `/static/...`
+  path bypasses versioning and stays stale for up to 30 days. Three image paths
+  in JS still do this, and the unversioned `legacy_static` route keeps them
+  working in dev.
+- Don't restore Flask's default static route. Don't move the prefix under
+  `/static-...` either, because nginx's `/static` rule may match it.
+- Asset requests get a null session (`sa_session_interface.open_session`
+  matches the path). Without it, each of the ~28 files a page loads cost a
+  session SELECT, an UPDATE and a `Set-Cookie`.
+
+Guarded by `tests/test_static_assets.py`.
+
 ## Code Style
 
 - Norwegian UI text, English code/comments

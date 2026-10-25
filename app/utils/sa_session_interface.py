@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.datastructures import CallbackDict
 
 from app.database import SessionLocal
+from app.utils.static_assets import ASSET_URL_PREFIX, LEGACY_STATIC_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,13 @@ class SqlAlchemySessionInterface(SessionInterface):
         return os.urandom(32).hex()
 
     def open_session(self, app, request) -> FlaskSession:
+        # Static files need no session. A null session is never saved, which
+        # spares each of the ~40 files a page loads a SELECT, an UPDATE and a
+        # Set-Cookie. Matched on the path: Flask opens the session before it
+        # resolves request.endpoint.
+        if request.path.startswith((ASSET_URL_PREFIX, LEGACY_STATIC_PREFIX)):
+            return self.make_null_session(app)
+
         # Every branch below that returns a fresh session is a logout from the
         # user's point of view, so each one is tagged distinctly: in production
         # they are otherwise indistinguishable. A nonzero "bad_signature" count

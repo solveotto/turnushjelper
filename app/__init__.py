@@ -7,6 +7,7 @@ from app.database import get_db_session
 from app.extensions import cache, csrf, limiter, login_manager, mail
 from app.models import DBUser, User
 from app.services.user_service import init_default_admin
+from app.utils.static_assets import init_versioned_static
 from config import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -14,8 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 def create_app():
-    app = Flask(__name__)
+    # No built-in /static route: init_versioned_static() owns the endpoint
+    app = Flask(__name__, static_folder=None)
     app.config.from_object(AppConfig)
+    init_versioned_static(app, AppConfig.static_dir)
 
     # Trust nginx's X-Forwarded-* headers in production so the app sees the real
     # client IP (rate limiting keys on it) and the real scheme (https links in
