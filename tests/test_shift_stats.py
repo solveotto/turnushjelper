@@ -245,8 +245,11 @@ class TestWeekendHourBuckets:
         assert _compute_helg("10:00", "18:00", ONSDAG) == (0.0, 0.0, 0.0)
 
 
-def _compute_longest_off(off_days, night_days=()):
-    """Helper: longest_off_streak of a rotation that works every day except
+ALL_DAYS = {(w, d) for w in range(1, 7) for d in range(1, 8)}
+
+
+def _rotation_stats(off_days, night_days=()):
+    """Helper: the stats row of a rotation that works every day except
     ``off_days``; days in ``night_days`` get a nattevakt instead of a day shift.
     Both are sets of (week, day)."""
     import tempfile
@@ -271,26 +274,34 @@ def _compute_longest_off(off_days, night_days=()):
         path = f.name
     try:
         result = Turnus(path).stats_df
-        return int(result[result["turnus"] == "TEST"]["longest_off_streak"].iloc[0])
+        return result[result["turnus"] == "TEST"].iloc[0]
     finally:
         os.unlink(path)
 
 
-class TestLongestOffStreakWrap:
+class TestStreaksWrap:
     """The rotation repeats: week 6 day 7 is followed by week 1 day 1."""
 
     def test_off_period_across_week_6_to_week_1_is_one_period(self):
         off = {(6, 5), (6, 6), (6, 7), (1, 1), (1, 2)}
-        assert _compute_longest_off(off) == 5
+        assert _rotation_stats(off)["longest_off_streak"] == 5
 
     def test_day_after_night_shift_in_week_6_is_not_a_day_off(self):
         """A nattevakt on week 6 Søndag makes week 1 Mandag its sleep-off day."""
         off = {(1, 1), (1, 2), (1, 3)}
-        assert _compute_longest_off(off, night_days={(6, 7)}) == 2
+        assert _rotation_stats(off, night_days={(6, 7)})["longest_off_streak"] == 2
 
     def test_off_period_within_rotation_is_unchanged(self):
         off = {(3, 2), (3, 3), (3, 4), (3, 5)}
-        assert _compute_longest_off(off) == 4
+        assert _rotation_stats(off)["longest_off_streak"] == 4
+
+    def test_work_period_across_week_6_to_week_1_is_one_period(self):
+        work = {(6, 4), (6, 5), (6, 6), (6, 7), (1, 1), (1, 2), (1, 3)}
+        assert _rotation_stats(ALL_DAYS - work)["longest_work_streak"] == 7
+
+    def test_work_period_within_rotation_is_unchanged(self):
+        work = {(3, 2), (3, 3), (3, 4), (3, 5), (3, 6)}
+        assert _rotation_stats(ALL_DAYS - work)["longest_work_streak"] == 5
 
 
 # ---------------------------------------------------------------------------

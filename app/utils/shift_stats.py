@@ -111,8 +111,7 @@ class Turnus():
             tidlig_6_8 = 0
             tidlig_8_12 = 0
             total_shift_hours = 0
-            current_work_streak = 0
-            longest_work_streak = 0
+            work_days = []  # per rotation day: a work day?
             off_days = []  # per rotation day: a true day off?
             prev_was_night = False
 
@@ -138,15 +137,13 @@ class Turnus():
                     if not is_work_day:
                         weekday_off[day_key] += 1
 
+                work_days.append(is_work_day)
                 if is_work_day:
-                    current_work_streak += 1
-                    longest_work_streak = max(longest_work_streak, current_work_streak)
                     off_days.append(False)
                 else:
                     # Recovery day after night shift — doesn't count as true day off
                     off_days.append(not prev_was_night)
                     prev_was_night = False
-                    current_work_streak = 0
                     current_kveld_streak = 0
 
                 if is_work_day:
@@ -275,11 +272,12 @@ class Turnus():
                 #### TEST ####
                 #print(f"{_dagsverk['turnus']}, {_dagsverk['uke_nr']}, {_dagsverk['ukedag']}, {sunday_hours}")
 
-            # The rotation repeats, so week 6 runs on into week 1: a free period
-            # can span the wrap, and a night shift on the last day (prev_was_night
-            # still holds it) makes the first day its recovery day.
+            # The rotation repeats, so week 6 runs on into week 1: a work or free
+            # period can span the wrap, and a night shift on the last day
+            # (prev_was_night still holds it) makes the first day its recovery day.
             if prev_was_night:
                 off_days[0] = False
+            longest_work_streak = _longest_circular_run(work_days)
             longest_off_streak = _longest_circular_run(off_days)
 
             avg_shift_hours = round(total_shift_hours / shift_cnt, 1) if shift_cnt > 0 else 0
