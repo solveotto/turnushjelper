@@ -5,6 +5,10 @@
       "second_shift": "3007"
     },
     {
+      "first_shift": "3006-",
+      "second_shift": "3007"
+    },
+    {
       "first_shift": "3008",
       "second_shift": "3009"
     },
@@ -22,7 +26,7 @@
     },
     {
       "first_shift": "5021",
-      "second_shift": "5022-"
+      "second_shift": "5022"
     },
     {
       "first_shift": "5023",
@@ -78,7 +82,7 @@
     },
     {
       "first_shift": "5452",
-      "second_shift": "5453"
+      "second_shift": "5053"
     },
     {
       "first_shift": "5460",
@@ -90,6 +94,7 @@
     }
   ],
   "delt_dagsverk": [
+    "1351",
     "1650",
     "1653",
     "3044",
