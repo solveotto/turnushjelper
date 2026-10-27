@@ -29,9 +29,11 @@ FAVORITES = ["OSL_01", "OSL_02"]
 # prioritering of "1,3,5" would appear even when choices are ignored entirely.
 PRIORITERING = "6,5,4"
 
+# Kolonne 2 stays unmarked here: a marked Kolonne 2 hides Kolonne 3
+# (TestKolonne2HidesKolonne3).
 CHOICES = {
     "OSL_01": {
-        "linje_135": True,
+        "linje_135": False,
         "linje_246": False,
         "h_dag": True,
         "linjeprioritering": PRIORITERING,
@@ -131,3 +133,22 @@ class TestChoicesPropagate:
 
         assert PRIORITERING in with_choices
         assert PRIORITERING not in without
+
+
+class TestKolonne2HidesKolonne3:
+    """Kolonne 2 (helg) and Kolonne 3 are alternatives on the form: while
+    either Kolonne 2 field is marked, the stored linjeprioritering is left out."""
+
+    @pytest.mark.parametrize("field", ["linje_135", "linje_246"])
+    def test_docx(self, field):
+        choices = {"OSL_01": {**CHOICES["OSL_01"], field: True}}
+        text = _docx_text(build_soknadsskjema_doc(*ARGS, choices=choices))
+
+        assert PRIORITERING not in text
+
+    @pytest.mark.parametrize("field", ["linje_135", "linje_246"])
+    def test_pdf(self, field):
+        choices = {"OSL_01": {**CHOICES["OSL_01"], field: True}}
+        text = _pdf_text(build_soknadsskjema_pdf(*ARGS, choices=choices))
+
+        assert PRIORITERING not in text

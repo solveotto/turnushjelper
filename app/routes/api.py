@@ -746,6 +746,15 @@ def mark_tour_seen():
         db_session.close()
 
 
+def _normalize_linjeprioritering(raw: str) -> str:
+    """Keep linjer 1-6 in typed order, drop repeats: "3,1" / "31" -> "3 1"."""
+    linjer = []
+    for ch in re.findall(r"[1-6]", raw):
+        if ch not in linjer:
+            linjer.append(ch)
+    return " ".join(linjer)
+
+
 @api.route("/soknadsskjema-choice", methods=["POST"])
 @login_required
 def soknadsskjema_choice():
@@ -783,7 +792,7 @@ def soknadsskjema_choice():
             setattr(row, field, int(value))
             return_value = value
         else:  # STR_FIELDS
-            value = str(data.get("value") or "").strip()
+            value = _normalize_linjeprioritering(str(data.get("value") or ""))
             setattr(row, field, value or None)
             return_value = value
         db_session.commit()

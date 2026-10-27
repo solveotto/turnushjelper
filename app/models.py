@@ -88,7 +88,7 @@ class SoknadsskjemaChoice(Base):
     shift_title     = Column(String(255), nullable=False)
     linje_135       = Column(Integer, default=0)   # 1 = X marked
     linje_246       = Column(Integer, default=0)   # 1 = X marked
-    linjeprioritering = Column(String(255), nullable=True)  # future: from turnusnøkkel
+    linjeprioritering = Column(String(255), nullable=True)  # space-separated linjer, e.g. "3 1"
     h_dag           = Column(Integer, default=0)   # 1 = J marked
     __table_args__ = (
         UniqueConstraint("user_id", "turnus_set_id", "shift_title",

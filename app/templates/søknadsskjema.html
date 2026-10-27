@@ -83,6 +83,22 @@
 }
 .toggle-cell:hover { background: #f0f0f0; }
 .toggle-cell.marked { font-weight: bold; }
+.priori-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  text-align: center;
+  background: transparent;
+}
+.priori-input:focus { box-shadow: inset 0 -1px 0 var(--color-primary); }
+.priori-cell .print-val { font-size: 9pt; padding: 0; }
+/* Kolonne 2 (helg) and Kolonne 3 are alternatives: a marked Kolonne 2 hides
+   the stored linjeprioritering, on screen and in print. */
+.priori-cell.suppressed > * { display: none !important; }
 /* The page-id row lives in alt-table thead so it repeats on every page the
    table spans (pages 2+). Hidden on screen, shown only when printing. */
 @media screen {
@@ -117,7 +133,7 @@
     padding: 0 0 4px 0 !important;
     color: #000;
   }
-  .info-table input[type=text] { display: none; }
+  .info-table input[type=text], .priori-input { display: none; }
   .print-val { display: inline; }
   .dato-wrapper { display: block; }
 }
@@ -276,7 +292,8 @@
             {% if fav_name %}
               <td class="toggle-cell{{ ' marked' if c.linje_135 }}" data-shift="{{ fav_name }}" data-field="linje_135">{{ "X" if c.linje_135 else "" }}</td>
               <td class="toggle-cell{{ ' marked' if c.linje_246 }}" data-shift="{{ fav_name }}" data-field="linje_246">{{ "X" if c.linje_246 else "" }}</td>
-              <td class="priori-cell">{{ c.linjeprioritering }}</td>
+              {% set prio = c.linjeprioritering or "" %}
+              <td class="priori-cell{{ ' suppressed' if c.linje_135 or c.linje_246 }}"><input type="text" class="priori-input" data-shift="{{ fav_name }}" data-saved="{{ prio }}" value="{{ prio }}" inputmode="numeric" maxlength="20" autocomplete="off" aria-label="Linjeprioritering {{ fav_name | replace('_', ' ') }}"><span class="print-val">{{ prio }}</span></td>
               <td class="toggle-cell{{ ' marked' if c.h_dag }}" data-shift="{{ fav_name }}" data-field="h_dag">{{ "J" if c.h_dag else "" }}</td>
             {% else %}
               <td></td><td></td><td></td><td></td>
@@ -294,7 +311,7 @@
       <button type="submit" name="format" value="pdf" class="btn btn-danger">
         <i class="bi bi-file-earmark-pdf me-1"></i> Last ned utfylt søknadsskjema (.pdf)
       </button>
-      <span class="text-muted small">Klikk i Kolonne 2 og 4 for å merke celler — lagres automatisk</span>
+      <span class="text-muted small">Klikk i Kolonne 2 og 4 for å merke celler, skriv linjer i Kolonne 3 — lagres automatisk</span>
     </div>
 
   </div><!-- .doc-sheet -->
@@ -310,6 +327,15 @@ function saveChoice(shiftTitle, field, value) {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({shift_title: shiftTitle, field: field, value: value})
   }).then(r => r.json());
+}
+
+// Kolonne 2 and 3 are alternatives: hide Kolonne 3 while either Kolonne 2 cell is marked.
+function syncKol3(row) {
+  const kol3 = row.querySelector('.priori-cell');
+  if (!kol3) return;
+  const kol2Marked = [...row.querySelectorAll('.toggle-cell[data-field^="linje_"]')]
+    .some(c => c.textContent.trim() !== '');
+  kol3.classList.toggle('suppressed', kol2Marked);
 }
 
 document.querySelectorAll('.toggle-cell').forEach(cell => {
@@ -341,9 +367,49 @@ document.querySelectorAll('.toggle-cell').forEach(cell => {
           siblingCell.textContent = '';
           siblingCell.classList.remove('marked');
         }
+        syncKol3(cell.closest('tr'));
       })
       .catch(err => console.error('Choice save failed:', err));
   });
+});
+
+// Kolonne 3 saves in flight; the download reads the DB, so it waits for them.
+const pendingSaves = new Set();
+
+document.querySelectorAll('.priori-input').forEach(input => {
+  const span = input.nextElementSibling;
+  input.addEventListener('keydown', e => {
+    // Enter would otherwise submit the form, i.e. download a .docx
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      input.blur();
+    }
+  });
+  input.addEventListener('change', () => {
+    const save = saveChoice(input.dataset.shift, 'linjeprioritering', input.value)
+      .then(result => {
+        if (result.status !== 'success') throw new Error(result.message);
+        input.dataset.saved = result.value;
+      })
+      .catch(err => console.error('Linjeprioritering save failed:', err))
+      .finally(() => {
+        // Server-normalised value on success ("3,1" -> "3 1"), last saved on failure
+        input.value = input.dataset.saved;
+        span.textContent = input.dataset.saved;
+        pendingSaves.delete(save);
+      });
+    pendingSaves.add(save);
+  });
+});
+
+const skjemaForm = document.getElementById('skjema-form');
+skjemaForm.addEventListener('submit', e => {
+  // Clicking "Last ned" right after typing blurs the input, which starts its
+  // save in the same instant; let that land before the POST reads the DB.
+  if (pendingSaves.size === 0) return;
+  e.preventDefault();
+  const submitter = e.submitter;
+  Promise.allSettled([...pendingSaves]).then(() => skjemaForm.requestSubmit(submitter));
 });
 
 document.querySelectorAll('.info-table input[type=text]').forEach(input => {

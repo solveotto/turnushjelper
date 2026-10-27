@@ -47,8 +47,8 @@ export default function () {
             popover: {
                 title: "Kolonne 3 — Linjeprioritering",
                 description: `
-                    <p>Denne kolonnen fylles ut <strong>automatisk</strong> når du velger linjer i turnusnøkkelen for den aktuelle turnusen.</p>
-                    <p class="tour-hint">Åpne turnusnøkkelen fra turnuslisten eller favorittlisten for å sette linjeprioritering.</p>
+                    <p>Velg linjer i turnusnøkkelen, eller skriv dem inn her i <strong>prioritert rekkefølge</strong> (f.eks. 3 1 5). Du søker kun de linjene som står her.</p>
+                    <p class="tour-hint">Kolonne 3 skjules hvis du har merket Kolonne 2 (helg) — du fyller ut den ene eller den andre.</p>
                 `,
                 side: "bottom",
                 align: "start",

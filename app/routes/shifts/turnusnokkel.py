@@ -151,6 +151,7 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
             .first()
         )
         linjeprioritering_current = pref_row.linjeprioritering if pref_row else ""
+        kolonne2_marked = bool(pref_row and (pref_row.linje_135 or pref_row.linje_246))
     finally:
         pref_db.close()
 
@@ -164,4 +165,5 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
         template_found=template_found,
         kompdager=kompdager,
         linjeprioritering_current=linjeprioritering_current or "",
+        kolonne2_marked=kolonne2_marked,
     )

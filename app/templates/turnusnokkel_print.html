@@ -242,6 +242,9 @@
         <div class="linje-komp-note">Tallet i hver knapp er antall kompdager linjen gir (fridag som faller på helge- eller høytidsdag, jf. overenskomsten §5.13.1 — <span class="legend-holiday-sample">røde datoer</span> i nøkkelen).</div>
         {% endif %}
         <div class="linje-prio-preview" id="linje-prio-preview"></div>
+        {% if kolonne2_marked %}
+        <div class="linje-komp-note">Kolonne 2 (helg) er merket i søknadsskjemaet — Kolonne 3 vises ikke før du fjerner krysset der.</div>
+        {% endif %}
     </div>
 
     <h1>Turnusnøkkel – {{ turnus_name }} – {{ year_identifier | display_name }}</h1>
@@ -305,29 +308,21 @@
 
         const SHIFT_TITLE = {{ turnus_name | tojson }};
         const TURNUS_SET_ID = {{ turnus_set_id }};
-        const ALL_LINJER = [1, 2, 3, 4, 5, 6];
         const SAVED = {{ linjeprioritering_current | tojson }};
 
-        // Reconstruct selected from stored priority string.
-        // Selected = minimal prefix such that the remaining tail equals natural order of unselected.
+        // Every linje 1-6 in the stored string, in order, repeats dropped.
+        // Rows saved before 2026-10 were padded with all six; they show as six picks.
         function parseSelected(s) {
-            if (!s || !s.trim()) return [];
-            const nums = s.trim().split(/\s+/).map(Number).filter(n => ALL_LINJER.includes(n));
-            if (nums.length !== 6) return [];
             const sel = [];
-            for (let i = 0; i < 6; i++) {
-                const tail = nums.slice(i);
-                const naturalRemaining = ALL_LINJER.filter(l => !nums.slice(0, i).includes(l));
-                if (JSON.stringify(tail) === JSON.stringify(naturalRemaining)) break;
-                sel.push(nums[i]);
+            for (const ch of (s || '').match(/[1-6]/g) || []) {
+                const n = Number(ch);
+                if (!sel.includes(n)) sel.push(n);
             }
             return sel;
         }
 
         function computePriority(selected) {
-            if (selected.length === 0) return "";
-            const remaining = ALL_LINJER.filter(l => !selected.includes(l));
-            return [...selected, ...remaining].join(" ");
+            return selected.join(" ");
         }
 
         let selectedLinjer = parseSelected(SAVED);
@@ -343,8 +338,8 @@
             const prio = computePriority(selectedLinjer);
             const el = document.getElementById('linje-prio-preview');
             el.innerHTML = prio
-                ? '<strong>Prioritet:</strong> ' + prio
-                : '<span style="color:#9ca3af">Ingen prioritering valgt — Kolonne 3 blir blank</span>';
+                ? '<strong>Prioritet:</strong> ' + prio + ' — du søker kun disse linjene'
+                :'<span style="color:#9ca3af">Ingen prioritering valgt — Kolonne 3 blir blank</span>';
         }
 
         function saveToServer(priorityStr) {

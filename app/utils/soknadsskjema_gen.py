@@ -123,6 +123,17 @@ def _add_cell_border(cell):
     tcPr.append(tcBorders)
 
 
+def _kolonne3(c):
+    """Kolonne 3 text for one row; blank while Kolonne 2 (helg) is marked.
+
+    The form treats Kolonne 2 and 3 as alternatives, so a marked Kolonne 2
+    hides the stored linjeprioritering without deleting it.
+    """
+    if c.get("linje_135") or c.get("linje_246"):
+        return ""
+    return c.get("linjeprioritering", "")
+
+
 def _arial(run, size_pt, bold=False):
     from docx.shared import Pt
 
@@ -332,8 +343,9 @@ def build_soknadsskjema_doc(
                     _cell(3 + i, 2, "X")
                 if c.get("linje_246"):
                     _cell(3 + i, 3, "X")
-                if c.get("linjeprioritering"):
-                    _cell(3 + i, 4, c["linjeprioritering"])
+                kolonne3 = _kolonne3(c)
+                if kolonne3:
+                    _cell(3 + i, 4, kolonne3)
                 if c.get("h_dag"):
                     _cell(3 + i, 5, "J")
 
@@ -534,7 +546,7 @@ def build_soknadsskjema_pdf(
                 fav.replace("_", " "),
                 "X" if c.get("linje_135") else "",
                 "X" if c.get("linje_246") else "",
-                c.get("linjeprioritering", ""),
+                _kolonne3(c),
                 "J" if c.get("h_dag") else "",
             ]
         )
