@@ -574,8 +574,7 @@ def build_soknadsskjema_pdf(
                 ("SPAN", (2, 1), (3, 1)),
                 # Alignment
                 ("ALIGN", (0, 0), (-1, 2), "CENTER"),
-                ("ALIGN", (2, 3), (3, -1), "CENTER"),
-                ("ALIGN", (5, 3), (5, -1), "CENTER"),
+                ("ALIGN", (2, 3), (5, -1), "CENTER"),  # Kolonne 2-4
                 # Tur name: bold
                 ("FONTNAME", (1, 3), (1, -1), "Helvetica-Bold"),
             ]
