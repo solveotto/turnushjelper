@@ -234,16 +234,23 @@ def count_kompdager(turnus_set_id):
     """
     from app.extensions import cache
     from app.utils import df_utils
-
-    cache_key = f"kompdager_{turnus_set_id}"
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached
+    from app.utils.turnuskalender import nokkel_path
 
     dm = df_utils.DataframeManager(turnus_set_id)
     turnus_set = dm.get_current_turnus_info()
     if not turnus_set:
         return None
+
+    # Counts are derived from the schedule and the nøkkel; recount when either
+    # file changed, in whichever worker this runs.
+    fingerprint = (
+        dm.source_fingerprint,
+        df_utils.files_fingerprint(nokkel_path(turnus_set["year_identifier"])),
+    )
+    cache_key = f"kompdager_{turnus_set_id}"
+    cached = cache.get(cache_key)
+    if cached is not None and cached[0] == fingerprint:
+        return cached[1]
 
     positions = get_holiday_positions(turnus_set["year_identifier"])
     if positions is None:
@@ -255,5 +262,5 @@ def count_kompdager(turnus_set_id):
             if isinstance(data, dict):
                 result[name] = count_kompdager_for_turnus(data, positions)
 
-    cache.set(cache_key, result, timeout=3600)
+    cache.set(cache_key, (fingerprint, result), timeout=3600)
     return result

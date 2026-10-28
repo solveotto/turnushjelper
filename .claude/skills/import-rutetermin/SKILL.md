@@ -56,7 +56,7 @@ authentication:
 |---|---|
 | Timeskjema `.xls` → `turnuser_RXX.xls` | primary schedule source |
 | turnus PDF → `pdf/turnuser_RXX.pdf` | cross-check, or primary when no Timeskjema |
-| `streklister/{rxx}_streker.pdf` | strekliste PNGs, strekliste tables, double shifts |
+| streker PDF, uploaded → `streklister/{rxx}_streker_{STED}.pdf` | strekliste PNGs, strekliste tables, double shifts |
 | `turnusnøkkel_RXX_org.xlsx` | only calendar-date source; kompdager; søknadsskjema |
 | `søknadsskjema_org.docx` | application form template |
 
@@ -76,9 +76,10 @@ in `instance/protected/{rXX}/` (`AppConfig.protected_dir`), NOT under
 `.xls` are not. Preferred flow: import locally through the admin UI, read
 the diff, commit the generated JSON, `git pull` on the server and create the
 set there with **"Bruk eksisterende filer"** (same validator, no re-scrape).
-Then `sudo systemctl restart turnushjelper` — production runs two gunicorn
-workers with per-process caches, and an un-restarted worker serves the old
-set for up to an hour. Deploy status is per host: record host *and* SHA.
+Data imports need no restart: the per-worker caches carry a fingerprint of
+their source files and rebuild when it changes (CLAUDE.md → Caching). A pull
+that brings code still needs `sudo systemctl restart turnushjelper`. Deploy
+status is per host: record host *and* SHA.
 
 ## Steps
 
@@ -97,12 +98,16 @@ current` (must be at head on the DB you import into).
    differences do NOT mean scrape error: R26's two sources differed in 20
    real revision cells. Hand the diff (turnus, week, day, both values) to
    Solve to adjudicate. The full log is `app/logs/turnus_import.log`.
-3. **Strekliste**: upload `{rxx}_streker.pdf` on "Administrer turnussett"
-   and press "Generer". That one step renders the PNGs, scans double shifts
-   into `double_shifts_{rxx}.json`, and parses the duties into
-   `strekliste_dagsverk` / `strekliste_aktivitet`. It is synchronous and
-   slow (~35 s on the servers) — the CLI form in `CLAUDE.md` is better for
-   routine regeneration. Geometry auto-calibrates from the PDF's hour
+3. **Strekliste**: upload the streker PDF on "Administrer turnussett". The
+   employer's edition covers every depot; pick the set's stasjoneringssted
+   (OSL) when asked, and only those pages are kept. Then press "Generer".
+   That one step renders the PNGs, scans double shifts into
+   `double_shifts_{rxx}.json`, and parses the duties into
+   `strekliste_dagsverk` / `strekliste_aktivitet`. It runs as its own
+   process (minutes on the servers) and the dialog polls it;
+   `scripts/generate_strekliste.py --year RXX` is the same run from the
+   command line. Never place the full multi-station PDF by hand: it would
+   bypass the split. Geometry auto-calibrates from the PDF's hour
    header; if `tests/test_strekliste_geometry.py` fails, the layout
    changed — report, don't retune. Then run
    `scripts/strekliste_gjennomgang.py --year RXX` and **read the report**
@@ -125,8 +130,9 @@ current` (must be at head on the DB you import into).
 7. **Exports for nlfstreik** once the set is final:
    `scripts/export_turnusplan.py --year RXX` (needs the nøkkel) and
    `scripts/export_strekliste.py --year RXX`.
-8. **Activate** the set in the admin panel when the final version lands,
-   restart the service, and run the `verify-turnus-data` skill.
+8. **Activate** the set in the admin panel when the final version lands
+   (both workers follow within a minute), and run the `verify-turnus-data`
+   skill.
 9. **Finish**: full `venv/bin/pytest -q` (all green, count may grow with the
    new kompdag test), then report: files produced, validator results,
    cross-source diff, anomalies, and anything left for Solve to decide.

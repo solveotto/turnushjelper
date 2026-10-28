@@ -109,13 +109,10 @@ The schedule JSON is an abstract 6-week rotation with no calendar dates. The onl
 - **Timeskjema TSV parsing traps**: accounting-week grouping (Sunday-night shifts are listed in the next week's Sum-uke block), a trailing station-summary section with its own `Totalsummer` row, `&` suffixes on values, and the `Ruteterminperiode:` header being wrong (use the `Rutetermin:` dates).
 - **Hours cross-check calibration**: `kl_timer` = paid time after unpaid-break deductions; the raw sum of shift spans is always ≥ `kl_timer`, by 0 to ~10h. Hence the one-sided band `_HOURS_TOL_LOW`/`_HOURS_TOL_HIGH` in `scraper_validator.py`. `tj_timer` (service hours) is much larger and not usable as an anchor. Re-run the calibration against committed R25/R26 data before retuning these tolerances — never assume summed spans equal `kl_timer`.
 - **Strekliste PNGs**: ruler/crop geometry auto-calibrates per page from the PDF's printed 0–23 hour header (`compute_page_geometry` / `get_hour_label_positions` in `app/utils/pdf/strekliste_generator.py`, with the legacy hand-calibrated constants as fallback; golden anchors for r26 in `tests/test_strekliste_geometry.py`: hour 0 at x≈103.5, hour 23 at ≈793.5, 30 pt/hour). The PNGs are generated files (not in git), so **stale PNGs from the previous PDF look correct until someone regenerates** — always regenerate after any streker-PDF swap. If a future PDF misaligns, check `get_hour_label_positions` against it rather than re-tuning the fallback constants.
-- **Regeneration is slow and needs a raised gunicorn timeout.** `generate_all_images` takes ~15 s locally and ~35 s on the servers for a 423-shift set (~80 ms per render). The admin route calls it synchronously inside the request, so **the systemd unit must pass `--timeout 300`** — gunicorn's default is 30 s, which killed the worker partway every time (reproducibly at ~269 images for r26). The symptom is misleading: the browser shows "En feil oppstod under generering", which is frontend text from `admin_turnus_sets.html` meaning *the request died*, not that the generator reported anything. Worker timeouts land in `/var/log/turnushjelper/error.log`, **not** journald. Note the route still occupies one of two sync workers for its whole duration, so the site runs at half capacity meanwhile; prefer the CLI for routine work:
+- **The strekliste PDF is split by stasjoneringssted at upload.** The employer's "ALLE" edition holds every depot (R27: 159 pages, 13 stations, OSL is 67 of them); a turnus set belongs to one station. Upload reads each page's `Stasjoneringssted:` header (`find_stations`), asks which station to keep when there is more than one (`/admin/strekliste-stasjon/<id>`, OSL preselected), and stores those pages as `{rxx}_streker_{STED}.pdf` with the full file beside it as `{rxx}_streker_alle.pdf`. `get_paths` reads the station file and falls back to the pre-split `{rxx}_streker.pdf`, so older sets need no renaming; `_alle` and a pending `_opplastet` are never read. Generating from the full file on staging (2026-10-27) rendered 960 images, parsed 1 084 duties from every depot into R27, and ran past the worker timeout. Guarded by `tests/test_strekliste_stasjon.py`.
+- **Regeneration runs as its own process, never inside a request.** Images, double-shift scan and parse take about a minute locally and several on the servers (2 vCPU, sync workers). Inside the request, gunicorn killed the worker partway: at 30 s for r26 until `--timeout 300` was added, then past 300 s for the "ALLE" PDF. Now "Generer" calls `strekliste_job.start` (`app/services/strekliste_job.py`), which spawns `scripts/generate_strekliste.py` in its own session (output in `app/logs/strekliste_generering.log`) and returns 202; the page polls `strekliste-progress`, which reads `streklister/.generering.json`, so the poll may land on either worker. An flock on `.generering.lock` marks a run in progress: the button and the CLI cannot overlap, and since the OS drops the lock when the process dies, a killed run shows as failed instead of leaving the button stuck. `systemctl restart` stops a run in progress (same cgroup). The CLI (`venv/bin/python scripts/generate_strekliste.py --year RXX`) runs the same `strekliste_job.run`. Worker timeouts land in `/var/log/turnushjelper/error.log`, **not** journald. Guarded by `tests/test_strekliste_job.py`.
 
-  ```bash
-  nohup venv/bin/python -c "import app.utils.pdf.strekliste_generator as sg; r=sg.generate_all_images('r26', force=True); print(r['total'], len(r['generated']), r['errors'][:5])" > /tmp/strekliste.log 2>&1 &
-  ```
-
-  A `force=True` run builds into a sibling `.png-gen-*` temp directory and swaps it in only once every image is written (`_swap_in`), so **an interrupted run leaves the existing images untouched** rather than destroying them — that holds even for a SIGKILL, which no `try/finally` could catch. Verify with `ls turnusdata/r26/streklister/png | wc -l` — r26 must be **423**; 492 means the wrong PDF edition (want md5 `9091cf5ee5b1fd5db797a6dc3ccf6888`). Per-shift failures do *not* abort the run: they collect in `result["errors"]`, which the admin route discards and the CLI form above prints. Guarded by `tests/test_strekliste_atomic_swap.py`.
+  A `force=True` run builds into a sibling `.png-gen-*` temp directory and swaps it in only once every image is written (`_swap_in`), so **an interrupted run leaves the existing images untouched** rather than destroying them — that holds even for a SIGKILL, which no `try/finally` could catch. Verify with `ls turnusdata/r26/streklister/png | wc -l` — r26 must be **423**; 492 means the wrong PDF edition (want md5 `9091cf5ee5b1fd5db797a6dc3ccf6888`). Per-shift failures do *not* abort the run: they collect in `result["errors"]`, which the CLI prints and the admin dialog counts. Guarded by `tests/test_strekliste_atomic_swap.py`.
 - **Strekliste as data** (`app/utils/pdf/strekliste_parser.py`, tables
   `strekliste_dagsverk` / `strekliste_aktivitet`, `app/services/strekliste_service.py`).
   The streker PDF is vector text: every label has exact coordinates, segment
@@ -123,8 +120,8 @@ The schedule JSON is an abstract 6-week rotation with no calendar dates. The onl
   that the page's own legend also uses (matched by tile bytes, learned per
   page). The parser is pure and deterministic — no OCR, no LLM — and reads
   the hour axis per page (19.5 pt/h in the "med beregninger" edition, 30 pt/h
-  in ours; never hard-code it). It runs inside the admin "generer strekliste"
-  step (`generate_strekliste` in `app/routes/admin/turnus.py`) beside the
+  in ours; never hard-code it). It runs in the strekliste generation job
+  (`strekliste_job.run`, started by the admin "Generer" button) beside the
   double-shift scan, replaces the turnus set's rows wholesale, and
   `scripts/export_strekliste.py --year R26` writes `turnusdata/r26/strekliste_R26.json.gz`
   for nlfstreik (which imports it into `dagsverk_mal`). Layout rules the
@@ -193,6 +190,16 @@ Flask-Caching (in-memory, simple). Key patterns:
 - `kompdager_{turnus_set_id}` — 3600s, per-linje kompdag counts
 
 When modifying a user's DB columns, invalidate the relevant cache keys.
+
+**The two data caches follow their files, so an import needs no restart.**
+`turnus_data_*` and `kompdager_*` store a fingerprint (size + mtime, `files_fingerprint`
+in `df_utils.py`) of the schedule, stats, `double_shifts` and nøkkel files they were
+built from, and every worker rebuilds its entry when that changes. Before
+2026-10-28 an Oppdater, Generer or nøkkel upload cleared only the worker that served
+it and the other kept the old data for up to an hour, so every import ended in a
+restart. A cache keyed on anything derived from those files must carry the
+fingerprint too. Guarded by `tests/test_turnus_cache_freshness.py`. The active set
+(`get_active_turnus_set`, memoized 60 s) still lags up to a minute after a switch.
 
 **Rendered pages are never cached.** `/turnusliste` and `/oversikt` were cached per
 user until 2026-07-28; because SimpleCache is per-process and production runs 2

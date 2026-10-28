@@ -20,9 +20,9 @@ Ingestion" and "Kompdager"; they are not repeated here.
 2. `scripts/probe_timeskjema.py` on the Timeskjema export.
 3. **Opprett turnussett** with the Timeskjema and the verification PDF. Do not tick "aktivt" for a draft.
 4. Read the validation flashes and adjudicate the review page.
-5. Upload the streker PDF and press **Generer**. Read the gjennomgang report.
+5. Upload the streker PDF (pick the stasjoneringssted if asked) and press **Generer**. Read the gjennomgang report.
 6. Upload the turnusnøkkel. Import the innplassering. Derive kompdag reference counts.
-7. Commit the generated JSON, pull on the server, create the set there with **Bruk eksisterende filer**, restart.
+7. Commit the generated JSON, pull on the server, create the set there with **Bruk eksisterende filer**.
 8. Activate when the final edition lands. Export for nlfstreik. Run the `verify-turnus-data` skill.
 
 Later revisions of the same rutetermin go through **Oppdater** (refresh),
@@ -41,7 +41,7 @@ tabs are empty, søknadsskjema will not generate). Never fake a missing file.
 |---|---|---|---|
 | Timeskjema export (`.xls`) | `turnusdata/{rxx}/turnuser_RXX.xls` | **Primary** schedule source | Yes |
 | Turnus PDF | `turnusdata/{rxx}/pdf/turnuser_RXX.pdf` | Cross-check, or primary when there is no Timeskjema | No |
-| Streker PDF | `turnusdata/{rxx}/streklister/{rxx}_streker.pdf` | Strekliste PNGs, strekliste tables, double shifts | No |
+| Streker PDF | uploaded on **Administrer turnussett**, stored as `turnusdata/{rxx}/streklister/{rxx}_streker_{STED}.pdf` (older sets: `{rxx}_streker.pdf`) | Strekliste PNGs, strekliste tables, double shifts | No |
 | Turnusnøkkel | `turnusdata/{rxx}/turnusnøkkel_RXX_org.xlsx` | Only calendar-date source. Kompdager, mintur dates, søknadsskjema | Yes |
 | Innplassering PDF | `instance/protected/{rxx}/innplassering_RXX.pdf` | Who is placed on which tur. **PII** | No |
 
@@ -139,29 +139,34 @@ Cancelling leaves the system unchanged.
 
 ## 5. Strekliste
 
-On **Administrer turnussett**, upload `{rxx}_streker.pdf` with **Last opp
-strekliste PDF**, then press **Generer PNG-bilder fra PDF**. That one step
-does three things:
+On **Administrer turnussett**, upload the streker PDF with **Last opp
+strekliste PDF**. The employer's edition usually covers every depot
+("ALLE"): the upload then lists the stasjoneringssteder it found and asks
+which one the set is for, with OSL preselected. The set keeps only that
+station's pages, as `{rxx}_streker_{STED}.pdf`, and the full file is kept
+beside it as `{rxx}_streker_alle.pdf`. A PDF with a single station is saved
+without asking. **Avbryt** leaves the existing strekliste as it was.
+
+Then press **Generer PNG-bilder fra PDF**. That one step does three things:
 
 1. Renders one PNG per shift into `turnusdata/{rxx}/streklister/png/`.
 2. Scans double and split shifts into `turnusdata/{rxx}/double_shifts_{rxx}.json` (tracked in git).
 3. Parses every duty into the `strekliste_dagsverk` and `strekliste_aktivitet` tables.
 
-It runs synchronously inside one request. Locally that is about a minute
-for R27; on the servers it has exceeded gunicorn's `--timeout 300` and the
-browser then shows "Forespørselen brøt sammen under generering", which only
-means the request died (the worker abort lands in
-`/var/log/turnushjelper/error.log`, not journald). **On the servers, use the
-script instead of the button:**
+It runs on the server as its own process, so no web request has to wait
+for it: about a minute locally for R27, a few minutes on the servers. The
+dialog shows which step is running and the result when done. You can close
+it; the generation carries on, and the set's badge shows **Genererer …**
+until it finishes. The same work from the command line, which shows up on
+the admin page too and cannot overlap with a button run:
 
 ```bash
 venv/bin/python scripts/generate_strekliste.py --year RXX
 ```
 
-It does the same three steps, prints the time and result of each, and runs
-outside gunicorn so no timeout applies and no web worker is tied up. Both
-paths build the images into a temp directory and swap them in only when
-complete, so an interrupted run leaves the old images untouched.
+Both build the images into a temp directory and swap them in only when
+complete, so an interrupted run leaves the old images untouched. No restart
+is needed afterwards.
 
 Check the count: `ls turnusdata/{rxx}/streklister/png | wc -l` must equal
 the number of shifts in the set (423 for R26). A different count means the
@@ -244,17 +249,17 @@ over separately (see `SERVER_RESTORE_GUIDE.md`).
 Preferred flow:
 
 1. Import locally as above, commit `turnusdata/{rxx}/` and the kompdag test.
-2. On the host: `git pull`, `venv/bin/alembic upgrade head`.
-3. Copy the streker PDF to `turnusdata/{rxx}/streklister/` and the innplassering PDF to `instance/protected/{rxx}/`.
+2. On the host: `git pull`, `venv/bin/alembic upgrade head`, and `sudo systemctl restart turnushjelper` if the pull brought code.
+3. Copy the innplassering PDF to `instance/protected/{rxx}/`.
 4. **Opprett turnussett** with **Bruk eksisterende filer** ticked. Same validator, no re-scrape.
-5. `venv/bin/python scripts/generate_strekliste.py --year RXX`, then the innplassering import, as in sections 5 and 6.
-6. `sudo systemctl restart turnushjelper`.
+5. Upload the streker PDF and press **Generer**, then the innplassering import, as in sections 5 and 6.
 
-Restart is not optional. Production runs two gunicorn workers with
-per-process caches; an import only clears the worker that served your
-request, and the other keeps serving the old set for up to an hour. The
-symptom is "some users see the new turnus, some the old", with no error
-anywhere.
+Data imports need no restart. Production runs two gunicorn workers with
+per-process caches, and an import runs in only one of them, but the cached
+turnus data and kompdag counts carry a fingerprint of their source files,
+so the other worker rebuilds them on its next request. (Until 2026-10-28 it
+kept serving the old set for up to an hour.) Switching the active set takes
+up to a minute to reach both workers. A code deploy still needs the restart.
 
 **Deploy status is per host.** `turnushjelper-2` is staging and
 `turnushjelper-1` is production, and the names are easy to confuse. Record
@@ -329,7 +334,11 @@ someone regenerates.
   own text.
 - **Running a script against the wrong database.** Every script reads
   `.env`; the innplassering importer prints its target, read it.
-- **Not restarting after an import.** See section 8.
+- **Not restarting after a code deploy.** A running worker keeps the old
+  code. Data imports no longer need it, see section 8.
+- **Generating from the full multi-station PDF.** Placed by hand as
+  `{rxx}_streker.pdf`, it bypasses the upload's station split; always upload
+  it through **Administrer turnussett**.
 - **Seeding a real `year_identifier` in a test that deletes a turnus set.**
   Deleting a set deletes its PNGs through the real data path, and they are
   gitignored so `git status` stays clean. `tests/test_turnus_set_delete_guard.py`
@@ -345,10 +354,11 @@ someone regenerates.
 | "Validering feilet" on create | Source data failed the gate. Full list in `app/logs/turnus_import.log` |
 | "Feil ved skraping av PDF" | The PDF layout does not match the scraper's fixed boxes. Use the Timeskjema |
 | "Verifiserings-PDF kunne ikke leses" | Scrape crashed. Re-upload without the verification PDF to import unchecked, or fix the PDF |
-| "Forespørselen brøt sammen under generering" | The strekliste request died, usually gunicorn timeout. Use `scripts/generate_strekliste.py` |
+| "Genereringen stoppet før den ble ferdig" | The generation process died, often a service restart mid-run. Output in `app/logs/strekliste_generering.log`; press Generer again |
+| "En generering kjører allerede" | A run (button or CLI) holds the lock. Wait for it |
 | Wrong PNG count | Wrong streker PDF edition, or the full multi-station file instead of the OSL pages |
 | "Data too long for column" from the parse | MySQL enforces column lengths, SQLite does not. Run `venv/bin/alembic upgrade head`; if it is at head, a new edition prints longer labels than the model allows |
 | Søknadsskjema will not generate | Nøkkel missing for the set |
 | Kompdager show `–` | Nøkkel missing. Not an error |
-| Some users see the old set | One worker not restarted |
+| Some users see the old set | The active set was switched under a minute ago, or the code from 2026-10-28 is not deployed on that host |
 | Mintur still shows the old set | Innplassering for the new set not imported |

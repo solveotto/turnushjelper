@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField, PasswordField, SubmitField, FloatField, IntegerField, BooleanField, FileField, TextAreaField, HiddenField
+from wtforms import SelectField, StringField, PasswordField, SubmitField, FloatField, IntegerField, BooleanField, FileField, TextAreaField, HiddenField, RadioField
 from wtforms.validators import DataRequired, Length, NumberRange, EqualTo, ValidationError, Email, Optional, Regexp
 from flask_wtf.file import FileAllowed
 
@@ -130,6 +130,14 @@ class UploadStreklisteForm(FlaskForm):
         FileAllowed(['pdf'], 'Kun PDF-filer!')
     ])
     submit = SubmitField('Last opp')
+
+
+class StreklisteStationForm(FlaskForm):
+    """Pick which stasjoneringssted of an uploaded strekliste to keep.
+    Choices are set per request from the pages found in the upload."""
+    stasjoneringssted = RadioField('Stasjoneringssted', validators=[DataRequired()])
+    lagre = SubmitField('Lagre')
+    avbryt = SubmitField('Avbryt')
 
 
 class ForgotPasswordForm(FlaskForm):

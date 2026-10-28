@@ -15,6 +15,8 @@ turnusdata/**/turnusplan_*.json.gz
 turnusdata/**/strekliste_*.json.gz
 # Strekliste review report: generated, read locally, never committed or served.
 turnusdata/**/gjennomgang_*.html
+# Status and lock of a background strekliste generation (strekliste_job.py).
+turnusdata/**/.generering.*
 
 nul
 General/

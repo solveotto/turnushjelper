@@ -12,20 +12,36 @@ logger = logging.getLogger(__name__)
 def invalidate_turnus_cache(turnus_set_id):
     """Drop cached turnus JSON/stats and kompdag counts for a turnus set.
 
-    Both keys default to a 1 h timeout, so any admin action that changes the
-    underlying files (re-scrape, double-shift rescan, nøkkel upload) must call
-    this or the app keeps serving the old data until the cache expires.
-
-    IMPORTANT — this only clears the worker that handled the admin request.
-    The cache is SimpleCache (per-process) and production runs 2 gunicorn
-    workers, so the *other* worker keeps serving pre-import data for up to
-    1 h. This is a known, accepted envelope (imports are rare); restart the
-    service after an import to clear every worker at once. See
-    docs/guides/CREATING_TURNUS_SETS.md.
+    Only reaches the worker that handled the request: the cache is
+    SimpleCache (per-process) and production runs 2 gunicorn workers. The
+    other worker notices on its next request anyway, because both cached
+    entries carry a fingerprint of their source files (files_fingerprint)
+    and are rebuilt when it changes, so no restart is needed after an import.
     """
     from app.extensions import cache
     cache.delete(f"turnus_data_{turnus_set_id}")
     cache.delete(f"kompdager_{turnus_set_id}")
+
+
+def files_fingerprint(*paths):
+    """(mtime_ns, size) per file, None for a missing one.
+
+    A few stat calls per request, so every worker can tell whether its cached
+    copy is still built from the files on disk.
+    """
+    fingerprint = []
+    for path in paths:
+        try:
+            st = os.stat(path)
+            fingerprint.append((st.st_mtime_ns, st.st_size))
+        except OSError:
+            fingerprint.append(None)
+    return tuple(fingerprint)
+
+
+def double_shifts_path(year_id):
+    version = year_id.lower()
+    return os.path.join(AppConfig.turnusfiler_dir, version, f"double_shifts_{version}.json")
 
 
 class DataframeManager():
@@ -34,6 +50,7 @@ class DataframeManager():
         self.current_turnus_set = None
         self.df = pd.DataFrame()  # Empty dataframe as default
         self.turnus_data = []     # Empty list as default
+        self.source_fingerprint = None
         self.load_turnus_set(turnus_set_id)
     
     def load_turnus_set(self, turnus_set_id=None):
@@ -79,13 +96,17 @@ class DataframeManager():
         else:
             turnus_path, df_path = conventional_turnus, conventional_df
 
-        # Check in-memory cache before hitting disk
+        # Check in-memory cache before hitting disk. The entry is only good
+        # while the files it was built from are unchanged.
         from app.extensions import cache
         cache_key = f"turnus_data_{turnus_set['id']}"
+        self.source_fingerprint = files_fingerprint(
+            turnus_path, df_path, double_shifts_path(turnus_set['year_identifier'])
+        )
         cached = cache.get(cache_key)
-        if cached is not None:
+        if cached is not None and cached[3] == self.source_fingerprint:
             logger.debug("Cache hit for turnus set %s", turnus_set['year_identifier'])
-            self.turnus_data, df_dict, self.current_turnus_set = cached
+            self.turnus_data, df_dict, self.current_turnus_set, _ = cached
             self.df = pd.DataFrame(df_dict)
             return True
 
@@ -116,7 +137,8 @@ class DataframeManager():
                 self.turnus_data = []
 
             # Store in cache (DataFrame serialised as dict to avoid pickling issues)
-            cache.set(cache_key, (self.turnus_data, self.df.to_dict(), self.current_turnus_set))
+            cache.set(cache_key, (self.turnus_data, self.df.to_dict(), self.current_turnus_set,
+                                  self.source_fingerprint))
 
             return True
         except Exception as e:
@@ -159,11 +181,11 @@ class DataframeManager():
     def _apply_double_shift_flags(self, turnus_data, year_id):
         """Apply shift flags based on double_shifts file."""
 
-        double_shifts_path = os.path.join(AppConfig.turnusfiler_dir, year_id.lower(), f'double_shifts_{year_id.lower()}.json')
-        if not os.path.exists(double_shifts_path):
+        path = double_shifts_path(year_id)
+        if not os.path.exists(path):
             return turnus_data
 
-        with open(double_shifts_path, 'r') as f:
+        with open(path, 'r') as f:
             shifts_data = json.load(f)
 
         # Handle new dict structure or old list structure

@@ -8,13 +8,12 @@ from flask_login import current_user
 from app.decorators import admin_required
 from app.database import get_db_session
 from app.extensions import cache
-from app.forms import CreateTurnusSetForm, UploadStreklisteForm
+from app.forms import CreateTurnusSetForm, StreklisteStationForm, UploadStreklisteForm
 from app.routes.admin import admin
 from app.services import turnus_service
 from app.utils import df_utils, protected_paths
-from app.services import strekliste_service
+from app.services import strekliste_job
 from app.utils.pdf import strekliste_generator
-from app.utils.pdf.double_shift_scanner import scan_double_shifts
 from config import AppConfig
 
 # Dedicated audit logger (handler configured in app/routes/main.py).
@@ -771,12 +770,9 @@ def strekliste_progress(turnus_set_id):
         return jsonify({"status": "error", "message": "Turnus set not found"}), 404
 
     version = turnus_set["year_identifier"].lower()
-    return jsonify(
-        {
-            "status": "success",
-            "data": strekliste_generator.get_generation_progress(version),
-        }
-    )
+    data = strekliste_generator.get_generation_progress(version)
+    data["job"] = strekliste_job.read_status(version)
+    return jsonify({"status": "success", "data": data})
 
 
 @admin.route("/strekliste-status/<int:turnus_set_id>")
@@ -789,6 +785,7 @@ def strekliste_status(turnus_set_id):
 
     version = turnus_set["year_identifier"].lower()
     status = strekliste_generator.get_strekliste_status(version)
+    status["job"] = strekliste_job.read_status(version)
 
     # Include double shift scan info if available
     double_shifts_path = os.path.join(
@@ -817,22 +814,68 @@ def upload_strekliste(turnus_set_id):
 
     form = UploadStreklisteForm()
     if form.validate_on_submit():
-        pdf_file = form.pdf_file.data
         version = turnus_set["year_identifier"].lower()
+        staged = strekliste_generator.stage_uploaded_pdf(form.pdf_file.data, version)
 
-        result = strekliste_generator.save_uploaded_pdf(pdf_file, version)
-
-        if result["success"]:
-            flash(
-                f"Strekliste PDF lastet opp for {turnus_set['year_identifier']}.",
-                "success",
-            )
+        if not staged["success"]:
+            flash(f"Kunne ikke laste opp PDF: {staged['error']}", "danger")
+        elif len(staged["stations"]) > 1:
+            return redirect(url_for("admin.choose_strekliste_station", turnus_set_id=turnus_set_id))
         else:
-            flash(f"Kunne ikke laste opp PDF: {result['error']}", "danger")
+            _finish_strekliste_upload(turnus_set, next(iter(staged["stations"])))
     else:
         flash("Ugyldig fil. Vennligst last opp en PDF-fil.", "danger")
 
     return redirect(url_for("admin.manage_turnus_sets"))
+
+
+def _finish_strekliste_upload(turnus_set, station):
+    year_id = turnus_set["year_identifier"]
+    result = strekliste_generator.finish_uploaded_pdf(year_id.lower(), station)
+    if not result["success"]:
+        flash(f"Kunne ikke lagre strekliste: {result['error']}", "danger")
+        return
+    message = (
+        f"Strekliste for {station} lagret for {year_id} "
+        f"({result['pages']} av {result['total_pages']} sider)."
+    )
+    if result["other_stations"]:
+        message += f" Utelatt: {', '.join(result['other_stations'])}."
+    flash(message + " Trykk Generer for å lage bildene.", "success")
+
+
+@admin.route("/strekliste-stasjon/<int:turnus_set_id>", methods=["GET", "POST"])
+@admin_required
+def choose_strekliste_station(turnus_set_id):
+    """Second step of a strekliste upload that holds several stations."""
+    turnus_set = turnus_service.get_turnus_set_by_id(turnus_set_id)
+    if not turnus_set:
+        flash("Turnussett ikke funnet.", "danger")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    version = turnus_set["year_identifier"].lower()
+    stations = strekliste_generator.pending_upload_stations(version)
+    if not stations:
+        flash("Ingen opplastet strekliste venter på valg av stasjoneringssted.", "warning")
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    form = StreklisteStationForm()
+    form.stasjoneringssted.choices = [(s, f"{s} ({n} sider)") for s, n in stations.items()]
+
+    if form.avbryt.data:
+        strekliste_generator.discard_uploaded_pdf(version)
+        flash("Opplastingen er avbrutt. Eksisterende strekliste er uendret.", "info")
+        return redirect(url_for("admin.manage_turnus_sets"))
+    if form.validate_on_submit():
+        _finish_strekliste_upload(turnus_set, form.stasjoneringssted.data)
+        return redirect(url_for("admin.manage_turnus_sets"))
+
+    if not form.stasjoneringssted.data:
+        default = strekliste_generator.DEFAULT_STASJONERINGSSTED
+        form.stasjoneringssted.data = default if default in stations else next(iter(stations))
+    return render_template(
+        "admin_strekliste_stasjon.html", form=form, turnus_set=turnus_set, stations=stations
+    )
 
 
 @admin.route("/generate-strekliste/<int:turnus_set_id>", methods=["POST"])
@@ -858,72 +901,11 @@ def generate_strekliste(turnus_set_id):
     # Check if force regenerate is requested
     force = (request.json or {}).get("force", False) if request.is_json else False
 
-    # Generate images
-    result = strekliste_generator.generate_all_images(version, force=force)
-
-    if result["success"]:
-        error_count = len(result.get("errors", []))
-        message = f"Generated {len(result['generated'])} images"
-        if error_count > 0:
-            message += f" ({error_count} errors)"
-
-        # Run double_shift_scanner after successful image generation
-        double_shift_data = {}
-        double_shift_error = None
-        try:
-            double_shift_data = scan_double_shifts(paths["pdf_path"])
-
-            double_shift_output = os.path.join(
-                AppConfig.turnusfiler_dir, version, f"double_shifts_{version}.json"
-            )
-            with open(double_shift_output, "w", encoding="utf-8") as f:
-                json.dump(double_shift_data, f, indent=2, ensure_ascii=False)
-                f.write("\n")
-
-            # Double-shift flags are baked into the cached turnus data at
-            # load time — drop the cache so the new flags take effect now.
-            df_utils.invalidate_turnus_cache(turnus_set_id)
-        except Exception as e:
-            double_shift_error = str(e)
-
-        # Read the same PDF into strekliste_dagsverk/strekliste_aktivitet —
-        # the duties as data, not pictures. Its own try/except, like the
-        # double-shift scan: a parse problem is reported, not a failed
-        # generation.
-        strekliste_rapport = {}
-        strekliste_error = None
-        try:
-            strekliste_rapport = strekliste_service.import_strekliste(
-                turnus_set_id, paths["pdf_path"]
-            )
-        except Exception as e:
-            strekliste_error = str(e)
-
-        response = {
-            "status": "success",
-            "message": message,
-            "generated": len(result["generated"]),
-            "skipped": len(result["skipped"]),
-            "errors": error_count,
-            "error_details": result.get("errors", [])[:10],
-            "total": result["total"],
-            "double_shift_count": len(double_shift_data.get("dobbelt_tur", [])),
-            "delt_shift_count": len(double_shift_data.get("delt_dagsverk", [])),
-            "strekliste_dagsverk": strekliste_rapport.get("dagsverk", 0),
-            "strekliste_aktiviteter": strekliste_rapport.get("aktiviteter", 0),
-            "strekliste_advarsler": strekliste_rapport.get("advarsler", 0),
-            "strekliste_sidevarsler": strekliste_rapport.get("sidevarsler", [])[:10],
-        }
-        if double_shift_error:
-            response["double_shift_error"] = double_shift_error
-        if strekliste_error:
-            response["strekliste_error"] = strekliste_error
-
-        return jsonify(response)
-    else:
-        return jsonify(
-            {"status": "error", "message": result.get("error", "Unknown error")}
-        ), 500
+    # The work takes minutes on the servers, far past gunicorn's worker
+    # timeout, so it runs as its own process; the page polls strekliste-progress.
+    if not strekliste_job.start(turnus_set["year_identifier"], force=force):
+        return jsonify({"status": "error", "message": "En generering kjører allerede."}), 409
+    return jsonify({"status": "started"}), 202
 
 
 @admin.route("/delete-strekliste-images/<int:turnus_set_id>", methods=["POST"])

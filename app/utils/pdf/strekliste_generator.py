@@ -58,27 +58,70 @@ LEGACY_TIMELINE_START_RATIO = 0.149
 LEGACY_TIMELINE_END_RATIO = 0.969
 
 
+# The employer's strekliste covers every depot ("ALLE"); a turnus set belongs
+# to one stasjoneringssted. Upload keeps that station's pages as
+# {version}_streker_{STED}.pdf and the original as {version}_streker_alle.pdf.
+# Sets uploaded before the split was introduced keep {version}_streker.pdf.
+DEFAULT_STASJONERINGSSTED = "OSL"
+_STASJON_RE = re.compile(r"Stasjoneringssted:\s*([A-ZÆØÅ]+)\b")
+
+
+def _station_pdf_re(version: str) -> re.Pattern:
+    return re.compile(rf"^{re.escape(version)}_streker_([A-ZÆØÅ]+)\.pdf$")
+
+
 def get_paths(version: str) -> dict:
     """
     Get the PDF path and images directory for a given version.
+
+    The set's station PDF wins over the pre-split name; the original upload
+    (``_alle``) and a pending one (``_opplastet``) are never read.
 
     Args:
         version: The turnus version identifier (e.g., 'r26')
 
     Returns:
-        dict with 'pdf_path', 'images_dir', and 'exists' status
+        dict with 'pdf_path', 'images_dir', 'stasjoneringssted' and 'exists' status
     """
     version = version.lower()
     base_dir = os.path.join(AppConfig.turnusfiler_dir, version, "streklister")
     pdf_path = os.path.join(base_dir, f"{version}_streker.pdf")
+    stasjoneringssted = None
+    try:
+        names = sorted(os.listdir(base_dir))
+    except OSError:
+        names = []
+    pattern = _station_pdf_re(version)
+    for name in names:
+        match = pattern.match(name)
+        if match:
+            pdf_path = os.path.join(base_dir, name)
+            stasjoneringssted = match.group(1)
+            break
     images_dir = os.path.join(base_dir, "png")
 
     return {
         "pdf_path": pdf_path,
         "images_dir": images_dir,
+        "stasjoneringssted": stasjoneringssted,
         "pdf_exists": os.path.exists(pdf_path),
         "images_dir_exists": os.path.exists(images_dir),
     }
+
+
+def find_stations(pdf_path: str) -> dict:
+    """Page indices per stasjoneringssted, in the order the stations first appear.
+
+    Reads only each page's header text, so a 159-page PDF takes about a second.
+    Pages without a header are left out.
+    """
+    stations = {}
+    with fitz.open(pdf_path) as doc:
+        for page_num, page in enumerate(doc):
+            match = _STASJON_RE.search(page.get_text())
+            if match:
+                stations.setdefault(match.group(1), []).append(page_num)
+    return stations
 
 
 def get_strekliste_status(version: str) -> dict:
@@ -833,26 +876,93 @@ def delete_all_images(version: str) -> dict:
     return {"success": True, "deleted_count": deleted_count, "errors": errors}
 
 
-def save_uploaded_pdf(file_storage, version: str) -> dict:
-    """
-    Save an uploaded PDF file to the correct location.
+def _upload_paths(version: str) -> tuple[str, str, str]:
+    """(streklister dir, pending upload, kept original) for a version."""
+    version = version.lower()
+    base_dir = os.path.join(AppConfig.turnusfiler_dir, version, "streklister")
+    return (
+        base_dir,
+        os.path.join(base_dir, f"{version}_streker_opplastet.pdf"),
+        os.path.join(base_dir, f"{version}_streker_alle.pdf"),
+    )
 
-    Args:
-        file_storage: Flask FileStorage object
-        version: The turnus version (e.g., 'r26')
+
+def stage_uploaded_pdf(file_storage, version: str) -> dict:
+    """Save an upload as pending and report the stations it contains.
+
+    Nothing the app reads changes until finish_uploaded_pdf. A PDF with no
+    station header on any page is refused and not kept.
 
     Returns:
-        dict with 'success' and 'path' or 'error'
+        dict with 'success' and 'stations' ({STED: page count}) or 'error'
+    """
+    base_dir, pending, _ = _upload_paths(version)
+    os.makedirs(base_dir, exist_ok=True)
+    try:
+        file_storage.save(pending)
+        stations = find_stations(pending)
+    except Exception as e:
+        discard_uploaded_pdf(version)
+        return {"success": False, "error": str(e)}
+    if not stations:
+        discard_uploaded_pdf(version)
+        return {"success": False, "error": "Fant ingen stasjoneringssted i PDF-en."}
+    return {"success": True, "stations": {s: len(p) for s, p in stations.items()}}
+
+
+def pending_upload_stations(version: str) -> dict | None:
+    """{STED: page count} of the pending upload, or None if there is none."""
+    _, pending, _ = _upload_paths(version)
+    if not os.path.exists(pending):
+        return None
+    return {s: len(p) for s, p in find_stations(pending).items()}
+
+
+def finish_uploaded_pdf(version: str, station: str) -> dict:
+    """Keep `station`'s pages of the pending upload as the set's strekliste.
+
+    Replaces any earlier station PDF of the set (a set has one station) and
+    keeps the full upload as ``_alle`` when it held more than one station.
+
+    Returns:
+        dict with 'success', 'pages', 'total_pages', 'other_stations' or 'error'
     """
     version = version.lower()
-    paths = get_paths(version)
+    base_dir, pending, original = _upload_paths(version)
+    if not os.path.exists(pending):
+        return {"success": False, "error": "Ingen opplastet PDF venter."}
+    stations = find_stations(pending)
+    if station not in stations:
+        return {"success": False, "error": f"PDF-en har ingen sider for {station}."}
 
-    # Ensure directory exists
-    base_dir = os.path.dirname(paths["pdf_path"])
-    os.makedirs(base_dir, exist_ok=True)
+    target = os.path.join(base_dir, f"{version}_streker_{station}.pdf")
+    tmp = f"{target}.tmp"
+    with fitz.open(pending) as doc:
+        total_pages = len(doc)
+        doc.select(stations[station])
+        doc.save(tmp, garbage=3, deflate=True)
+    os.replace(tmp, target)
 
-    try:
-        file_storage.save(paths["pdf_path"])
-        return {"success": True, "path": paths["pdf_path"]}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    pattern = _station_pdf_re(version)
+    for name in os.listdir(base_dir):
+        if pattern.match(name) and os.path.join(base_dir, name) != target:
+            os.remove(os.path.join(base_dir, name))
+
+    if len(stations) > 1:
+        os.replace(pending, original)
+    else:
+        os.remove(pending)
+
+    return {
+        "success": True,
+        "pages": len(stations[station]),
+        "total_pages": total_pages,
+        "other_stations": [s for s in stations if s != station],
+    }
+
+
+def discard_uploaded_pdf(version: str) -> None:
+    """Drop a pending upload, if any."""
+    _, pending, _ = _upload_paths(version)
+    if os.path.exists(pending):
+        os.remove(pending)

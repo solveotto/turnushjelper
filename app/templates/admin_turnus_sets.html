@@ -257,7 +257,8 @@
                     <div class="progress-bar" role="progressbar" style="width: 0%" id="progress-bar"></div>
                 </div>
                 <p class="text-center text-muted small mt-2 mb-0" id="progress-hint">
-                    Dette tar rundt et halvt minutt. Ikke lukk siden.
+                    Genereringen kjører på serveren og tar noen minutter.
+                    Du kan lukke vinduet; den fortsetter likevel.
                 </p>
                 <div id="double-shift-result" class="mt-3" style="display: none;">
                     <hr>
@@ -267,7 +268,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="progress-close"
-                        data-bs-dismiss="modal" disabled>Lukk</button>
+                        data-bs-dismiss="modal">Lukk</button>
             </div>
         </div>
     </div>
@@ -332,7 +333,12 @@ function loadStreklisteStatus(turnusSetId) {
             if (data.status === 'success') {
                 const info = data.data;
 
-                if (info.status === 'no_pdf') {
+                if (info.job && info.job.state === 'running') {
+                    statusEl.className = 'strekliste-status badge bg-info text-dark';
+                    statusEl.innerHTML = '<i class="bi bi-hourglass-split"></i> Genererer …';
+                    generateBtn.disabled = true;
+                    deleteBtn.disabled = true;
+                } else if (info.status === 'no_pdf') {
                     statusEl.className = 'strekliste-status badge bg-secondary';
                     statusEl.innerHTML = '<i class="bi bi-x-circle"></i> Ingen PDF';
                     generateBtn.disabled = true;
@@ -373,9 +379,16 @@ function loadStreklisteStatus(turnusSetId) {
         });
 }
 
+const STREKLISTE_STEP_TEXT = {
+    starter: 'Starter generering …',
+    bilder: 'Genererer bilder …',
+    dobbeltskift: 'Skanner dobbeltturer …',
+    strekliste: 'Leser streklisten …',
+};
+
 function generateStrekliste(turnusSetId) {
-    // Show progress modal. It stays open until the user dismisses it — the
-    // result (including any errors) should not vanish on a timer.
+    // The server runs the generation as its own process and returns at once;
+    // this dialog polls its status. Closing the dialog only stops the polling.
     const modalEl = document.getElementById('streklisteProgressModal');
     const modal = new bootstrap.Modal(modalEl, {backdrop: 'static', keyboard: false});
     modal.show();
@@ -384,39 +397,74 @@ function generateStrekliste(turnusSetId) {
     const progressBar = document.getElementById('progress-bar');
     const spinner = document.getElementById('progress-spinner');
     const hint = document.getElementById('progress-hint');
-    const closeBtn = document.getElementById('progress-close');
 
-    progressText.textContent = 'Starter generering...';
+    progressText.textContent = STREKLISTE_STEP_TEXT.starter;
     progressBar.style.width = '0%';
     progressBar.classList.remove('bg-success', 'bg-danger');
     spinner.style.display = '';
     hint.style.display = '';
-    closeBtn.disabled = true;
 
-    // Real progress: the server renders into a temp directory and swaps it in
-    // at the end, so polling the count of files written there is genuine
-    // progress rather than a fake animation.
-    const poll = setInterval(() => {
-        fetch(`/admin/strekliste-progress/${turnusSetId}`)
-            .then(r => r.json())
-            .then(p => {
-                if (p.status !== 'success' || !p.data.generating) return;
-                const {current, total} = p.data;
-                if (total > 0) {
-                    progressBar.style.width = `${Math.min(99, Math.round(current / total * 100))}%`;
-                    progressText.textContent = `Genererer bilder … ${current} av ${total}`;
-                } else {
-                    progressText.textContent = `Genererer bilder … ${current}`;
-                }
-            })
-            .catch(() => { /* transient poll failure is not interesting */ });
-    }, 1000);
-
+    let poll = null;
     const finish = () => {
         clearInterval(poll);
         spinner.style.display = 'none';
         hint.style.display = 'none';
-        closeBtn.disabled = false;
+        loadStreklisteStatus(turnusSetId);
+    };
+    const showError = (message) => {
+        finish();
+        progressBar.style.width = '100%';
+        progressBar.classList.add('bg-danger');
+        progressText.textContent = `Feil: ${message}`;
+    };
+    const showResult = (data) => {
+        finish();
+        progressBar.style.width = '100%';
+        progressBar.classList.add('bg-success');
+        progressText.textContent = `Ferdig! ${data.generated} bilder generert, ${data.skipped} hoppet over.`;
+
+        const dsResult = document.getElementById('double-shift-result');
+        const dsText = document.getElementById('double-shift-text');
+        dsResult.style.display = 'block';
+
+        if (data.double_shift_error) {
+            dsText.innerHTML = `<span class="text-warning">Skanning feilet: ${data.double_shift_error}</span>`;
+        } else {
+            dsText.innerHTML = `Fant ${data.double_shift_count} dobbelttur-par og ${data.delt_shift_count} delt dagsverk.`;
+        }
+        if (data.strekliste_error) {
+            dsText.innerHTML += `<br><span class="text-warning">Lesing av streklisten feilet: ${data.strekliste_error}</span>`;
+        } else if (data.strekliste_dagsverk !== undefined) {
+            const adv = data.strekliste_advarsler ? `, ${data.strekliste_advarsler} med advarsler` : '';
+            dsText.innerHTML += `<br>Leste ${data.strekliste_dagsverk} dagsverk med ${data.strekliste_aktiviteter} aktiviteter fra streklisten${adv}.`;
+        }
+    };
+
+    // Image progress is the count of files in the temp directory the images
+    // are rendered into; the other steps report only which step is running.
+    const checkProgress = () => {
+        fetch(`/admin/strekliste-progress/${turnusSetId}`)
+            .then(r => r.json())
+            .then(p => {
+                if (p.status !== 'success' || !p.data.job) return;
+                const job = p.data.job;
+                if (job.state === 'done') {
+                    showResult(job.result);
+                } else if (job.state === 'failed') {
+                    showError(job.error);
+                } else if (job.step === 'bilder' && p.data.generating) {
+                    const {current, total} = p.data;
+                    if (total > 0) {
+                        progressBar.style.width = `${Math.min(99, Math.round(current / total * 100))}%`;
+                        progressText.textContent = `Genererer bilder … ${current} av ${total}`;
+                    } else {
+                        progressText.textContent = `Genererer bilder … ${current}`;
+                    }
+                } else {
+                    progressText.textContent = STREKLISTE_STEP_TEXT[job.step] || 'Arbeider …';
+                }
+            })
+            .catch(() => { /* transient poll failure is not interesting */ });
     };
 
     // Check if we need to force regenerate
@@ -433,48 +481,22 @@ function generateStrekliste(turnusSetId) {
     })
     .then(response => response.json())
     .then(data => {
-        finish();
-        if (data.status === 'success') {
-            progressBar.style.width = '100%';
-            progressBar.classList.add('bg-success');
-            progressText.textContent = `Ferdig! ${data.generated} bilder generert, ${data.skipped} hoppet over.`;
-
-            // Show double shift scan results
-            const dsResult = document.getElementById('double-shift-result');
-            const dsText = document.getElementById('double-shift-text');
-            dsResult.style.display = 'block';
-
-            if (data.double_shift_error) {
-                dsText.innerHTML = `<span class="text-warning">Skanning feilet: ${data.double_shift_error}</span>`;
-            } else {
-                dsText.innerHTML = `Fant ${data.double_shift_count} dobbelttur-par og ${data.delt_shift_count} delt dagsverk.`;
-            }
-            if (data.strekliste_error) {
-                dsText.innerHTML += `<br><span class="text-warning">Lesing av streklisten feilet: ${data.strekliste_error}</span>`;
-            } else if (data.strekliste_dagsverk !== undefined) {
-                const adv = data.strekliste_advarsler ? `, ${data.strekliste_advarsler} med advarsler` : '';
-                dsText.innerHTML += `<br>Leste ${data.strekliste_dagsverk} dagsverk med ${data.strekliste_aktiviteter} aktiviteter fra streklisten${adv}.`;
-            }
-
-            // Refresh the badge now; the modal stays until dismissed.
-            loadStreklisteStatus(turnusSetId);
+        if (data.status === 'started') {
+            poll = setInterval(checkProgress, 1000);
         } else {
-            progressBar.style.width = '100%';
-            progressBar.classList.add('bg-danger');
-            progressText.textContent = `Feil: ${data.message}`;
+            showError(data.message);
         }
     })
     .catch(error => {
-        console.error('Error generating strekliste:', error);
-        finish();
-        progressBar.style.width = '100%';
-        progressBar.classList.add('bg-danger');
-        progressText.textContent =
-            'Forespørselen brøt sammen under generering. Eksisterende bilder er uendret.';
+        console.error('Error starting strekliste generation:', error);
+        showError('Kunne ikke starte genereringen.');
     });
 
-    // Reset the dialog for the next run once it has been dismissed.
+    // Stop polling and reset the dialog once it has been dismissed. A run
+    // still in progress carries on; the row's badge shows it.
     modalEl.addEventListener('hidden.bs.modal', () => {
+        clearInterval(poll);
+        loadStreklisteStatus(turnusSetId);
         progressBar.style.width = '0%';
         progressBar.classList.remove('bg-success', 'bg-danger');
         document.getElementById('double-shift-result').style.display = 'none';

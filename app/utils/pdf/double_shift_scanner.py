@@ -300,9 +300,8 @@ def main():
     )
     parser.add_argument("version", help="Turnus version, e.g. r26 or R27")
     version = parser.parse_args().version.lower()
-    pdf_path = os.path.join(
-        AppConfig.turnusfiler_dir, version, "streklister", f"{version}_streker.pdf"
-    )
+    from app.utils.pdf.strekliste_generator import get_paths
+    pdf_path = get_paths(version)["pdf_path"]
     output_path = os.path.join(
         AppConfig.turnusfiler_dir, version, f"double_shifts_{version}.json"
     )
