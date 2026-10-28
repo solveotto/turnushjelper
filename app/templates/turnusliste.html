@@ -87,7 +87,7 @@
         <div class="container-fluid printable"
             data-current-turnus-set-id="{% if current_turnus_set %}{{ current_turnus_set.id }}{% else %}null{% endif %}">
             {% if turnusliste_notice %}
-            <div id="turnusliste-notice" class="alert alert-warning alert-dismissible fade show d-flex align-items-center gap-2 no-print"
+            <div id="turnusliste-notice" class="alert alert-warning alert-dismissible fade show d-flex align-items-center justify-content-center text-center gap-2 ps-5 no-print"
                 role="alert" data-notice-text="{{ turnusliste_notice }}">
                 <i class="bi bi-info-circle-fill"></i>
                 <div>{{ turnusliste_notice }}</div>

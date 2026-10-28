@@ -6,6 +6,18 @@
     min-width: 90px; /* Set your desired minimum width */
 }
 
+/* A long dagsverk name (R27 has up to 30 chars) must not widen its day column.
+   width: 0 keeps the name out of the column's width calculation, and
+   min-width: 100% then fills whatever width the column gets, so the name is
+   cut with an ellipsis while the leading number stays visible. */
+.min-width-td .dagsverk-link {
+    width: 0;
+    min-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Shift table cell styling */
 #cell {
     position: relative;
