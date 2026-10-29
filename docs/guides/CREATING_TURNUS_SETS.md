@@ -310,6 +310,14 @@ number is unique on both sides, so a suffix correction such as
 carries favourites, søknadsskjema choices and innplassering rows. PDF
 enrichment pairs turnuser the same way.
 
+A turnus that is **removed** takes its favourites and søknadsskjema choices
+with it, and the yellow message after Oppdater lists each user and turnus
+(also logged as `FAVORITES REMOVED`). Tell those users: everything ranked below
+the removed turnus moved up one place on their søknadsskjema. Innplassering
+rows are kept for you to resolve. Before 2026-10-28 the favourite stayed behind
+unseen, couldn't be unstarred and still printed on the søknadsskjema (R27's
+`OSL_Ramme_14`). The next Oppdater of a set clears any such leftovers too.
+
 **Hand-fixing the stored Timeskjema** is acceptable for errors the employer's
 export gets wrong, as done for R27 in October 2026: three dagsverk printed as
 `?`, one more filled from identical rows elsewhere, and the `ALTSOM` misspelling.

@@ -593,6 +593,22 @@ def refresh_turnus_set(turnus_set_id):
                 renamed_details += f" ... og {len(summary['renamed']) - 10} til"
             flash(f"Omdøpte vakter: {renamed_details}", "info")
 
+        # Not capped like the renames: every entry is a user to notify, and
+        # the log keeps the list after the flash is gone.
+        if summary["favorites_removed"]:
+            removed_details = ", ".join(
+                f"{f['username']} ({f['shift_title']})" for f in summary["favorites_removed"]
+            )
+            flash(
+                "Favoritter på fjernede turnuser er slettet, og søknadsskjemaet "
+                f"til disse brukerne er endret. Gi dem beskjed: {removed_details}",
+                "warning",
+            )
+            ingest_logger.warning(
+                "Turnus refresh FAVORITES REMOVED %s (user=%s): %s",
+                year_id, _current_username(), removed_details,
+            )
+
     except Exception as e:
         ingest_logger.exception(
             "Turnus refresh CRASHED %s (user=%s)", year_id, _current_username()

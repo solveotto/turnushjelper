@@ -6,20 +6,20 @@ on both sides) and rewrites the title in ``Shifts``, ``Favorites``,
 ``SoknadsskjemaChoice`` and ``Innplassering``. Everything else about a new set
 (create, activate) leaves the old rows alone and starts empty.
 
-Two behaviours are pinned here, one good and one sharp:
+Two behaviours are pinned here:
 
   * a renamed shift carries its favorites across;
-  * a *removed* shift does not — the ``Shifts`` row goes and the ``Favorites``
-    row stays behind pointing at a title that no longer exists. Such a row is
-    invisible in every view (the templates only render names present in the
-    schedule JSON) but still counts toward ``get_max_ordered_index``. The
-    detection query is in ``test_removed_shift_leaves_an_orphaned_favorite``.
+  * a *removed* shift takes its favorites and søknadsskjema choices with it,
+    and the summary names the users who lost one so the admin can tell them.
+    See ``TestRemovedShiftDropsUserData`` for why leaving them was worse.
 
 A fake year identifier is used throughout: nothing here touches the data store,
 but a real one invites a future edit to reach the committed turnusdata files.
 """
 
 import json
+import os
+import shutil
 
 import pytest
 
@@ -32,7 +32,7 @@ from app.models import (
     TurnusSet,
 )
 from app.services import turnus_service
-from app.services.favorites_service import get_max_ordered_index
+from tests.conftest import login_user
 
 FAKE_YEAR = "T99"
 
@@ -173,63 +173,6 @@ class TestRefreshPreservesFavorites:
 
         assert favorite_titles(db_session, user.id, turnus_set.id) == ["OSL_01_A"]
         assert favorite_titles(db_session, user.id, other.id) == ["OSL_01"]
-
-
-class TestRemovedShiftOrphansFavorites:
-    def test_removed_shift_leaves_an_orphaned_favorite(
-        self, patch_db, db_session, tmp_path, turnus_set, user
-    ):
-        """Current behaviour, pinned so a future change is a deliberate one.
-
-        The Shifts row goes; the Favorites row survives with a dead title. The
-        query below is the detector — run it after every refresh:
-
-            SELECT f.id, f.user_id, f.shift_title
-              FROM favorites f
-              LEFT JOIN shifts s
-                ON s.title = f.shift_title
-               AND s.turnus_set_id = f.turnus_set_id
-             WHERE f.turnus_set_id = :id AND s.id IS NULL;
-        """
-        seed_shifts(db_session, turnus_set.id, ["OSL_01", "GONE_02"])
-        seed_favorites(db_session, user.id, turnus_set.id, ["OSL_01", "GONE_02"])
-
-        summary = turnus_service.refresh_turnus_set_shifts(
-            turnus_set.id, write_schedule(tmp_path, ["OSL_01"])
-        )
-
-        assert summary["removed"] == ["GONE_02"]
-        assert shift_titles(db_session, turnus_set.id) == ["OSL_01"]
-        # The favorite is still there, pointing at nothing.
-        assert favorite_titles(db_session, user.id, turnus_set.id) == [
-            "GONE_02",
-            "OSL_01",
-        ]
-
-        orphans = (
-            db_session.query(Favorites)
-            .outerjoin(
-                Shifts,
-                (Shifts.title == Favorites.shift_title)
-                & (Shifts.turnus_set_id == Favorites.turnus_set_id),
-            )
-            .filter(Favorites.turnus_set_id == turnus_set.id, Shifts.id.is_(None))
-            .all()
-        )
-        assert [o.shift_title for o in orphans] == ["GONE_02"]
-
-    def test_orphan_still_counts_toward_the_next_position(
-        self, patch_db, db_session, tmp_path, turnus_set, user
-    ):
-        """Why the orphan matters: it silently reserves a position number."""
-        seed_shifts(db_session, turnus_set.id, ["OSL_01", "GONE_02"])
-        seed_favorites(db_session, user.id, turnus_set.id, ["OSL_01", "GONE_02"])
-
-        turnus_service.refresh_turnus_set_shifts(
-            turnus_set.id, write_schedule(tmp_path, ["OSL_01"])
-        )
-
-        assert get_max_ordered_index(user.id, turnus_set.id) == 1
 
 
 def seed_choices(db_session, user_id, turnus_set_id, titles):
@@ -373,3 +316,104 @@ class TestRenameCarriesAllUserData:
 
         assert choice_titles(db_session, other.id) == ["OSL_17_ALTSOM"]
         assert innplassering_titles(db_session, other.id) == ["OSL_17_ALTSOM"]
+
+
+class TestRemovedShiftDropsUserData:
+    """Until 2026-10-28 a removed shift left its favorite behind with a dead
+    title. No card showed it, so the user could not unstar it, yet the
+    søknadsskjema still printed it at its rank and turnusliste's position
+    numbers skipped over it. R27's OSL_Ramme_14 left two such rows on prod."""
+
+    def test_removed_shift_deletes_its_favorites(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_01", "GONE_02"])
+        seed_favorites(db_session, user.id, turnus_set.id, ["OSL_01", "GONE_02"])
+
+        summary = turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_01"])
+        )
+
+        assert summary["removed"] == ["GONE_02"]
+        assert favorite_titles(db_session, user.id, turnus_set.id) == ["OSL_01"]
+
+    def test_removed_shift_deletes_its_soknadsskjema_choices(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_01", "GONE_02"])
+        seed_choices(db_session, user.id, turnus_set.id, ["OSL_01", "GONE_02"])
+
+        turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_01"])
+        )
+
+        assert choice_titles(db_session, turnus_set.id) == ["OSL_01"]
+
+    def test_summary_names_the_users_who_lost_a_favorite(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        seed_shifts(db_session, turnus_set.id, ["OSL_01", "GONE_02"])
+        seed_favorites(db_session, user.id, turnus_set.id, ["OSL_01", "GONE_02"])
+
+        summary = turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_01"])
+        )
+
+        assert summary["favorites_removed"] == [
+            {"username": "refreshbruker", "shift_title": "GONE_02"}
+        ]
+
+    def test_orphan_left_by_an_earlier_refresh_is_cleared(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        """The prod state: the Shifts row is already gone, the favorite is not."""
+        seed_shifts(db_session, turnus_set.id, ["OSL_01"])
+        seed_favorites(db_session, user.id, turnus_set.id, ["OSL_01", "GONE_02"])
+
+        summary = turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_01"])
+        )
+
+        assert summary["removed"] == []
+        assert favorite_titles(db_session, user.id, turnus_set.id) == ["OSL_01"]
+
+    def test_removed_shift_keeps_innplassering(
+        self, patch_db, db_session, tmp_path, turnus_set, user
+    ):
+        """Placements are imported facts; one on a removed turnus is for the
+        admin to resolve, not to vanish with the refresh."""
+        seed_shifts(db_session, turnus_set.id, ["OSL_01", "GONE_02"])
+        seed_innplassering(db_session, turnus_set.id, ["GONE_02"])
+
+        turnus_service.refresh_turnus_set_shifts(
+            turnus_set.id, write_schedule(tmp_path, ["OSL_01"])
+        )
+
+        assert innplassering_titles(db_session, turnus_set.id) == ["GONE_02"]
+
+
+FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "timeskjema_sample.xls")
+
+
+class TestRefreshRouteReportsRemovedFavorites:
+    def test_admin_is_told_who_lost_a_favorite(
+        self, client, admin_user, db_session, tmp_path, monkeypatch, turnus_set, user
+    ):
+        """A real Oppdater on the Timeskjema fixture (OSL_01, OSL_Utland_4),
+        against a data store in tmp_path so no committed file is touched."""
+        version_dir = tmp_path / FAKE_YEAR.lower()
+        version_dir.mkdir()
+        shutil.copy(FIXTURE, version_dir / f"turnuser_{FAKE_YEAR}.xls")
+        # Use site, not "config.AppConfig": test_sa_session_interface reloads
+        # config, after which that name is a different class from the route's.
+        monkeypatch.setattr("app.routes.admin.turnus.AppConfig.turnusfiler_dir", str(tmp_path))
+        seed_shifts(db_session, turnus_set.id, ["OSL_01", "OSL_Utland_4", "GONE_02"])
+        seed_favorites(db_session, user.id, turnus_set.id, ["GONE_02"])
+
+        login_user(client, admin_user["username"], admin_user["password"])
+        body = client.post(
+            f"/admin/refresh-turnus-set/{turnus_set.id}", follow_redirects=True
+        ).data.decode()
+
+        assert "refreshbruker (GONE_02)" in body
+        assert favorite_titles(db_session, user.id, turnus_set.id) == []

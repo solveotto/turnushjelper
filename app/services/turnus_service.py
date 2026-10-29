@@ -3,7 +3,7 @@ import logging
 
 from app.database import get_db_session
 from app.extensions import cache
-from app.models import TurnusSet, Shifts, Favorites, SoknadsskjemaChoice, Innplassering
+from app.models import DBUser, TurnusSet, Shifts, Favorites, SoknadsskjemaChoice, Innplassering
 from app.utils.turnus_diff import unique_keys
 
 logger = logging.getLogger(__name__)
@@ -255,8 +255,10 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
 
     Matches old names to new names by prefix, then by a tur number unique on
     both sides (OSL_17_ALTSOM -> OSL_17_ALSTOM), and carries favorites,
-    søknadsskjema choices and innplassering across a rename.
-    Returns a summary dict: {renamed: [...], added: [...], removed: [...], unchanged: [...]}
+    søknadsskjema choices and innplassering across a rename. Favorites and
+    choices on a title that is gone are deleted.
+    Returns a summary dict: {renamed: [...], added: [...], removed: [...],
+    unchanged: [...], favorites_removed: [{username, shift_title}, ...]}
     """
     db_session = get_db_session()
     try:
@@ -313,7 +315,29 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
                 title=name, turnus_set_id=turnus_set_id
             ).delete()
 
-        # 3. Add new shifts
+        # 3. Delete favorites and søknadsskjema choices on a title no longer in
+        # the schedule. Left behind, a favorite is on no card (so it can't be
+        # unstarred) but still prints on the søknadsskjema. Matching against
+        # new_names rather than `removed` also clears orphans from refreshes
+        # made before this step existed. Innplassering is kept: it is imported
+        # placement data for the admin to resolve.
+        favorites_removed = [
+            {'username': username, 'shift_title': title}
+            for username, title in db_session.query(DBUser.username, Favorites.shift_title)
+            .join(DBUser, DBUser.id == Favorites.user_id)
+            .filter(
+                Favorites.turnus_set_id == turnus_set_id,
+                Favorites.shift_title.notin_(new_names),
+            )
+            .order_by(DBUser.username, Favorites.shift_title)
+        ]
+        for model in (Favorites, SoknadsskjemaChoice):
+            db_session.query(model).filter(
+                model.turnus_set_id == turnus_set_id,
+                model.shift_title.notin_(new_names),
+            ).delete(synchronize_session=False)
+
+        # 4. Add new shifts
         for name in added:
             db_session.add(Shifts(title=name, turnus_set_id=turnus_set_id))
 
@@ -323,7 +347,8 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
             'renamed': [{'old': k, 'new': v} for k, v in rename_map.items()],
             'added': sorted(added),
             'removed': sorted(removed),
-            'unchanged': sorted(unchanged)
+            'unchanged': sorted(unchanged),
+            'favorites_removed': favorites_removed,
         }
     except Exception as e:
         db_session.rollback()
