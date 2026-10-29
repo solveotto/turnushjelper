@@ -4,7 +4,7 @@
 
 {% block mobile_print %}
 <li>
-    <a class="dropdown-item mobile-print-item" href="#" onclick="window.print(); return false;">
+    <a class="dropdown-item mobile-print-item" href="#" data-skjema-print>
         <i class="bi bi-printer"></i> Utskrift
     </a>
 </li>
@@ -166,7 +166,7 @@
       <button type="submit" form="skjema-form" name="format" value="pdf" class="btn btn-sm btn-outline-danger">
         <i class="bi bi-file-earmark-pdf me-1"></i> Last ned .pdf
       </button>
-      <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-skjema-print>
         <i class="bi bi-printer"></i> Skriv ut
       </button>
     </div>
@@ -320,6 +320,29 @@
 
 </div><!-- .document-wrap -->
 
+<!-- Reminder shown before every download and print -->
+<div class="modal fade no-print" id="skjema-reminder-modal" tabindex="-1" aria-labelledby="skjema-reminder-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="skjema-reminder-title">
+          <i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Husk å kontrollere
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Lukk"></button>
+      </div>
+      <div class="modal-body">
+        <p>Husk at du <strong>må</strong> sjekke innholdet i turnusene fra Turnushjelper mot turnusene i den offisielle PDF-en du har fått tilsendt på mail. Sjekk også at innholdet i søknadsskjemaet stemmer med skjemaet du har fått tilsendt.</p>
+        <p>Du er selv ansvarlig for å sjekke at det som kommer fra Turnushjelper, stemmer. Turnushjelper.no tar ikke ansvar for eventuelle feil.</p>
+        <p class="mb-0">Lykke til med tursøkingen!</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Avbryt</button>
+        <button type="button" class="btn btn-primary" id="skjema-reminder-ok">Forstått, fortsett</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 function saveChoice(shiftTitle, field, value) {
   return apiFetch('/api/soknadsskjema-choice', {
@@ -402,13 +425,58 @@ document.querySelectorAll('.priori-input').forEach(input => {
   });
 });
 
+// Every download and print waits for the reminder to be accepted. The action
+// runs only once the modal has fully closed, so its backdrop and the body's
+// modal-open styles are not in the printout.
+const reminderEl = document.getElementById('skjema-reminder-modal');
+let reminderAction = null;
+let reminderConfirmed = false;
+
+function withReminder(action) {
+  reminderAction = action;
+  reminderConfirmed = false;
+  // bootstrap.bundle is deferred, so look it up at click time, not parse time
+  bootstrap.Modal.getOrCreateInstance(reminderEl).show();
+}
+
+document.getElementById('skjema-reminder-ok').addEventListener('click', () => {
+  reminderConfirmed = true;
+  bootstrap.Modal.getInstance(reminderEl).hide();
+});
+
+reminderEl.addEventListener('hidden.bs.modal', () => {
+  const action = reminderConfirmed ? reminderAction : null;
+  reminderAction = null;
+  reminderConfirmed = false;
+  if (action) action();
+});
+
+document.querySelectorAll('[data-skjema-print]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    withReminder(() => window.print());
+  });
+});
+
 const skjemaForm = document.getElementById('skjema-form');
+let reminderAccepted = false;
 skjemaForm.addEventListener('submit', e => {
+  const submitter = e.submitter;
+  if (!reminderAccepted) {
+    e.preventDefault();
+    withReminder(() => {
+      reminderAccepted = true;
+      skjemaForm.requestSubmit(submitter);
+    });
+    return;
+  }
   // Clicking "Last ned" right after typing blurs the input, which starts its
   // save in the same instant; let that land before the POST reads the DB.
-  if (pendingSaves.size === 0) return;
+  if (pendingSaves.size === 0) {
+    reminderAccepted = false;
+    return;
+  }
   e.preventDefault();
-  const submitter = e.submitter;
   Promise.allSettled([...pendingSaves]).then(() => skjemaForm.requestSubmit(submitter));
 });
 

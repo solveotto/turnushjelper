@@ -121,6 +121,18 @@ class TestSkjemaPage:
         # The value is still there, so removing the X brings it back
         assert 'value="3 1"' in html
 
+    def test_print_and_download_go_through_reminder(self, client, sample_user,
+                                                    active_set):
+        login_user(client, sample_user["username"], sample_user["password"])
+
+        html = client.get("/soknadsskjema").get_data(as_text=True)
+
+        assert 'id="skjema-reminder-modal"' in html
+        assert "Du er selv ansvarlig for å sjekke" in html
+        # Toolbar and mobile-menu print are bound in JS, behind the reminder
+        assert 'onclick="window.print()' not in html
+        assert html.count("data-skjema-print>") == 2
+
 
 _R26_NOKKEL = os.path.join(AppConfig.turnusfiler_dir, "r26", "turnusnøkkel_R26_org.xlsx")
 
