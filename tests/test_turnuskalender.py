@@ -3,6 +3,8 @@
 The grid tests build a synthetic sheet rather than reading turnusdata/, which
 is gitignored: the shape of the nøkkel is what is under test, not one year's
 contents. The real-file test at the bottom skips when R26 is not present.
+The column span and the staggered layouts R25/R27 use are tested in
+test_nokkel_layout.py.
 """
 
 import datetime
@@ -20,11 +22,8 @@ class _Cell:
         self.value = value
 
 
-def _build_rows(start=datetime.date(2026, 1, 5), weeks_per_group=9, offset=0):
+def _build_rows(start=datetime.date(2026, 1, 5), weeks_per_group=9):
     """A synthetic nøkkel: 6 groups of 8 rows, dates in columns H–P.
-
-    ``offset`` shifts every group that many columns to the right, the way the
-    R27 draft has groups 1-4 starting in column I with H blank.
 
     Group g, week column w holds the Monday-first week starting
     ``start + (g + w * 6) weeks`` — the same interleaving the real sheet has,
@@ -33,10 +32,10 @@ def _build_rows(start=datetime.date(2026, 1, 5), weeks_per_group=9, offset=0):
     rows = [[_Cell() for _ in range(20)] for _ in range(48)]
     for g in range(6):
         for w in range(weeks_per_group):
-            rows[g * 8][7 + offset + w] = _Cell(f"Uke {g + w * 6 + 1}")
+            rows[g * 8][7 + w] = _Cell(f"Uke {g + w * 6 + 1}")
             monday = start + datetime.timedelta(weeks=g + w * 6)
             for d in range(7):
-                rows[g * 8 + 1 + d][7 + offset + w] = _Cell(monday + datetime.timedelta(days=d))
+                rows[g * 8 + 1 + d][7 + w] = _Cell(monday + datetime.timedelta(days=d))
     return rows
 
 
@@ -64,41 +63,6 @@ class TestBuildDateIndex:
         while day <= max(index):
             assert day in index, f"gap at {day}"
             day += datetime.timedelta(days=1)
-
-
-class TestDateColumns:
-    """The week columns are wherever the group's header says "Uke", not a
-    fixed H-P. The R27 draft (2026-10-22) had groups 1-4 shifted one column
-    right, which silently dropped weeks 48 and 49 from the page and mintur."""
-
-    def test_standard_layout_is_h_to_p(self):
-        header = _build_rows()[0]
-        assert tk.date_columns(header) == slice(7, 16)
-
-    def test_shifted_group_is_found_by_its_uke_label(self):
-        header = _build_rows(offset=1)[0]
-        assert tk.date_columns(header) == slice(8, 17)
-
-    def test_label_match_is_case_insensitive_and_tolerates_padding(self):
-        header = [_Cell() for _ in range(20)]
-        header[9] = _Cell("  uke 53 ")
-        assert tk.date_columns(header) == slice(9, 18)
-
-    def test_falls_back_to_h_when_no_label(self):
-        header = [_Cell() for _ in range(20)]
-        assert tk.date_columns(header) == slice(7, 16)
-
-    def test_index_reads_the_ninth_week_of_a_shifted_group(self):
-        index = tk.build_date_index(rows=_build_rows(offset=1))
-        assert len(index) == 6 * 9 * 7
-        assert index[datetime.date(2026, 1, 5)] == (0, 0)
-
-    def test_groups_may_differ_in_offset(self):
-        rows = _build_rows()
-        shifted = _build_rows(offset=1)
-        for g in range(4):  # groups 1-4 shifted, 5-6 not — the R27 shape
-            rows[g * 8:(g + 1) * 8] = shifted[g * 8:(g + 1) * 8]
-        assert tk.build_date_index(rows=rows) == tk.build_date_index(rows=_build_rows())
 
 
 class TestRotationWeek:

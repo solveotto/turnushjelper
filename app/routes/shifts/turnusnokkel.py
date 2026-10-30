@@ -7,7 +7,7 @@ from app.routes.shifts import shifts
 from app.services import turnus_service
 from app.utils import df_utils
 from app.utils.kompdag_utils import count_kompdager, get_holidays_for_dates
-from app.utils.turnuskalender import date_columns
+from app.utils.turnuskalender import grid_columns, week_labels
 
 
 @shifts.route("/turnusnokkel/<int:turnus_set_id>/<turnus_name>")
@@ -56,8 +56,8 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
 
     # Read template to get calendar week labels for each of the 6 rotation groups.
     # The template has 6 groups of 8 rows (1 header + 7 day rows).
-    # Each group header has nine Uke labels, normally in columns H–P; the
-    # group's columns are wherever its first "Uke" label is (date_columns).
+    # The week columns are one span for all groups (grid_columns), so the
+    # page lines up column for column with the Excel.
     # For group g (0-indexed), Linje column j (1-indexed):
     #   shift data comes from Linje ((g + j - 1) % 6 + 1).
     template_path = os.path.join(
@@ -73,7 +73,7 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
         sheet = wb["Turnusnøkkel"]
         all_rows = [list(row) for row in sheet.iter_rows(min_row=1, max_row=48)]
         wb.close()
-        group_columns = [date_columns(all_rows[g * 8]) for g in range(6)]
+        columns = grid_columns(all_rows)
 
         # Holiday flag comes from the computed §5.13.1 set, not the manual
         # red font in the template (which misses e.g. påskeaften and Sunday
@@ -83,16 +83,13 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
             cell.value.date() if hasattr(cell.value, "date") else cell.value
             for g in range(6)
             for row in all_rows[g * 8 + 1 : g * 8 + 8]
-            for cell in row[group_columns[g]]
+            for cell in row[columns]
             if cell.value is not None and hasattr(cell.value, "strftime")
         ]
         holiday_set = get_holidays_for_dates(all_dates)
 
         for g in range(6):
-            header_cells = all_rows[g * 8]
-            uke_labels = [
-                str(c.value) for c in header_cells[group_columns[g]] if c.value is not None
-            ]
+            uke_labels = week_labels(all_rows, g)
             day_rows = []
             for d in range(7):
                 _empty = {"value": "", "dagsverk": ""}
@@ -101,7 +98,7 @@ def turnusnokkel_view(turnus_set_id, turnus_name):
                     linje_idx = (g + j - 1) % 6 + 1
                     cells.append(linje_shifts.get(linje_idx, {}).get(d + 1, _empty))
                 dates = []
-                for cell in all_rows[g * 8 + 1 + d][group_columns[g]]:
+                for cell in all_rows[g * 8 + 1 + d][columns]:
                     if cell.value is not None and hasattr(cell.value, "strftime"):
                         cell_date = (
                             cell.value.date()

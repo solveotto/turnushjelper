@@ -3,11 +3,17 @@
 The schedule JSON is an abstract 6-week rotation carrying no dates at all, so
 ``turnusnøkkel_{YEAR}_org.xlsx`` is the project's only calendar-date source.
 Sheet "Turnusnøkkel" holds 6 nøkkel groups of 8 rows each (one header row then
-seven weekday rows, Monday first), with nine week columns — one for each
-time that group comes round in the rutetermin. They are usually H-P, but a
-group starts wherever its header row says "Uke": the R27 draft had groups 1-4
-shifted one column right, so ``date_columns`` reads the header rather than
-trusting a fixed range.
+seven weekday rows, Monday first), with one week column for each time that
+group comes round in the rutetermin.
+
+The weeks run column-major: each column, read top to bottom, is six
+consecutive calendar weeks, and the next column carries on where it stopped.
+A rutetermin rarely starts in group 1 (R27 starts in group 5, R25 in group 2),
+so the groups before the starting one have no week in the first column. In
+R27 that makes the grid H-Q, groups 1-4 in I-Q and groups 5-6 in H-P. Every
+reader must use the one span ``grid_columns`` gives for all groups; slicing
+each group from its own first "Uke" label put groups 5-6 one week left of
+groups 1-4 on the turnusnøkkel page (2026-10-30).
 
 A worker on linje ``j`` follows rotation week ``((g + j - 1) % 6) + 1`` while
 the calendar is in group ``g``. That one line is the whole mapping, and it used
@@ -15,9 +21,9 @@ to live inline in mintur. It is here so the /mintur page and the roster export
 cannot drift apart about which dagsverk a driver has on a date — they are the
 same question asked by two callers.
 
-``kompdag_utils.get_holiday_positions`` walks the identical grid and is the
-obvious next caller, but its counts are calibrated and test-asserted, so it is
-deliberately left alone rather than migrated as a side effect of this change.
+``kompdag_utils.get_holiday_positions`` walks the same grid through
+``grid_columns`` but keeps its own loop: its counts are calibrated and
+test-asserted.
 """
 
 import logging
@@ -31,11 +37,9 @@ SHEET_NAME = "Turnusnøkkel"
 NOKKEL_GROUPS = 6
 ROWS_PER_GROUP = 8
 DAYS_PER_WEEK = 7
-#: Nine week columns per group.
-WEEK_COLUMNS = 9
 #: Columns H-P, zero-based and end-exclusive — where the week columns sit when
-#: the header row carries no "Uke" label to locate them by.
-DATE_COLUMNS = slice(7, WEEK_COLUMNS + 7)
+#: the grid carries no "Uke" label or date to locate them by.
+DATE_COLUMNS = slice(7, 16)
 #: The grid occupies the first 48 rows: 6 groups x 8 rows.
 GRID_ROWS = NOKKEL_GROUPS * ROWS_PER_GROUP
 
@@ -86,18 +90,28 @@ def load_nokkel_rows(year_identifier):
     return rows
 
 
-def date_columns(header_row):
-    """The slice of one group's nine week columns, located by its header.
+def _is_week_label(cell):
+    value = getattr(cell, "value", None)
+    return value is not None and str(value).strip().lower().startswith("uke")
 
-    ``header_row`` is the group's first row. The week columns start at the
-    first cell whose text begins with "Uke" (any case, padding ignored) and
-    fall back to H-P when no such label exists.
+
+def grid_columns(rows):
+    """The week columns of the whole grid, one span shared by every group.
+
+    It runs from the leftmost to the rightmost "Uke" label (any case, padding
+    ignored) or date in any group, so a group with no week in an edge column
+    gets a blank there, as in the Excel. Falls back to H-P when the grid holds
+    neither.
     """
-    for index, cell in enumerate(header_row):
-        value = getattr(cell, "value", None)
-        if value is not None and str(value).strip().lower().startswith("uke"):
-            return slice(index, index + WEEK_COLUMNS)
-    return DATE_COLUMNS
+    used = []
+    for group in range(NOKKEL_GROUPS):
+        top = group * ROWS_PER_GROUP
+        used += [i for i, cell in enumerate(rows[top]) if _is_week_label(cell)]
+        for row in rows[top + 1:top + ROWS_PER_GROUP]:
+            used += [i for i, cell in enumerate(row) if cell_date(cell) is not None]
+    if not used:
+        return DATE_COLUMNS
+    return slice(min(used), max(used) + 1)
 
 
 def cell_date(cell):
@@ -119,9 +133,9 @@ def build_date_index(year_identifier=None, *, rows=None):
     if not rows:
         return {}
 
+    columns = grid_columns(rows)
     index = {}
     for group in range(NOKKEL_GROUPS):
-        columns = date_columns(rows[group * ROWS_PER_GROUP])
         for day in range(DAYS_PER_WEEK):
             row = rows[group * ROWS_PER_GROUP + 1 + day]
             for cell in row[columns]:
@@ -132,9 +146,10 @@ def build_date_index(year_identifier=None, *, rows=None):
 
 
 def week_labels(rows, group):
-    """The "Uke NN" labels across one group's header row."""
+    """One group's header across ``grid_columns``: one entry per column, ""
+    where the header cell is blank, so the labels line up with the dates."""
     header = rows[group * ROWS_PER_GROUP]
-    return [str(c.value) for c in header[DATE_COLUMNS] if c.value is not None]
+    return ["" if c.value is None else str(c.value) for c in header[grid_columns(rows)]]
 
 
 def rotation_week(group, linjenummer) -> int:

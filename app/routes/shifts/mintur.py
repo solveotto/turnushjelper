@@ -97,13 +97,14 @@ def _load_mintur_data(user_id: int, turnus_set_id: int | None = None) -> dict | 
         holiday_set = get_holidays_for_dates(
             list(turnuskalender.build_date_index(rows=all_rows))
         )
+        columns = turnuskalender.grid_columns(all_rows)
 
         for g in range(turnuskalender.NOKKEL_GROUPS):
             day_rows = []
             for d in range(turnuskalender.DAYS_PER_WEEK):
                 dates = []
                 row = all_rows[g * turnuskalender.ROWS_PER_GROUP + 1 + d]
-                for c in row[turnuskalender.DATE_COLUMNS]:
+                for c in row[columns]:
                     cal_date = turnuskalender.cell_date(c)
                     if cal_date is None:
                         dates.append({"value": "", "holiday": False, "date_obj": None})

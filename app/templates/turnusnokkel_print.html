@@ -32,11 +32,21 @@
             overflow-x: auto;
             width: 100%;
         }
+        /* Each group is its own table. Fixed, identical column widths keep the
+           week columns lined up across groups, and give a blank week cell the
+           full width of a date (an auto layout shrank it to a sliver). The
+           linje columns share what is left; min-width keeps them readable on
+           narrow screens, where .table-scroll scrolls instead. */
         table {
             border-collapse: collapse;
+            table-layout: fixed;
             width: 100%;
+            min-width: 73rem;
             background: #fff;
         }
+        col.col-dag { width: 2.8rem; }
+        col.col-sep { width: 4px; }
+        col.col-date { width: 3.7rem; }
         th, td {
             border: 1px solid #ccc;
             padding: 0.2rem 0.35rem;
@@ -214,6 +224,9 @@
             .group { margin-bottom: 0.5rem; }
             th, td { padding: 0.1rem 0.2rem; }
             th.date-header, td.date-cell { font-size: 6pt; }
+            table { min-width: 0; }
+            col.col-dag { width: 2rem; }
+            col.col-date { width: 2.6rem; }
             /* Ensure shift colors print */
             td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
@@ -257,6 +270,14 @@
     <div class="group">
         <div class="table-scroll no-print-overflow">
         <table>
+            <colgroup>
+                <col class="col-dag">
+                {% for lbl in linje_labels %}<col>{% endfor %}
+                {% if group.day_rows and group.day_rows[0].dates %}
+                <col class="col-sep">
+                {% for uke in group.uke_labels %}<col class="col-date">{% endfor %}
+                {% endif %}
+            </colgroup>
             <thead>
                 <tr>
                     <th class="linje-header">Dag</th>
