@@ -1,10 +1,15 @@
-from flask import redirect, render_template, request, url_for
+import logging
+
+from flask import jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.routes.shifts import _classify_shift_type, shifts
+from app.services import redusert_stilling_service
 from app.services.innplassering_service import get_innplassering_for_user
 from app.utils import df_utils, turnuskalender
 from app.utils.kompdag_utils import count_kompdager, get_holidays_for_dates
+
+logger = logging.getLogger(__name__)
 
 
 def _pick_record(records: list[dict], turnus_set_id: int | None = None) -> dict | None:
@@ -29,10 +34,11 @@ def _load_mintur_data(user_id: int, turnus_set_id: int | None = None) -> dict | 
     """Load all data needed by both mintur() and export_ical().
 
     Returns a dict with keys: shift_title, linjenummer, year_identifier,
-    turnus_set_id, turnus_set, available_sets, groups, template_found, raw, dm.
-    Returns None if the user has no innplassering at all.
+    turnus_set_id, turnus_set, available_sets, groups, template_found, raw, dm,
+    redusert. Returns None if the user has no innplassering at all.
 
-    Each cell dict in groups includes a 'tid' key (raw ["HH:MM","HH:MM"] list).
+    Each cell dict in groups includes a 'tid' key (raw ["HH:MM","HH:MM"] list),
+    its 'uke' and 'dag', and whether the driver's plan has removed it ('fjernet').
     Each date dict in groups includes a 'date_obj' key (Python date or None).
     """
     records = get_innplassering_for_user(user_id)
@@ -55,6 +61,16 @@ def _load_mintur_data(user_id: int, turnus_set_id: int | None = None) -> dict | 
     if not raw:
         return None
 
+    plan = (
+        redusert_stilling_service.get_plan(user_id, turnus_set_id, shift_title)
+        if redusert_stilling_service.has_per_shift_data(raw)
+        else None
+    )
+    redusert = redusert_stilling_service.summary(raw, plan)
+    fjernet = set(redusert["fjernet"])
+    h_dager = set(redusert["h_dager"])
+    h_fri = set(redusert["h_fri"])
+
     linje_shifts = {}
     for uke_nr, ukedata in sorted(
         [(k, v) for k, v in raw.items() if isinstance(v, dict)],
@@ -69,10 +85,16 @@ def _load_mintur_data(user_id: int, turnus_set_id: int | None = None) -> dict | 
             value = (
                 f"{tid[0]} - {tid[1]}" if len(tid) >= 2 else (tid[0] if tid else "")
             )
+            vakt = f"{linje}-{int(dag_nr)}"
             linje_shifts[linje][int(dag_nr)] = {
                 "value": value,
                 "dagsverk": dag_data.get("dagsverk", ""),
                 "tid": tid,
+                "uke": linje,
+                "dag": int(dag_nr),
+                "fjernet": vakt in fjernet,
+                "h_dag": vakt in h_dager,
+                "h_fri": vakt in h_fri,
             }
 
     dag_names = ["Man", "Tirs", "Ons", "Tors", "Fre", "Lør", "Søn"]
@@ -149,6 +171,7 @@ def _load_mintur_data(user_id: int, turnus_set_id: int | None = None) -> dict | 
         "template_found": template_found,
         "raw": raw,
         "dm": dm,
+        "redusert": redusert,
     }
 
 
@@ -195,7 +218,71 @@ def mintur():
         available_sets=data["available_sets"],
         current_turnus_set=data["turnus_set"],
         all_turnus_sets=[],
+        redusert=data["redusert"],
     )
+
+
+@shifts.route("/mintur/redusert-stilling", methods=["POST"])
+@login_required
+def redusert_stilling():
+    """Change the driver's plan for one set: a shift, the percentage, or a reset.
+
+    The tur comes from the driver's placement, never from the client. This
+    doesn't use _pick_record, which falls back to the newest set: a plan must
+    only ever land on the set that was asked for.
+    """
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify(status="error", message="Ugyldig forespørsel."), 400
+
+    user_id = int(current_user.get_id())
+    turnus_set_id = body.get("sett")
+    record = next(
+        (
+            r
+            for r in get_innplassering_for_user(user_id)
+            if r["turnus_set_id"] == turnus_set_id
+        ),
+        None,
+    )
+    if record is None:
+        return jsonify(status="error", message="Du er ikke innplassert i dette settet."), 404
+
+    shift_title = record["shift_title"]
+    dm = df_utils.DataframeManager(turnus_set_id)
+    raw = next((t[shift_title] for t in dm.turnus_data if shift_title in t), None)
+    if not raw or not redusert_stilling_service.has_per_shift_data(raw):
+        return jsonify(status="error", message="Ikke tilgjengelig for dette settet."), 404
+
+    try:
+        if body.get("nullstill") is True:
+            plan = redusert_stilling_service.nullstill(user_id, turnus_set_id, shift_title)
+        elif "vakt" in body:
+            if not isinstance(body.get("fjernet"), bool):
+                return jsonify(status="error", message="Ugyldig forespørsel."), 400
+            plan = redusert_stilling_service.set_vakt(
+                user_id, turnus_set_id, shift_title, raw, body["vakt"], body["fjernet"]
+            )
+        elif "prosent" in body:
+            plan = redusert_stilling_service.set_prosent(
+                user_id, turnus_set_id, shift_title, body["prosent"]
+            )
+        elif "h_dag_jobb" in body:
+            if not isinstance(body["h_dag_jobb"], bool):
+                return jsonify(status="error", message="Ugyldig forespørsel."), 400
+            plan = redusert_stilling_service.set_h_dag_jobb(
+                user_id, turnus_set_id, shift_title, body["h_dag_jobb"]
+            )
+        else:
+            return jsonify(status="error", message="Ugyldig forespørsel."), 400
+    except ValueError as e:
+        return jsonify(status="error", message=str(e)), 400
+    except Exception:
+        logger.exception("redusert_stilling failed for user %s", user_id)
+        return jsonify(status="error", message="Kunne ikke lagre."), 500
+
+    result = redusert_stilling_service.summary(raw, plan)
+    return jsonify(status="success", fjernet=result["fjernet"], summary=result)
 
 
 @shifts.route("/mintur/export_ical")
@@ -250,7 +337,7 @@ def export_ical():
         for day_row in group["day_rows"]:
             cell = day_row["cells"][linjenummer - 1]
             tid = cell.get("tid", [])
-            if len(tid) < 2:
+            if len(tid) < 2 or cell.get("fjernet") or cell.get("h_fri"):
                 continue
 
             start_str, end_str = tid[0], tid[1]

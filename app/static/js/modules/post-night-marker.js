@@ -20,6 +20,17 @@ export class PostNightMarker {
         tables.forEach((table) => this.processTable(table));
     }
 
+    // Recompute a table whose shifts changed: a night shift removed from a
+    // driver's plan on Min Tur has no recovery day after it.
+    refreshTable(table) {
+        table.querySelectorAll(".post-night-recovery").forEach((td) => {
+            td.classList.remove("post-night-recovery");
+            td.classList.add("day_off");
+            td.querySelector('img[alt="recovery"]')?.parentElement.remove();
+        });
+        this.processTable(table);
+    }
+
     processTable(table) {
         const rows = Array.from(table.querySelectorAll("tbody tr"));
         if (rows.length === 0) return;
@@ -34,7 +45,12 @@ export class PostNightMarker {
             const cell = allDayCells[i];
             const nextCell = allDayCells[i + 1];
 
-            if (this.isNightShift(cell) && this.isDayOff(nextCell)) {
+            if (
+                !cell.classList.contains("vakt-fjernet") &&
+                !cell.classList.contains("vakt-h-fri") &&
+                this.isNightShift(cell) &&
+                this.isDayOff(nextCell)
+            ) {
                 if (nextCell.classList.contains("post-night-recovery"))
                     continue; // already processed
                 nextCell.classList.remove("day_off");

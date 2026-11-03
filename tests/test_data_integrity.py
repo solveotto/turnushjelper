@@ -268,13 +268,29 @@ def scraped():
     return scraper.turnuser
 
 
+def _without_cell_tj_timer(turnuser):
+    """A copy without the per-shift ``tj_timer``, turnus totals kept.
+
+    A stored file has that key only once ``scripts/backfill_tj_timer.py`` has
+    run on it, which happens per host.
+    """
+    copied = json.loads(json.dumps(turnuser))
+    for entry in copied:
+        for turnus in entry.values():
+            for week in turnus.values():
+                if isinstance(week, dict):
+                    for cell in week.values():
+                        cell.pop("tj_timer", None)
+    return copied
+
+
 class TestTimeskjemaRoundtrip:
     """The Timeskjema is the primary source and the PDF only enriches
     dagsverk strings (``3006`` -> ``3006_SKNO``). Re-running that pipeline on
-    the committed sources must reproduce the committed JSON byte for byte.
-    A mismatch means the JSON was hand-edited, regenerated without the PDF in
-    place (enrichment silently skipped), or the sources were swapped without
-    a refresh."""
+    the committed sources must reproduce the committed JSON, apart from the
+    per-shift ``tj_timer``. A mismatch means the JSON was hand-edited,
+    regenerated without the PDF in place (enrichment silently skipped), or the
+    sources were swapped without a refresh."""
 
     def test_stored_json_equals_enriched_timeskjema_parse(
         self, turnus_data, scraped
@@ -287,7 +303,7 @@ class TestTimeskjemaRoundtrip:
         parsed = parse_timeskjema(_TIMESKJEMA_PATH).turnuser
         # JSON round-trip: the parser emits int keys, the stored file has str.
         expected = json.loads(json.dumps(enrich_dagsverk(parsed, scraped)))
-        assert expected == turnus_data
+        assert _without_cell_tj_timer(expected) == _without_cell_tj_timer(turnus_data)
 
 
 # ---------------------------------------------------------------------------

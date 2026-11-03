@@ -17,6 +17,8 @@ turnusdata/**/strekliste_*.json.gz
 turnusdata/**/gjennomgang_*.html
 # Status and lock of a background strekliste generation (strekliste_job.py).
 turnusdata/**/.generering.*
+# Backups made by scripts/backfill_tj_timer.py.
+turnusdata/**/*.bak-*
 
 nul
 General/

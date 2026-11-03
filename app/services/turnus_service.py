@@ -3,7 +3,7 @@ import logging
 
 from app.database import get_db_session
 from app.extensions import cache
-from app.models import DBUser, TurnusSet, Shifts, Favorites, SoknadsskjemaChoice, Innplassering
+from app.models import DBUser, TurnusSet, Shifts, Favorites, SoknadsskjemaChoice, Innplassering, RedusertStilling
 from app.utils.turnus_diff import unique_keys
 
 logger = logging.getLogger(__name__)
@@ -219,6 +219,7 @@ def delete_turnus_set(turnus_set_id):
         db_session.query(Shifts).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.query(Favorites).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.query(SoknadsskjemaChoice).filter_by(turnus_set_id=turnus_set_id).delete()
+        db_session.query(RedusertStilling).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.query(Innplassering).filter_by(turnus_set_id=turnus_set_id).delete()
         db_session.delete(turnus_set)
         db_session.commit()
@@ -304,7 +305,7 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
             db_session.query(Shifts).filter_by(
                 title=old_name, turnus_set_id=turnus_set_id
             ).update({'title': new_name})
-            for model in (Favorites, SoknadsskjemaChoice, Innplassering):
+            for model in (Favorites, SoknadsskjemaChoice, RedusertStilling, Innplassering):
                 db_session.query(model).filter_by(
                     shift_title=old_name, turnus_set_id=turnus_set_id
                 ).update({'shift_title': new_name})
@@ -331,7 +332,7 @@ def refresh_turnus_set_shifts(turnus_set_id, json_file_path):
             )
             .order_by(DBUser.username, Favorites.shift_title)
         ]
-        for model in (Favorites, SoknadsskjemaChoice):
+        for model in (Favorites, SoknadsskjemaChoice, RedusertStilling):
             db_session.query(model).filter(
                 model.turnus_set_id == turnus_set_id,
                 model.shift_title.notin_(new_names),

@@ -25,6 +25,10 @@
     rel="stylesheet"
     href="{{ url_for('static', filename='css/turnusliste/highlighted-turnus.css') }}"
 />
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/mintur-redusert.css') }}"
+/>
 {% endblock %} {% block content %} {# ── Shared centred column for both sections
 ─────────────────────────────── #}
 <div
@@ -119,9 +123,12 @@
                                             {% for day_nr, day_data in
                                             week_data.items() if day_data is
                                             mapping %}
+                                            {% set vakt = week_nr ~ '-' ~ day_nr %}
+                                            {% set er_h_dag = vakt in redusert.h_dager %}
                                             <td
                                                 id="cell"
-                                                class="min-width-td {% if day_data.is_consecutive_shift %}consecutive-shift-arrow consecutive-shift-border{% elif day_data.is_consecutive_receiver %}consecutive-shift-receiver consecutive-shift-border{% endif %}{% if day_data.is_delt_dagsverk %} delt-dagsverk{% endif %}{% if loop.last %} last-day{% endif %}{% if loop.first %} first-day{% endif %}"
+                                                class="min-width-td {% if day_data.is_consecutive_shift %}consecutive-shift-arrow consecutive-shift-border{% elif day_data.is_consecutive_receiver %}consecutive-shift-receiver consecutive-shift-border{% endif %}{% if day_data.is_delt_dagsverk %} delt-dagsverk{% endif %}{% if loop.last %} last-day{% endif %}{% if loop.first %} first-day{% endif %}{% if vakt in redusert.fjernet %} vakt-fjernet{% endif %}{% if vakt in redusert.h_fri %} vakt-h-fri{% endif %}"
+                                                {% if er_h_dag %}data-h-dag{% elif redusert.available and day_data.tid|length == 2 %}data-vakt="{{ vakt }}"{% endif %}
                                                 style="border: 1px solid black"
                                             >
                                                 <div
@@ -143,6 +150,14 @@
                                                     %} {{ time }} {% endif %} {%
                                                     endfor %}
                                                 </div>
+                                                {% if er_h_dag %}
+                                                <div class="vakt-h">H</div>
+                                                {% elif redusert.available and day_data.tid|length == 2 %}
+                                                <div class="vakt-450">450</div>
+                                                {% endif %}
+                                                {% if redusert.available and day_data.tj_timer %}
+                                                <div class="vakt-tj"><span>Tj.t:</span> <b>{{ day_data.tj_timer }}</b></div>
+                                                {% endif %}
                                             </td>
                                             {% endfor %}
                                         </tr>
@@ -253,6 +268,54 @@
                                     ><b>{{ kompdager if kompdager is not none else '–' }}</b>
                                 </div>
                             </div>
+                        </div>
+                        {% endif %}
+
+                        {% if redusert.available %}
+                        <div
+                            id="redusertPanel"
+                            class="redusert-panel d-print-none"
+                            data-fjernet="{{ redusert.fjernet | tojson | forceescape }}"
+                        >
+                            <div class="redusert-panel-rad">
+                                <label class="redusert-prosent" for="redusertProsent">
+                                    <strong class="redusert-panel-tittel">Redusert stilling</strong>
+                                    <input
+                                        type="number"
+                                        id="redusertProsent"
+                                        class="form-control form-control-sm"
+                                        min="1"
+                                        max="100"
+                                        step="any"
+                                        inputmode="decimal"
+                                        placeholder="{{ redusert.beregnet_prosent }}"
+                                        value="{{ '%g' % redusert.prosent if redusert.prosent is not none else '' }}"
+                                    />
+                                    %
+                                </label>
+                                <button type="button" id="redusertVelg" class="btn btn-sm btn-primary" aria-pressed="false">Velg vakter</button>
+                                <button type="button" id="redusertNullstill" class="btn btn-sm btn-outline-secondary">Nullstill</button>
+                                {% if redusert.h_dager %}
+                                <div class="redusert-hdag">
+                                    <input type="checkbox" id="redusertHdag" class="form-check-input"{% if redusert.h_dag_jobb %} checked{% endif %}{% if redusert.helg_varsel %} disabled{% endif %} />
+                                    <label for="redusertHdag">Jobb H-dag</label>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="redusert-tall{% if redusert.prosent is none and not redusert.fjernet %} d-none{% endif %}">
+                                <span class="redusert-mal{% if redusert.prosent is none %} d-none{% endif %}"><span class="text-muted">Totalt</span> <b data-redusert="total">{{ redusert.total }}</b></span>
+                                <span class="redusert-mal{% if redusert.prosent is none %} d-none{% endif %}"><span class="text-muted">Mål</span> <b data-redusert="target">{{ redusert.target or '–' }}</b></span>
+                                <span><span class="text-muted">Tj.t igjen</span> <b data-redusert="remaining">{{ redusert.remaining }}</b></span>
+                                <b data-redusert="status">{{ redusert.status }}</b>
+                            </div>
+                            <div id="redusertUnderVarsel" class="alert alert-warning small redusert-varsel{% if not redusert.under_varsel %} d-none{% endif %}" role="alert">{{ redusert.under_varsel }}</div>
+                            {% if redusert.h_dager %}
+                            <div id="redusertHelgVarsel" class="alert alert-warning small redusert-varsel{% if not redusert.helg_varsel %} d-none{% endif %}" role="alert">
+                                Du har ikke lenger arbeidstimer annenhver helg (fredag kl. 17 til mandag kl. 06), så du må jobbe H-dagen.
+                            </div>
+                            {% endif %}
+                            <div id="redusertFeil" class="text-danger small d-none" role="alert"></div>
+                            <div class="text-muted redusert-merknad">Utskrift av turnusnøkkel viser hele turen.</div>
                         </div>
                         {% endif %}
                     </li>
@@ -382,7 +445,7 @@
                         is_sat = loop.index0 == 5 %} {%- set is_sun =
                         loop.index0 == 6 %} {%- set cell = row.cells[linjenummer
                         - 1] %}
-                        <tr>
+                        <tr{% if cell.h_dag %} data-h-dag{% elif redusert.available and cell.tid|length == 2 %} data-vakt="{{ cell.uke }}-{{ cell.dag }}"{% endif %}{% if cell.fjernet %} class="vakt-fjernet"{% elif cell.h_fri %} class="vakt-h-fri"{% endif %}>
                             <td
                                 style="border: 1px solid #ccc; padding: 0.2rem 0.35rem; font-weight: 600; text-align: left;
                         {% if is_sat %}background: #dbeafe{% elif is_sun %}background: #fee2e2{% else %}background: #f0f0f0{% endif %}"
@@ -399,7 +462,7 @@
                                     white-space: nowrap;
                                 "
                             >
-                                {{ cell.value }}
+                                <span class="vakt-tekst">{{ cell.value }}</span>
                             </td>
                             {% if row.dates %}
                             <td
@@ -439,6 +502,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Lukk"></button>
             </div>
             <div class="modal-body">
+
+                <div id="calUtelatt" class="alert alert-warning small{% if not redusert.utelatt %} d-none{% endif %}" role="alert">
+                    <span data-utelatt>{{ redusert.utelatt }}</span> fra eksporten.
+                    Hendelser fra tidligere eksporter må fjernes for hånd i kalenderen.
+                </div>
 
                 <!-- Step 1: title -->
                 <div class="d-flex align-items-start gap-3 mb-3">

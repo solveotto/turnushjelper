@@ -2,7 +2,7 @@ import bcrypt
 from datetime import datetime
 from flask_login import UserMixin
 from sqlalchemy import (
-    JSON, Column, Integer, String, DateTime, LargeBinary, UniqueConstraint, func, ForeignKey, Index,
+    JSON, Column, Float, Integer, String, DateTime, LargeBinary, UniqueConstraint, func, ForeignKey, Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -93,6 +93,23 @@ class SoknadsskjemaChoice(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "turnus_set_id", "shift_title",
                          name="uq_soknadsskjema_choices"),
+    )
+
+
+class RedusertStilling(Base):
+    """A driver's plan for a reduced position. Not on Innplassering, because
+    that table is replaced wholesale on import."""
+    __tablename__ = "redusert_stilling"
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    user_id         = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    turnus_set_id   = Column(Integer, ForeignKey('turnus_sets.id', ondelete='CASCADE'), nullable=False)
+    shift_title     = Column(String(255), nullable=False)
+    prosent         = Column(Float, nullable=True)
+    fjernet         = Column(JSON, nullable=False, default=dict)  # {"3-2": "5003"}: uke-dag to duty number
+    h_dag_jobb      = Column(Integer, nullable=False, default=0)  # 1 = the driver works the tur's H-dag
+    __table_args__ = (
+        UniqueConstraint("user_id", "turnus_set_id", "shift_title",
+                         name="uq_redusert_stilling"),
     )
 
 

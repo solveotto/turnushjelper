@@ -11,6 +11,7 @@ from app.models import (
     EmailVerificationToken,
     Favorites,
     Innplassering,
+    RedusertStilling,
     Shifts,
     SoknadsskjemaChoice,
     TurnusSet,
@@ -384,6 +385,7 @@ def delete_user(user_id):
 
         db_session.query(Favorites).filter_by(user_id=user_id).delete()
         db_session.query(SoknadsskjemaChoice).filter_by(user_id=user_id).delete()
+        db_session.query(RedusertStilling).filter_by(user_id=user_id).delete()
         db_session.query(EmailVerificationToken).filter_by(user_id=user_id).delete()
         # UserActivity has ondelete='SET NULL', so delete these before the user
         # row, otherwise the rows are orphaned with user_id=NULL instead of removed.

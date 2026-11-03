@@ -8,9 +8,10 @@ in the next week's block), and a ``Totalsummer for turnus`` row. A trailing
 station-summary section ("Beregninger sum per stasjoneringssted") with its own
 ``Totalsummer`` row must not be consumed.
 
-Output matches ShiftScraper's JSON structure exactly, so everything downstream
-(``validate_turnus_json``, stats, DB import) is source-agnostic. Structural or
-arithmetic violations anywhere fail the whole parse — no partial imports.
+Output matches ShiftScraper's JSON structure, plus a per-shift ``tj_timer`` the
+PDF doesn't have, so everything downstream (``validate_turnus_json``, stats, DB
+import) is source-agnostic. Structural or arithmetic violations anywhere fail
+the whole parse — no partial imports.
 """
 
 import re
@@ -98,6 +99,7 @@ def _new_day(ukedag):
         "start": [],
         "slutt": "",
         "dagsverk": "",
+        "tj_timer": "",
         "is_consecutive_shift": False,
         "is_consecutive_receiver": False,
     }
@@ -140,6 +142,7 @@ def _parse_day(name, position, row, idx, errors):
         day["start"] = start
         day["slutt"] = end
         day["dagsverk"] = dv
+        day["tj_timer"] = _cell(row, idx["Tj.t"])
     else:
         errors.append(
             f"{name}: {position} has inconsistent values "

@@ -10,6 +10,7 @@ import { ShiftTimelineModal } from './modules/shift-timeline.js';
 import { GuidedTour } from './modules/guided-tour.js';
 import { LazyTables } from './modules/lazy-tables.js';
 import { FeedbackModal } from './modules/feedback.js';
+import { RedusertStilling } from './modules/redusert-stilling.js';
 
 import './modules/utils.js'; // registers window.apiFetch
 
@@ -49,6 +50,11 @@ class App {
                 this.modules.postNightMarker,
                 this.modules.shiftTimeline
             );
+        }
+
+        // Initialize the reduced-position plan if Min Tur shows its panel
+        if (document.getElementById('redusertPanel')) {
+            this.modules.redusertStilling = new RedusertStilling(this.modules.postNightMarker);
         }
 
         // Initialize sorting if we're on the turnusliste page

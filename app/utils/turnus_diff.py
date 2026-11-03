@@ -67,6 +67,12 @@ def _base_nr(dagsverk):
     return m.group(1) if m else ""
 
 
+def duty_id(dagsverk):
+    """What identifies a duty across re-imports: its number, since the suffix
+    comes and goes with PDF enrichment, or its whole name if it has no number."""
+    return _base_nr(dagsverk) or (dagsverk or "")
+
+
 def _from_base(dagsverk, base):
     """The tail of a PDF dagsverk string starting at ``base`` as a whole
     "_"-separated token, else "". The scraper prepends whatever the previous

@@ -5,6 +5,12 @@ Usage:
     venv/bin/python scripts/top_favorites.py              # active set, top 10
     venv/bin/python scripts/top_favorites.py --year R26
     venv/bin/python scripts/top_favorites.py --limit 20
+    venv/bin/python scripts/top_favorites.py --ans-fra 100   # ans.nr 100 and further down the list
+    venv/bin/python scripts/top_favorites.py --ans-til 100   # ans.nr 1-100
+    venv/bin/python scripts/top_favorites.py --favoritter 3  # only each user's first 3
+
+Ansiennitetsnummer 1 is the most senior. With either --ans option set, users
+without a seniority number are left out.
 """
 
 import argparse
@@ -19,13 +25,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Most favourited turnuser")
     parser.add_argument("--year", help="Year identifier, e.g. R26 (default: active set)")
     parser.add_argument("--limit", type=int, default=10, help="How many to show (default 10)")
+    parser.add_argument("--ans-fra", type=int, help="Only users with ansiennitetsnr >= this")
+    parser.add_argument("--ans-til", type=int, help="Only users with ansiennitetsnr <= this")
+    parser.add_argument("--favoritter", type=int,
+                        help="Only count each user's first N favourites (default: all)")
     args = parser.parse_args()
 
-    from sqlalchemy import func
+    from collections import Counter, defaultdict
 
     from config import AppConfig
     from app.database import get_db_session
-    from app.models import Favorites, TurnusSet
+    from app.models import DBUser, Favorites, TurnusSet
 
     print(f"DB_TYPE={AppConfig.DB_TYPE}")
 
@@ -40,31 +50,49 @@ def main() -> None:
             print(f"Error: no turnus set found ({args.year or 'active'})")
             sys.exit(1)
 
-        total_users = (
-            db_session.query(func.count(func.distinct(Favorites.user_id)))
-            .filter(Favorites.turnus_set_id == turnus_set.id)
-            .scalar()
-        )
+        filters = [Favorites.turnus_set_id == turnus_set.id]
+        if args.ans_fra is not None:
+            filters.append(DBUser.seniority_nr >= args.ans_fra)
+        if args.ans_til is not None:
+            filters.append(DBUser.seniority_nr <= args.ans_til)
 
-        # (user_id, shift_title, turnus_set_id) is unique, so each row is one user.
-        rows = (
-            db_session.query(Favorites.shift_title, func.count(Favorites.id).label("antall"))
-            .filter(Favorites.turnus_set_id == turnus_set.id)
-            .group_by(Favorites.shift_title)
-            .order_by(func.count(Favorites.id).desc(), Favorites.shift_title)
-            .limit(args.limit)
+        favorites = (
+            db_session.query(Favorites.user_id, Favorites.shift_title)
+            .join(DBUser, DBUser.id == Favorites.user_id)
+            .filter(*filters)
+            .order_by(Favorites.user_id, Favorites.order_index, Favorites.id)
             .all()
         )
     finally:
         db_session.close()
 
-    print(f"\n{turnus_set.name} ({turnus_set.year_identifier}): "
+    # Rank by position, not by order_index itself: the values can have gaps
+    # and legacy duplicates (see api.py reorder).
+    per_user = defaultdict(list)
+    for user_id, title in favorites:
+        per_user[user_id].append(title)
+
+    # (user_id, shift_title, turnus_set_id) is unique, so each title counts once per user.
+    counts = Counter()
+    for titles in per_user.values():
+        counts.update(titles[:args.favoritter])
+
+    total_users = len(per_user)
+    rows = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:args.limit]
+
+    ans_text = ""
+    if args.ans_fra is not None or args.ans_til is not None:
+        fra = args.ans_fra if args.ans_fra is not None else 1
+        til = args.ans_til if args.ans_til is not None else ""
+        ans_text = f", ansiennitet {fra}-{til}"
+    fav_text = f", første {args.favoritter} favoritter" if args.favoritter else ""
+    print(f"\n{turnus_set.name} ({turnus_set.year_identifier}{ans_text}{fav_text}): "
           f"{total_users} brukere med favoritter\n")
     if not rows:
         print("Ingen favoritter.")
         return
 
-    width = max(len(title) for title, _ in rows)
+    width = max(len("Turnus"), *(len(title) for title, _ in rows))
     print(f"{'#':>3}  {'Turnus':<{width}}  {'Antall':>6}  {'Andel':>6}")
     for rank, (title, antall) in enumerate(rows, start=1):
         andel = antall / total_users * 100 if total_users else 0

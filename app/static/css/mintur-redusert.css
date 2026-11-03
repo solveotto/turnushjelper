@@ -1,0 +1,141 @@
+/* Redusert stilling on Min Tur: the panel, selection mode and removed shifts. */
+
+.redusert-panel {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--color-primary);
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
+}
+
+.redusert-panel-rad,
+.redusert-tall {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.6rem;
+}
+
+.redusert-panel-tittel {
+    color: var(--color-primary-dark);
+}
+
+.redusert-prosent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    /* Set here because the global label rule in buttons.css is 48px. */
+    font-size: 24px;
+}
+
+.redusert-prosent input {
+    width: 5rem;
+}
+
+/* The input stays outside its label, because buttons.css hides every checkbox
+   inside a label. Its 48px label rule is reset here too. */
+.redusert-hdag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: auto;
+}
+
+.redusert-hdag input {
+    margin: 0;
+}
+
+.redusert-hdag label {
+    margin: 0;
+    font-size: inherit;
+}
+
+.redusert-tall {
+    margin-top: 0.4rem;
+}
+
+.redusert-varsel {
+    margin: 0.4rem 0 0;
+    padding: 0.25rem 0.5rem;
+}
+
+.redusert-merknad {
+    margin-top: 0.25rem;
+    font-size: 0.72rem;
+}
+
+/* Selection mode. The class sits on a container outside the table, so printing
+   a copy of the table never shows the Tj.t lines. */
+.vakt-tj {
+    display: none;
+    font-size: xx-small;
+    white-space: nowrap;
+}
+
+.vakt-tj span {
+    opacity: 0.75;
+}
+
+.vakt-velger-aktiv .vakt-tj {
+    display: flex;
+    justify-content: center;
+    gap: 0.4em;
+}
+
+.vakt-velger-aktiv td[data-vakt] {
+    cursor: pointer;
+}
+
+.vakt-velger-aktiv td[data-vakt]:hover {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+}
+
+/* Removed shifts show 450 instead. The shift's own text stays in the page, hidden,
+   because the colour and bed-icon scripts read it and a restore needs it.
+   They take the same colour as X, T and O. !important beats the shift colour
+   classes. */
+.vakt-450,
+.vakt-h {
+    display: none;
+    font-size: small;
+}
+
+td.vakt-fjernet,
+td.vakt-h-fri,
+tr.vakt-fjernet td[data-nokkel-cell],
+tr.vakt-h-fri td[data-nokkel-cell] {
+    background: var(--color-shift-day-off) !important;
+}
+
+td.vakt-fjernet .custom-text,
+td.vakt-fjernet .time-text,
+td.vakt-h-fri .custom-text,
+td.vakt-h-fri .time-text {
+    display: none;
+}
+
+td.vakt-fjernet .vakt-450,
+td.vakt-h-fri .vakt-h {
+    display: block;
+}
+
+.vakt-velger-aktiv td.vakt-h-fri .vakt-tj {
+    display: none;
+}
+
+/* In the nøkkel 450 and H are generated content, not text: the colour script
+   reads the cell's text, which has to stay the shift. */
+tr.vakt-fjernet .vakt-tekst,
+tr.vakt-h-fri .vakt-tekst {
+    display: none;
+}
+
+tr.vakt-fjernet td[data-nokkel-cell]::before {
+    content: "450";
+}
+
+tr.vakt-h-fri td[data-nokkel-cell]::before {
+    content: "H";
+}

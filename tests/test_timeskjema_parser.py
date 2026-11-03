@@ -115,6 +115,34 @@ class TestParseFixture:
         assert utland4["kl_timer"] == "209:42"
         assert utland4["tj_timer"] == "223:06"
 
+    def test_work_day_carries_its_own_tjt(self, osl01):
+        assert osl01[1][1]["tj_timer"] == "5:48"
+        assert osl01[5][6]["tj_timer"] == "13:38"
+
+    def test_free_and_blank_days_have_empty_tjt(self, osl01):
+        assert osl01[1][3]["tj_timer"] == ""  # X
+        assert osl01[2][2]["tj_timer"] == ""  # blank sleep-off
+
+    def test_tjt_follows_dagsverk_so_stored_files_only_gain_lines(self, osl01):
+        keys = list(osl01[1][1])
+        assert keys[keys.index("dagsverk") + 1] == "tj_timer"
+
+    def test_shifts_plus_sir_equal_the_total(self, osl01):
+        # Total 223:11 minus the 3:00 of SIR on the sum rows, read from the file.
+        minutes = 0
+        for uke in range(1, 7):
+            for dag in range(1, 8):
+                value = osl01[uke][dag]["tj_timer"]
+                if value:
+                    hours, mins = value.split(":")
+                    minutes += int(hours) * 60 + int(mins)
+        assert minutes == 220 * 60 + 11
+
+    def test_tjt_has_no_ampersand(self):
+        mutated = fixture_bytes().replace(b"\t5:48\t", b"\t5:48&\t", 1)
+        osl01 = next(iter(parse_timeskjema(mutated).turnuser[0].values()))
+        assert osl01[1][1]["tj_timer"] == "5:48"
+
     def test_midnight_end(self, utland4):
         day = utland4[1][3]
         assert day["tid"] == ["14:00", "0:00"]

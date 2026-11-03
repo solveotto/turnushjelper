@@ -67,6 +67,7 @@ def test_mintur_is_untouched(client, sample_user, active_set, notice_on, monkeyp
         "turnus_set": {"id": active_set.id, "year_identifier": "T26"},
         "available_sets": [{"id": active_set.id, "year_identifier": "T26"}],
         "groups": [], "template_found": False, "raw": {}, "dm": _FakeDm(),
+        "redusert": {"available": False, "fjernet": [], "utelatt": ""},
     }
     monkeypatch.setattr("app.routes.shifts.mintur._load_mintur_data",
                         lambda uid, turnus_set_id=None: fake)

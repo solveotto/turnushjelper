@@ -101,6 +101,7 @@ def patch_db(db_session, monkeypatch):
         "app.services.activity_service",
         "app.services.favorites_service",
         "app.services.turnus_service",
+        "app.services.redusert_stilling_service",
         # Route modules that open their own session instead of going through a
         # service. These bind `get_db_session` into their own namespace with
         # `from app.database import ...`, and create_app() imports them for the

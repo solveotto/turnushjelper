@@ -152,6 +152,7 @@ The weeks run **column-major**: each column, top to bottom, is six consecutive w
   duty-number join rule and the double-duty split were both found there, not
   by the tests.
 - **Never seed a real `year_identifier` in tests that delete a turnus set.** `admin.delete_turnus_set` calls `strekliste_generator.delete_all_images(version)`, which resolves through `AppConfig.turnusfiler_dir` — a test using `"R26"` deletes the committed 423 PNGs on every run, silently (they are gitignored, so `git status` stays clean). `tests/test_turnus_set_delete_guard.py` uses `FAKE_YEAR = "T99"` *and* an autouse fixture repointing `turnusfiler_dir` at `tmp_path`.
+- **Per-shift `tj_timer`** (the `.xls` `Tj.t` on each work cell, `""` on other days) is what the Min Tur reduced-position plan runs on; a set without it hides the feature. New imports get it from the parser. Sets imported earlier get it from `scripts/backfill_tj_timer.py --year RXX [--write]`, run per host, not from "Oppdater", which also rewrites the stats and can delete favorites and choices. The script has no database connection, is a dry run by default, refuses on any mismatch with the `.xls`, and keeps a `.bak-<timestamp>`. Guarded by `tests/test_tj_timer_backfill.py`.
 
 ### Rutetermin changeover
 
@@ -290,6 +291,8 @@ Schema changes always go through Alembic. After modifying `app/models.py`:
 1. `venv/bin/alembic revision --autogenerate -m "description"` — review the generated file before applying
 2. `venv/bin/alembic upgrade head`
 
+The models and the migrated schema have drifted apart, so autogenerate also proposes dropping indexes and altering columns on existing tables. Cut the generated file down to your own change.
+
 Tests use `Base.metadata.create_all()` directly and do not go through Alembic.
 
 ## Deploying
@@ -316,8 +319,13 @@ sudo systemctl restart turnushjelper      # a running worker never reloads chang
   to pass first, but that script arrived in the same pull. The order is
   **pull → check → `alembic upgrade`**; the pull touches no database state and
   running workers keep the old code in memory until restart.
-- Gitignored data files (`turnusdata/`, `instance/protected/`) never travel
-  with git — see `docs/guides/SERVER_RESTORE_GUIDE.md`.
+- Gitignored data files never travel with git — see
+  `docs/guides/SERVER_RESTORE_GUIDE.md`. That is all of `instance/protected/`,
+  plus the PDFs, PNGs and generated exports in `turnusdata/`. The `.xls`,
+  schedule, stats, double-shift and nøkkel files in `turnusdata/` are tracked.
+- Nothing under `turnusdata/` gets committed any more. A host whose data was
+  changed in place shows those files as modified, and `git pull` refuses to run
+  there if a commit touches them.
 
 ## Explicitly NOT problems (don't "fix" these)
 

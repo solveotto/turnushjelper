@@ -305,6 +305,7 @@ class TestMinturFollowsInnplassering:
             "available_sets": [{"id": 2, "year_identifier": "T27"},
                                {"id": 1, "year_identifier": "T26"}],
             "groups": [], "template_found": False, "raw": {}, "dm": _FakeDm(2),
+            "redusert": {"available": False, "fjernet": [], "utelatt": ""},
         }
 
     def test_route_passes_sett_and_renders_switch(self, client, monkeypatch, sample_user):
