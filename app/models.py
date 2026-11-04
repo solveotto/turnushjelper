@@ -106,7 +106,7 @@ class RedusertStilling(Base):
     shift_title     = Column(String(255), nullable=False)
     prosent         = Column(Float, nullable=True)
     fjernet         = Column(JSON, nullable=False, default=dict)  # {"3-2": "5003"}: uke-dag to duty number
-    h_dag_jobb      = Column(Integer, nullable=False, default=0)  # 1 = the driver works the tur's H-dag
+    h_dag_jobb      = Column(Integer, nullable=True)  # 1 = works the H-dag, 0 = doesn't, NULL = not chosen on Min Tur, so the søknadsskjema decides
     __table_args__ = (
         UniqueConstraint("user_id", "turnus_set_id", "shift_title",
                          name="uq_redusert_stilling"),

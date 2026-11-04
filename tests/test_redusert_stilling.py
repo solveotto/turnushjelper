@@ -168,7 +168,12 @@ class TestSummary:
 
     def test_status_over_the_target(self):
         result = service.summary(RAW, {"prosent": 80, "fjernet": {}})
-        assert result["status"] == "43:20 over målet"
+        assert result["status"] == "Gjenstående timer til 80 %: 43:20"
+
+    def test_status_writes_a_decimal_percentage_with_a_comma(self):
+        result = service.summary(RAW, {"prosent": 73.2, "fjernet": {}})
+        assert result["target"] == "164:42"
+        assert result["status"] == "Gjenstående timer til 73,2 %: 58:38"
 
     def test_status_under_the_target(self):
         cells = {"1-1": work("5003", "123:10")}
@@ -211,11 +216,25 @@ class TestSummary:
         raw = make_raw({"1-1": dict(work("5003", "8:46"), tj_timer="")})
         assert service.summary(raw, {"prosent": 80, "fjernet": {}})["under_varsel"] == ""
 
+    @pytest.mark.parametrize(
+        "valgt, skjema, jobb",
+        [(None, False, False), (None, True, True), (False, True, False), (True, False, True)],
+    )
+    def test_the_choice_on_min_tur_goes_before_the_form(self, valgt, skjema, jobb):
+        plan = {"prosent": None, "fjernet": {}, "h_dag_jobb": valgt}
+        assert service.summary(H_RAW, plan, h_dag_i_skjema=skjema)["h_dag_jobb"] is jobb
+
     def test_no_percentage_means_no_target(self):
         result = service.summary(RAW, {"prosent": None, "fjernet": {"1-1": "5003"}})
         assert result["target"] is None
-        assert result["status"] == ""
         assert result["remaining"] == "214:34"
+
+    def test_status_without_a_target_says_what_the_shifts_come_to(self):
+        result = service.summary(RAW, {"prosent": None, "fjernet": {"1-1": "5003"}})
+        assert result["status"] == "Tilsvarer 95,4 %"
+
+    def test_no_status_without_a_target_or_removals(self):
+        assert service.summary(RAW, {"prosent": None, "fjernet": {}})["status"] == ""
 
     def test_works_out_the_percentage_the_remaining_hours_come_to(self):
         result = service.summary(RAW, {"prosent": None, "fjernet": {"1-1": "5003"}})
@@ -441,7 +460,7 @@ class TestSetProsent:
         service.set_prosent(user.id, turnus_set.id, TITLE, 80)
         service.set_prosent(user.id, turnus_set.id, TITLE, None)
         plan = service.get_plan(user.id, turnus_set.id, TITLE)
-        assert plan == {"prosent": None, "fjernet": {"1-1": "5003"}, "h_dag_jobb": False}
+        assert plan == {"prosent": None, "fjernet": {"1-1": "5003"}, "h_dag_jobb": None}
 
     @pytest.mark.parametrize(
         "value", [0, 0.5, 100.5, -1, "80", True, math.nan, math.inf, [80]]
@@ -473,11 +492,11 @@ class TestPlanOwnership:
 
     def test_nullstill_removes_the_row(self, user, turnus_set, db_session):
         service.set_vakt(user.id, turnus_set.id, TITLE, RAW, "1-1", True)
-        assert service.nullstill(user.id, turnus_set.id, TITLE) == {"prosent": None, "fjernet": {}, "h_dag_jobb": False}
+        assert service.nullstill(user.id, turnus_set.id, TITLE) == {"prosent": None, "fjernet": {}, "h_dag_jobb": None}
         assert plan_rows(db_session) == []
 
     def test_no_plan_reads_as_empty(self, user, turnus_set):
-        assert service.get_plan(user.id, turnus_set.id, TITLE) == {"prosent": None, "fjernet": {}, "h_dag_jobb": False}
+        assert service.get_plan(user.id, turnus_set.id, TITLE) == {"prosent": None, "fjernet": {}, "h_dag_jobb": None}
 
 
 class TestCleanupPaths:
@@ -892,7 +911,7 @@ class TestHelgVarsel:
     def test_restoring_the_weekend_gives_the_old_choice_back(self, client, full_tur, turnus_set, db_session):
         forced = client.post(ROUTE, json={"sett": turnus_set.id, "vakt": "3-7", "fjernet": True}).get_json()
         assert forced["summary"]["h_dag_jobb"] is True
-        assert plan_rows(db_session)[0].h_dag_jobb == 0
+        assert plan_rows(db_session)[0].h_dag_jobb is None
         back = client.post(ROUTE, json={"sett": turnus_set.id, "vakt": "3-7", "fjernet": False}).get_json()
         assert back["summary"]["h_dag_jobb"] is False
         assert back["summary"]["helg_varsel"] is False
@@ -1011,9 +1030,73 @@ class TestHDag:
         assert self.post(client, turnus_set, h_dag_jobb=value).status_code == 400
         assert plan_rows(db_session) == []
 
-    def test_unticking_without_a_plan_saves_nothing(self, client, turnus_set, db_session):
+    def test_unticking_without_a_plan_is_saved(self, client, turnus_set, db_session):
         assert self.post(client, turnus_set, h_dag_jobb=False).status_code == 200
-        assert plan_rows(db_session) == []
+        assert plan_rows(db_session)[0].h_dag_jobb == 0
+
+    def mark_form(self, driver, turnus_set, db_session, title=TITLE, h_dag=1):
+        db_session.add(
+            SoknadsskjemaChoice(
+                user_id=driver.id, turnus_set_id=turnus_set.id, shift_title=title, h_dag=h_dag
+            )
+        )
+        db_session.commit()
+
+    def test_j_on_the_form_ticks_the_checkbox(self, client, driver, turnus_set, db_session):
+        self.mark_form(driver, turnus_set, db_session)
+        html = mintur(client)
+        assert "checked" in self.box(html)
+        assert "vakt-h-fri" not in self.cell(html).split(">")[0]
+
+    def test_blank_on_the_form_leaves_it_unticked(self, client, driver, turnus_set, db_session):
+        self.mark_form(driver, turnus_set, db_session, h_dag=0)
+        assert "checked" not in self.box(mintur(client))
+
+    def test_j_on_another_tur_does_not_count(self, client, driver, turnus_set, db_session):
+        self.mark_form(driver, turnus_set, db_session, title="OSL_02")
+        assert "checked" not in self.box(mintur(client))
+
+    def test_j_from_another_driver_does_not_count(self, client, driver, turnus_set, db_session):
+        other = DBUser(username="annen", email="annen@example.com", password="x", is_auth=0)
+        db_session.add(other)
+        db_session.commit()
+        self.mark_form(other, turnus_set, db_session)
+        assert "checked" not in self.box(mintur(client))
+
+    def test_j_on_the_form_puts_the_h_dag_in_the_calendar(self, client, driver, turnus_set, db_session):
+        without = event_dates(client)
+        self.mark_form(driver, turnus_set, db_session)
+        assert without < event_dates(client)
+
+    def test_the_driver_can_untick_what_the_form_ticks(self, client, driver, turnus_set, db_session):
+        self.mark_form(driver, turnus_set, db_session)
+        body = self.post(client, turnus_set, h_dag_jobb=False).get_json()
+        assert body["summary"]["h_dag_jobb"] is False
+        self.post(client, turnus_set, prosent=80)
+        assert "checked" not in self.box(mintur(client))
+
+    def test_unticking_never_changes_the_form(self, client, driver, turnus_set, db_session):
+        self.mark_form(driver, turnus_set, db_session)
+        self.post(client, turnus_set, h_dag_jobb=False)
+        db_session.expire_all()
+        assert db_session.query(SoknadsskjemaChoice).one().h_dag == 1
+
+    def test_a_plan_without_a_choice_keeps_following_the_form(self, client, driver, turnus_set, db_session):
+        self.post(client, turnus_set, vakt="1-1", fjernet=True)
+        assert "checked" not in self.box(mintur(client))
+        self.mark_form(driver, turnus_set, db_session)
+        assert "checked" in self.box(mintur(client))
+
+    def test_every_answer_uses_the_form(self, client, driver, turnus_set, db_session):
+        self.mark_form(driver, turnus_set, db_session)
+        body = self.post(client, turnus_set, prosent=80).get_json()
+        assert body["summary"]["h_dag_jobb"] is True
+
+    def test_nullstill_goes_back_to_the_form(self, client, driver, turnus_set, db_session):
+        self.mark_form(driver, turnus_set, db_session)
+        self.post(client, turnus_set, h_dag_jobb=False)
+        body = self.post(client, turnus_set, nullstill=True).get_json()
+        assert body["summary"]["h_dag_jobb"] is True
 
     def test_h_dag_cannot_be_removed_as_a_shift(self, client, turnus_set, db_session):
         assert self.post(client, turnus_set, vakt="6-5", fjernet=True).status_code == 400
@@ -1049,7 +1132,14 @@ class TestPage:
         assert "225:00" in html
         assert "180:00" in html
         assert "214:34" in html
-        assert "34:34 over målet" in html
+        assert "Gjenstående timer til 80 %: 34:34" in html
+        assert "over målet" not in html
+
+    def test_panel_explains_both_ways_with_clicking_first(self, client, driver):
+        html = mintur(client)
+        guide = html.index("klikk på vaktene du vil ta ut, så ser du hvilken stillingsprosent det blir")
+        other = html.index("Du kan også skrive inn ønsket stillingsprosent")
+        assert html.index('id="redusertPanel"') < guide < other < html.index('class="redusert-tall')
 
     def numbers_row(self, html):
         return re.search(r'<div class="redusert-tall[^"]*"', html).group(0)
@@ -1132,9 +1222,6 @@ class TestPage:
         assert "Redusert stilling" in before
         assert "%" in after
         assert "Stillingsprosent" not in html
-
-    def test_panel_says_the_printed_nokkel_shows_the_full_tur(self, client, driver):
-        assert "Utskrift av turnusnøkkel viser hele turen" in mintur(client)
 
     def test_removed_nokkel_row_is_marked(self, client, driver, turnus_set):
         self.remove(client, turnus_set, "1-1")

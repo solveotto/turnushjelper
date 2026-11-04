@@ -302,6 +302,8 @@
                                 </div>
                                 {% endif %}
                             </div>
+                            <div class="redusert-hjelp">Trykk <b>Velg vakter</b> og klikk på vaktene du vil ta ut, så ser du hvilken stillingsprosent det blir.</div>
+                            <div class="redusert-hjelp text-muted">Du kan også skrive inn ønsket stillingsprosent, så ser du hvor mange timer som gjenstår.</div>
                             <div class="redusert-tall{% if redusert.prosent is none and not redusert.fjernet %} d-none{% endif %}">
                                 <span class="redusert-mal{% if redusert.prosent is none %} d-none{% endif %}"><span class="text-muted">Totalt</span> <b data-redusert="total">{{ redusert.total }}</b></span>
                                 <span class="redusert-mal{% if redusert.prosent is none %} d-none{% endif %}"><span class="text-muted">Mål</span> <b data-redusert="target">{{ redusert.target or '–' }}</b></span>
@@ -315,7 +317,6 @@
                             </div>
                             {% endif %}
                             <div id="redusertFeil" class="text-danger small d-none" role="alert"></div>
-                            <div class="text-muted redusert-merknad">Utskrift av turnusnøkkel viser hele turen.</div>
                         </div>
                         {% endif %}
                     </li>

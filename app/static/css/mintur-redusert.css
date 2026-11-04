@@ -51,6 +51,10 @@
     font-size: inherit;
 }
 
+.redusert-hjelp {
+    margin-top: 0.25rem;
+}
+
 .redusert-tall {
     margin-top: 0.4rem;
 }
@@ -58,11 +62,6 @@
 .redusert-varsel {
     margin: 0.4rem 0 0;
     padding: 0.25rem 0.5rem;
-}
-
-.redusert-merknad {
-    margin-top: 0.25rem;
-    font-size: 0.72rem;
 }
 
 /* Selection mode. The class sits on a container outside the table, so printing

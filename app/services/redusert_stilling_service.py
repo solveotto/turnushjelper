@@ -7,7 +7,7 @@ re-import can't move a removal onto a shift the driver never chose.
 """
 
 from app.database import get_db_session
-from app.models import RedusertStilling
+from app.models import RedusertStilling, SoknadsskjemaChoice
 from app.utils.timeskjema_parser import _to_minutes
 from app.utils.turnus_diff import duty_id
 
@@ -24,14 +24,15 @@ WEEKEND_END_MINUTES = 6 * 60
 
 
 def _empty_plan():
-    return {"prosent": None, "fjernet": {}, "h_dag_jobb": False}
+    return {"prosent": None, "fjernet": {}, "h_dag_jobb": None}
 
 
 def _as_plan(row):
     return {
         "prosent": row.prosent,
         "fjernet": dict(row.fjernet or {}),
-        "h_dag_jobb": bool(row.h_dag_jobb),
+        # None until the driver chooses on Min Tur. Until then the søknadsskjema decides.
+        "h_dag_jobb": None if row.h_dag_jobb is None else bool(row.h_dag_jobb),
     }
 
 
@@ -90,12 +91,17 @@ def active_removals(raw, plan):
     ]
 
 
-def _status(remaining, target):
+def _format_prosent(prosent):
+    """As the page writes a percentage: "95,4"."""
+    return f"{prosent:g}".replace(".", ",")
+
+
+def _status(remaining, target, prosent, beregnet_prosent):
     if target is None:
-        return ""
+        return f"Tilsvarer {beregnet_prosent} %" if beregnet_prosent else ""
     difference = remaining - target
     if difference > 0:
-        return f"{_format(difference)} over målet"
+        return f"Gjenstående timer til {_format_prosent(prosent)} %: {_format(difference)}"
     if difference < 0:
         return f"{_format(-difference)} under målet"
     return "På målet"
@@ -132,15 +138,16 @@ def _works_every_second_weekend(cells, not_worked):
 
 
 def _beregnet_prosent(remaining):
-    """What the remaining hours come to, written as the field shows it: "95,4"."""
-    return f"{round(remaining / FULL_POSITION_MINUTES * 100, 1):g}".replace(".", ",")
+    """What the remaining hours come to, to one decimal."""
+    return _format_prosent(round(remaining / FULL_POSITION_MINUTES * 100, 1))
 
 
-def summary(raw, plan):
+def summary(raw, plan, h_dag_i_skjema=False):
     """The numbers and wording for the panel, shared by the page and the JSON
     response. ``target`` is None when the driver hasn't set a percentage.
     ``beregnet_prosent`` is only for display and is never saved, so it keeps
-    following the driver's clicks."""
+    following the driver's clicks. ``h_dag_i_skjema`` is the driver's søknadsskjema
+    answer, used until they choose on Min Tur."""
     if not has_per_shift_data(raw):
         return {
             "available": False,
@@ -167,7 +174,8 @@ def summary(raw, plan):
     # it's ticked for them. Worked out here rather than saved, so restoring the
     # weekend gives the driver's own choice back.
     helg_varsel = bool(h_dager) and not _works_every_second_weekend(cells, fjernet + h_dager)
-    h_dag_jobb = bool(plan.get("h_dag_jobb")) or helg_varsel
+    valgt = plan.get("h_dag_jobb")
+    h_dag_jobb = (h_dag_i_skjema if valgt is None else valgt) or helg_varsel
     h_fri = [] if h_dag_jobb else h_dager
     # The H-dag stays in these hours whether it's worked or not: NLF counts it as
     # 9 hours towards the target even when it's taken free.
@@ -176,10 +184,11 @@ def summary(raw, plan):
     )
     prosent = plan["prosent"]
     target = None if prosent is None else round(FULL_POSITION_MINUTES * prosent / 100)
+    beregnet_prosent = _beregnet_prosent(remaining) if fjernet else ""
     return {
         "available": True,
         "prosent": prosent,
-        "beregnet_prosent": _beregnet_prosent(remaining) if fjernet else "",
+        "beregnet_prosent": beregnet_prosent,
         "total": _format(FULL_POSITION_MINUTES),
         "target": None if target is None else _format(target),
         "remaining": _format(remaining),
@@ -193,7 +202,7 @@ def summary(raw, plan):
             if fjernet and remaining < LOWEST_POSITION_MINUTES
             else ""
         ),
-        "status": _status(remaining, target),
+        "status": _status(remaining, target, prosent, beregnet_prosent),
         "utelatt": _utelatt(len(fjernet) + len(h_fri)),
     }
 
@@ -305,14 +314,28 @@ def set_prosent(user_id, turnus_set_id, shift_title, prosent):
         db_session.close()
 
 
+def h_dag_i_skjema(user_id, turnus_set_id, shift_title):
+    """Whether the driver wrote J for this tur's H-dag on the søknadsskjema. Min
+    Tur only reads this and never changes the form."""
+    db_session = get_db_session()
+    try:
+        choice = (
+            db_session.query(SoknadsskjemaChoice)
+            .filter_by(user_id=user_id, turnus_set_id=turnus_set_id, shift_title=shift_title)
+            .first()
+        )
+        return bool(choice and choice.h_dag)
+    finally:
+        db_session.close()
+
+
 def set_h_dag_jobb(user_id, turnus_set_id, shift_title, jobb):
-    """Whether the driver works the H-dag. Not worked is the default."""
+    """Whether the driver works the H-dag. Saved either way, because unticking has
+    to outlast a J on the søknadsskjema."""
     db_session = get_db_session()
     try:
         row = _find_row(db_session, user_id, turnus_set_id, shift_title)
         if row is None:
-            if not jobb:
-                return _empty_plan()
             row = RedusertStilling(
                 user_id=user_id, turnus_set_id=turnus_set_id, shift_title=shift_title, fjernet={}
             )

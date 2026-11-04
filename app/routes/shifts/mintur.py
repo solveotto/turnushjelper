@@ -66,7 +66,9 @@ def _load_mintur_data(user_id: int, turnus_set_id: int | None = None) -> dict | 
         if redusert_stilling_service.has_per_shift_data(raw)
         else None
     )
-    redusert = redusert_stilling_service.summary(raw, plan)
+    redusert = redusert_stilling_service.summary(
+        raw, plan, redusert_stilling_service.h_dag_i_skjema(user_id, turnus_set_id, shift_title)
+    )
     fjernet = set(redusert["fjernet"])
     h_dager = set(redusert["h_dager"])
     h_fri = set(redusert["h_fri"])
@@ -281,7 +283,9 @@ def redusert_stilling():
         logger.exception("redusert_stilling failed for user %s", user_id)
         return jsonify(status="error", message="Kunne ikke lagre."), 500
 
-    result = redusert_stilling_service.summary(raw, plan)
+    result = redusert_stilling_service.summary(
+        raw, plan, redusert_stilling_service.h_dag_i_skjema(user_id, turnus_set_id, shift_title)
+    )
     return jsonify(status="success", fjernet=result["fjernet"], summary=result)
 
 
