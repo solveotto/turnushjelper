@@ -1,0 +1,6 @@
+{{ body }}
+
+---
+Du får denne e-posten fordi du har en konto på Turnushjelper.
+Har du spørsmål, kan du svare på denne e-posten.
+Meld deg av kunngjøringer: {{ unsubscribe_url }}

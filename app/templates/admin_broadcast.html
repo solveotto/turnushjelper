@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-broadcast.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-sm btn-outline-secondary mb-3">
+                <i class="bi bi-arrow-left"></i> Admin-panel
+            </a>
+            <h1 class="mb-1">E-post til brukere</h1>
+            <p class="text-muted">
+                Nå:
+                <strong id="recipient-count">{{ recipient_count }}</strong>
+                {{ "mottaker" if recipient_count == 1 else "mottakere" }}.
+                Bare kontoer som kan logge inn og har en ekte e-postadresse får e-posten,
+                og ikke de som har meldt seg av.
+            </p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% include "admin_broadcast_mode.html" %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Ny e-post</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.broadcast_create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label for="subject" class="form-label">Emne</label>
+                    <input type="text" class="form-control" id="subject" name="subject"
+                        maxlength="{{ max_subject }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="body" class="form-label">Tekst</label>
+                    <textarea class="form-control broadcast-body" id="body" name="body" rows="10"
+                        maxlength="{{ max_body }}" required></textarea>
+                    <div class="form-text">
+                        Ren tekst. Tomme linjer blir avsnitt, og nettadresser blir lenker.
+                        Lenke for å melde seg av legges til automatisk.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Lagre utkast
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Tidligere e-poster</h5>
+        </div>
+        {% if broadcasts %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Emne</th>
+                        <th>Status</th>
+                        <th>Sendt</th>
+                        <th>Av</th>
+                        <th>Når</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in broadcasts %}
+                    <tr>
+                        <td><a href="{{ url_for('admin.broadcast_detail', broadcast_id=b.id) }}">{{ b.subject }}</a></td>
+                        <td><span class="badge bg-{{ state_labels[b.state][1] }}">{{ state_labels[b.state][0] }}</span></td>
+                        <td>{% if b.total %}{{ b.sent }} av {{ b.total }}{% else %}–{% endif %}</td>
+                        <td>{{ b.sent_by or b.created_by or "–" }}</td>
+                        <td>{{ (b.started_at or b.created_at).strftime("%d.%m.%Y %H:%M") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body">
+            <p class="text-muted mb-0">Ingen e-poster ennå.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

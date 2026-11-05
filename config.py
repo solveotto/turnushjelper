@@ -56,6 +56,13 @@ class AppConfig:
     # Read at request time; edit .env and restart to change or remove it.
     TRANSITION_NOTICE = _env("TRANSITION_NOTICE", "")
 
+    # Who an admin email to all users may reach. Staging is a copy of production
+    # and holds real addresses, so this is off unless a host opts in.
+    # Empty: nobody, only test emails. Comma-separated addresses: only those
+    # (staging). "all": every eligible user (production only).
+    # Edit .env and restart to change it.
+    BROADCAST_RECIPIENTS = _env("BROADCAST_RECIPIENTS", "")
+
     # Optional message shown as a dismissible yellow banner above the
     # turnusliste. The page itself is unaffected. Edit .env and restart to
     # change or remove it; a changed text reappears for users who dismissed

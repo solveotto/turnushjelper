@@ -171,6 +171,35 @@ The weeks run **column-major**: each column, top to bottom, is six consecutive w
   Remove the line and restart when the new set is active. Guarded by
   `tests/test_transition_notice.py`.
 
+### Email to all users
+
+Admins write, test and send from `/admin/epost` (`app/routes/admin/broadcast.py`,
+`app/services/broadcast_email_service.py`). The send runs as its own process
+(`scripts/send_broadcast_email.py`, output in `app/logs/broadcast_email.log`), with
+its state in `broadcast_emails` and `broadcast_recipients`, so a poll may land on
+either worker and a stopped or killed send can carry on ("Fortsett").
+
+- **`BROADCAST_RECIPIENTS` in `.env` is off by default, because staging is a copy of
+  production and holds real addresses.** Empty sends only tests, a comma-separated
+  list sends only to those addresses (staging), and `all` sends to everyone
+  (production only). The job checks it too, not just the page.
+- **Recipients come from `eligible_users_query`, not `is_registered`**, which also
+  covers unverified accounts, drivers locked out as not on the NLF list and accounts
+  whose "email" is a username. Each recipient is checked again right before sending,
+  which is what honours an unsubscribe made during a send.
+- **Someone in flight when the process dies is never retried.** Their row is left in
+  `sending`, the next run marks it `unknown`, and a duplicate counts as the worse
+  mistake. Failed rows are retried on "Fortsett".
+- **The job has no Flask app context**, so `render_template` and `url_for` don't work
+  there. Templates go through the service's own jinja2 environment, and the request
+  passes `--base-url`.
+- **The unsubscribe link only opens a page, and its button posts.** Mail scanners
+  follow links, so a GET that unsubscribed would opt people out unasked.
+- Recipient rows hold no address and are deleted when a send ends. Only the counts
+  stay. `app/templates/personvern.html` describes this and names Mailgun.
+
+Guarded by `tests/test_broadcast_email.py`.
+
 ### Kompdager
 
 All logic lives in `app/utils/kompdag_utils.py`. A kompdag is generated when a rostered fridag falls on a helge-/høytidsdag (overenskomsten §5.13.1). Holiday dates are **computed** (fixed dates + Easter-offset formula in `_easter()`), never read from the Excel's red font (which is manually colored and incomplete) and never fetched externally. Counting rules (all user-confirmed):
@@ -319,6 +348,14 @@ sudo systemctl restart turnushjelper      # a running worker never reloads chang
   to pass first, but that script arrived in the same pull. The order is
   **pull → check → `alembic upgrade`**; the pull touches no database state and
   running workers keep the old code in memory until restart.
+- **Staging's 03:00 restore breaks staging while it is ahead on migrations.**
+  `scripts/backup/restore_from_offsite.py --yes` reloads production's dump, which
+  resets `users` and `alembic_version` but leaves tables production doesn't have.
+  `alembic upgrade head` then fails on a `create_table`, the script carries on, and a
+  new `users` column stays missing, so login breaks. (Read from the script on
+  2026-11-04, not yet seen on the host.) Comment out the cron before a migration
+  reaches staging ahead of production. Turn it back on once production has it and a
+  02:00 backup has run.
 - Gitignored data files never travel with git — see
   `docs/guides/SERVER_RESTORE_GUIDE.md`. That is all of `instance/protected/`,
   plus the PDFs, PNGs and generated exports in `turnusdata/`. The `.xls`,

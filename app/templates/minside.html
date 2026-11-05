@@ -192,11 +192,32 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted mb-0">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Flere brukerinnstillinger vil bli lagt til her i
-                        fremtiden.
-                    </p>
+                    <form
+                        method="POST"
+                        action="{{ url_for('minside.update_announcements') }}"
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        />
+                        <div class="form-check mb-3">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="announcements"
+                                name="announcements"
+                                {% if wants_announcements %}checked{% endif %}
+                            />
+                            <label class="form-check-label" for="announcements">
+                                Send meg e-post om viktige endringer og nye
+                                funksjoner i Turnushjelper
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary">
+                            Lagre
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

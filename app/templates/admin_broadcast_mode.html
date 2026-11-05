@@ -1,0 +1,17 @@
+{# What this server's BROADCAST_RECIPIENTS allows. Staging is a copy of production. #}
+{% if mode == "off" %}
+<div id="sending-mode" class="alert alert-warning">
+    <i class="bi bi-slash-circle me-1"></i>
+    Utsending er slått av på denne serveren. Du kan bare sende tester.
+</div>
+{% elif mode == "list" %}
+<div id="sending-mode" class="alert alert-info">
+    <i class="bi bi-funnel me-1"></i>
+    Denne serveren sender bare til: {{ addresses | join(", ") }}
+</div>
+{% else %}
+<div id="sending-mode" class="alert alert-primary">
+    <i class="bi bi-envelope me-1"></i>
+    Denne serveren sender til alle mottakere.
+</div>
+{% endif %}

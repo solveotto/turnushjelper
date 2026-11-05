@@ -7,6 +7,8 @@ from sqlalchemy import func
 
 from app.database import get_db_session
 from app.models import (
+    BroadcastEmail,
+    BroadcastRecipient,
     DBUser,
     EmailVerificationToken,
     Favorites,
@@ -386,6 +388,10 @@ def delete_user(user_id):
         db_session.query(Favorites).filter_by(user_id=user_id).delete()
         db_session.query(SoknadsskjemaChoice).filter_by(user_id=user_id).delete()
         db_session.query(RedusertStilling).filter_by(user_id=user_id).delete()
+        db_session.query(BroadcastRecipient).filter_by(user_id=user_id).delete()
+        # The history of what was sent stays, without saying who by.
+        db_session.query(BroadcastEmail).filter_by(created_by_id=user_id).update({"created_by_id": None})
+        db_session.query(BroadcastEmail).filter_by(sent_by_id=user_id).update({"sent_by_id": None})
         db_session.query(EmailVerificationToken).filter_by(user_id=user_id).delete()
         # UserActivity has ondelete='SET NULL', so delete these before the user
         # row, otherwise the rows are orphaned with user_id=NULL instead of removed.

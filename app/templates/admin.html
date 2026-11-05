@@ -130,6 +130,29 @@
             </div>
         </div>
 
+        <!-- E-post til brukere -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-envelope-fill fs-4 text-primary"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">E-post til brukere</h5>
+                            <small class="text-muted">Kunngjøringer</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Skriv en e-post, test den på deg selv og send den til alle brukere.
+                    </p>
+                    <a href="{{ url_for('admin.broadcast_index') }}" class="btn btn-outline-primary w-100 mt-auto">
+                        <i class="bi bi-envelope"></i> E-post til brukere
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- System -->
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 shadow-sm">

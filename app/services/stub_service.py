@@ -354,6 +354,7 @@ def reset_user_to_stub(user_id):
         user.is_stub = 1
         user.email_verified = 0
         user.is_auth = 0
+        user.announcements_opt_out = 0
         user.has_seen_turnusliste_tour = 0
 
         db_session.commit()

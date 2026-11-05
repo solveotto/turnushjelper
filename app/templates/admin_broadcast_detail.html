@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-broadcast.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set editable = broadcast.state in ("draft", "stopped") %}
+<div class="container mt-4 mb-5">
+    <div class="mb-4">
+        <a href="{{ url_for('admin.broadcast_index') }}" class="btn btn-sm btn-outline-secondary mb-3">
+            <i class="bi bi-arrow-left"></i> E-post til brukere
+        </a>
+        <h1 class="h3 mb-1">
+            {{ broadcast.subject }}
+            <span class="badge bg-{{ state_labels[broadcast.state][1] }}">{{ state_labels[broadcast.state][0] }}</span>
+        </h1>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% if editable %}
+    {% include "admin_broadcast_mode.html" %}
+    {% endif %}
+
+    {% if broadcast.state != "draft" %}
+    <div class="card shadow-sm mb-4" id="broadcast-status"
+        data-state="{{ broadcast.state }}"
+        data-status-url="{{ url_for('admin.broadcast_status', broadcast_id=broadcast.id) }}">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Utsending</h5>
+        </div>
+        <div class="card-body">
+            {% if broadcast.reason %}
+            <div class="alert alert-warning">{{ broadcast.reason }}</div>
+            {% endif %}
+
+            <dl class="row mb-3 broadcast-counts">
+                <dt class="col-6 col-sm-3">Mottakere</dt>
+                <dd class="col-6 col-sm-9" data-count="total">{{ broadcast.total }}</dd>
+                <dt class="col-6 col-sm-3">Sendt</dt>
+                <dd class="col-6 col-sm-9" data-count="sent">{{ broadcast.sent }}</dd>
+                <dt class="col-6 col-sm-3">Venter</dt>
+                <dd class="col-6 col-sm-9" data-count="remaining">{{ broadcast.remaining }}</dd>
+                <dt class="col-6 col-sm-3">Feilet</dt>
+                <dd class="col-6 col-sm-9" data-count="failed">{{ broadcast.failed }}</dd>
+                <dt class="col-6 col-sm-3">Hoppet over</dt>
+                <dd class="col-6 col-sm-9" data-count="skipped">{{ broadcast.skipped }}</dd>
+                <dt class="col-6 col-sm-3">Usikker</dt>
+                <dd class="col-6 col-sm-9" data-count="unknown">{{ broadcast.unknown }}</dd>
+            </dl>
+            <p class="text-muted small">
+                Sendt av {{ broadcast.sent_by or "slettet bruker" }}.
+                Hoppet over betyr at mottakeren meldte seg av eller mistet tilgangen underveis.
+                Usikker betyr at utsendingen ble avbrutt mens e-posten ble sendt, så den sendes ikke på nytt.
+            </p>
+
+            {% if broadcast.state == "sending" %}
+            <p class="text-muted small">Du kan forlate siden. Utsendingen fortsetter.</p>
+            <form method="POST" action="{{ url_for('admin.broadcast_stop', broadcast_id=broadcast.id) }}"
+                onsubmit="return confirm('Stoppe utsendingen før neste mottaker?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger" id="broadcast-stop"
+                    {% if broadcast.stop_requested %}disabled{% endif %}>
+                    <i class="bi bi-stop-circle"></i> Stopp
+                </button>
+            </form>
+            {% elif broadcast.state == "stopped" %}
+            <div class="d-flex flex-wrap gap-2">
+                {% if mode != "off" and broadcast.test_sent %}
+                <form method="POST" action="{{ url_for('admin.broadcast_send', broadcast_id=broadcast.id) }}"
+                    onsubmit="return confirm('Sende til alle som venter, og prøve de som feilet på nytt?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-play-circle"></i> Fortsett
+                    </button>
+                </form>
+                {% endif %}
+                <form method="POST" action="{{ url_for('admin.broadcast_close', broadcast_id=broadcast.id) }}"
+                    onsubmit="return confirm('Avslutte? De som ikke har fått e-posten, får den ikke.')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Avslutt
+                    </button>
+                </form>
+            </div>
+            {% if not broadcast.test_sent %}
+            <p class="text-muted small mt-2 mb-0">Teksten er endret. Send en ny test før du fortsetter.</p>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if editable %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Tekst</h5>
+        </div>
+        <div class="card-body">
+            {% if broadcast.state == "stopped" %}
+            <p class="text-muted small">
+                Den nye teksten går bare til dem som ikke har fått e-posten ennå.
+            </p>
+            {% endif %}
+            <form method="POST" action="{{ url_for('admin.broadcast_edit', broadcast_id=broadcast.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label for="subject" class="form-label">Emne</label>
+                    <input type="text" class="form-control" id="subject" name="subject"
+                        value="{{ broadcast.subject }}" maxlength="{{ max_subject }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="body" class="form-label">Tekst</label>
+                    <textarea class="form-control broadcast-body" id="body" name="body" rows="10"
+                        maxlength="{{ max_body }}" required>{{ broadcast.body }}</textarea>
+                    <div class="form-text">Når du lagrer, må du sende en ny test.</div>
+                </div>
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-save"></i> Lagre endringer
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Slik ser e-posten ut</h5>
+        </div>
+        <div class="card-body">
+            <iframe class="broadcast-preview" title="Forhåndsvisning av e-posten" sandbox srcdoc="{{ preview_html }}"></iframe>
+        </div>
+    </div>
+
+    {% if editable %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                Test
+                {% if broadcast.test_sent %}<span class="badge bg-success">Sendt</span>{% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small">
+                Send e-posten til deg selv først, og sjekk den i innboksen. Lenken for å melde seg
+                av i testen gjelder din egen konto.
+            </p>
+            <form method="POST" action="{{ url_for('admin.broadcast_test', broadcast_id=broadcast.id) }}"
+                class="row g-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-sm-8">
+                    <label for="address" class="visually-hidden">E-postadresse</label>
+                    <input type="email" class="form-control" id="address" name="address"
+                        value="{{ own_address }}" placeholder="din@epost.no" required>
+                </div>
+                <div class="col-sm-4 d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-send"></i> Send test
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if broadcast.state == "draft" %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Send</h5>
+        </div>
+        <div class="card-body">
+            {% if mode == "off" %}
+            <p class="text-muted mb-0">Utsending er slått av på denne serveren.</p>
+            {% elif not broadcast.test_sent %}
+            <p class="text-muted mb-0">Send en test av denne teksten først.</p>
+            {% else %}
+            <p>
+                Dette går til <strong>{{ recipient_count }}</strong>
+                {{ "mottaker" if recipient_count == 1 else "mottakere" }} og kan ikke angres.
+            </p>
+            <form method="POST" action="{{ url_for('admin.broadcast_send', broadcast_id=broadcast.id) }}"
+                class="row g-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-sm-8">
+                    <label for="confirm_count" class="form-label">Skriv antall mottakere for å bekrefte</label>
+                    <input type="text" inputmode="numeric" class="form-control" id="confirm_count"
+                        name="confirm_count" autocomplete="off" required>
+                </div>
+                <div class="col-sm-4 d-grid align-self-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-envelope-check"></i> Send til alle
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if broadcast.state == "sending" %}
+<script type="module" src="{{ url_for('static', filename='js/modules/broadcast-status.js') }}"></script>
+{% endif %}
+{% endblock %}

@@ -2,7 +2,7 @@ import bcrypt
 from datetime import datetime
 from flask_login import UserMixin
 from sqlalchemy import (
-    JSON, Column, Float, Integer, String, DateTime, LargeBinary, UniqueConstraint, func, ForeignKey, Index,
+    JSON, Column, Float, Integer, String, Text, DateTime, LargeBinary, UniqueConstraint, func, ForeignKey, Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,6 +37,7 @@ class DBUser(Base):
     fodt_dato = Column(String(20), nullable=True)  # stored as DD.MM.YYYY string
     seniority_nr = Column(Integer, nullable=True)
     not_on_nlf_list = Column(Integer, nullable=True, default=0)
+    announcements_opt_out: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
 
 class EmailVerificationToken(Base):
@@ -110,6 +111,42 @@ class RedusertStilling(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "turnus_set_id", "shift_title",
                          name="uq_redusert_stilling"),
+    )
+
+
+class BroadcastEmail(Base):
+    """An email from an admin to all users, from draft to finished send."""
+    __tablename__ = "broadcast_emails"
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    subject        = Column(String(200), nullable=False)
+    body           = Column(Text, nullable=False)
+    state          = Column(String(20), nullable=False, default="draft")  # draft, sending, stopped, done, closed
+    stop_requested = Column(Integer, nullable=False, default=0)
+    stop_reason    = Column(String(255), nullable=True)
+    test_sent_at   = Column(DateTime, nullable=True)
+    created_by_id  = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    created_at     = Column(DateTime, nullable=False, default=datetime.now)
+    sent_by_id     = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    started_at     = Column(DateTime, nullable=True)
+    finished_at    = Column(DateTime, nullable=True)
+    total_count    = Column(Integer, nullable=False, default=0)
+    sent_count     = Column(Integer, nullable=False, default=0)
+    failed_count   = Column(Integer, nullable=False, default=0)
+    skipped_count  = Column(Integer, nullable=False, default=0)
+    unknown_count  = Column(Integer, nullable=False, default=0)
+
+
+class BroadcastRecipient(Base):
+    """One user's place in a send. Holds no address, and exists only while the
+    send can still be resumed."""
+    __tablename__ = "broadcast_recipients"
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    broadcast_id = Column(Integer, ForeignKey('broadcast_emails.id', ondelete='CASCADE'), nullable=False)
+    user_id      = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    state        = Column(String(20), nullable=False, default="pending")  # pending, sending, sent, failed, skipped, unknown
+    __table_args__ = (
+        UniqueConstraint("broadcast_id", "user_id", name="uq_broadcast_recipient"),
+        Index("ix_broadcast_recipient_state", "broadcast_id", "state"),
     )
 
 
