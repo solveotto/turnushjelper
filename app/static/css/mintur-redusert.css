@@ -1,6 +1,30 @@
 /* Redusert stilling on Min Tur: the panel, selection mode and removed shifts. */
 
+/* Seven equal day columns: an invisible shift time in each day header sets the
+   width. It is the longest a time can be, and the padding covers the 2px border on
+   double-duty cells, so no cell needs more. Text rather than a px width because
+   the Turnusliste table this should match is 100px wider in some fonts than others.
+   Screen only, so it can't push a printed table past the page. */
+@media screen {
+    .mintur-tabell th:not(:first-child)::after {
+        content: "00:00 - 00:00";
+        display: block;
+        height: 0;
+        padding-inline: 1px;
+        white-space: nowrap;
+        visibility: hidden;
+        font-size: small;
+        font-weight: 400;
+    }
+}
+
+/* width: 0 keeps the panel out of the column's width calculation and min-width: 100%
+   then fills the column (same trick as .dagsverk-link in tables.css). The column
+   shrinks to its widest content and the table fills it, so otherwise a long line of
+   text here stretches the table. */
 .redusert-panel {
+    width: 0;
+    min-width: 100%;
     margin-top: 0.5rem;
     padding: 0.5rem 0.6rem;
     border: 1px solid var(--color-primary);

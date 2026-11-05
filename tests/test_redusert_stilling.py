@@ -1264,6 +1264,25 @@ class TestPage:
     def test_removed_nokkel_cell_shows_450(self):
         assert 'content: "450"' in css_rule("tr.vakt-fjernet td[data-nokkel-cell]::before")
 
+    def test_panel_text_cannot_widen_the_table(self):
+        # The column shrinks to its widest content and the table fills the column,
+        # so a long help line in the panel used to stretch the table.
+        rule = css_rule(".redusert-panel")
+        assert "width: 0" in rule
+        assert "min-width: 100%" in rule
+
+    def test_day_columns_share_one_width(self, client, driver):
+        sizer = css_rule(".mintur-tabell th:not(:first-child)::after")
+        assert 'content: "00:00 - 00:00"' in sizer
+        assert "visibility: hidden" in sizer
+        # It wraps on a phone otherwise, and stops setting the width.
+        assert "white-space: nowrap" in sizer
+        html = mintur(client)
+        assert '<table class="mintur-tabell">' in html
+        # A footer cell in a single day column would force that column wider.
+        footer = re.search(r"<tfoot>.*?</tfoot>", html, re.S).group(0)
+        assert re.findall(r'colspan="(\d+)"', footer) == ["4", "2", "2"]
+
     def test_removed_shifts_are_no_longer_gray(self):
         assert "#e5e7eb" not in open(REDUSERT_CSS, encoding="utf-8").read()
 
